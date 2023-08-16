@@ -232,7 +232,7 @@ def draw_panel_content(context, layout):
         box.label(text='Project Resources')
         op = box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
         #op.dae_file_counter = bpy.context.scene.hpl_parser.dae_file_count
-        #box.prop(props, 'HPL_create_preview')
+        box.prop(props, 'hpl_create_preview')
         col = layout.column(align=True)
         box = col.box()
         #pbox.enabled = is_valid_game_root

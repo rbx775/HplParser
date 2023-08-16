@@ -2,7 +2,7 @@ import bpy, os
 from glob import glob
 from . import hpl_config
 
-class hpl_OT_DAEEXPORTER(bpy.types.Operator):
+class HPL_OT_DAEEXPORTER(bpy.types.Operator):
     
     bl_idname = "hpl.daeexporter"
     bl_label = "Write dae files"

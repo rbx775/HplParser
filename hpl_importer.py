@@ -144,8 +144,8 @@ def hpl_import_assets(op):
                     if col.asset_data: #check if collection is marked as an asset
                         with bpy.context.temp_override(id=col): #What are all the params?
                             bpy.ops.ed.lib_id_generate_preview()
-                            id.preview_ensure()
-                    time.sleep(0.5) #TODO: Wait only once, and not for every single asset.
+                            #id.preview_ensure()
+                        time.sleep(0.2) #TODO: Wait only once, and not for every single asset.
 
             blend_save_path = assetlib_path + asset_category + '.blend'
             bpy.ops.wm.save_mainfile(filepath = blend_save_path, check_existing=False)
