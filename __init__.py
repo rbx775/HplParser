@@ -215,14 +215,6 @@ def draw_panel_content(context, layout):
     box.label(text='Game Settings')
     box.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
 
-    #TODO: Do not check every ui draw, rather move to get/setter
-    #if bpy.context.scene.hpl_parser.hpl_game_root_path:
-    #gr = bpy.context.scene.hpl_parser.hpl_game_root_path
-    #if 'AmnesiaTheBunker.exe' in bpy.context.scene.hpl_parser.hpl_game_root_path:
-    #print(gr)
-    #is_valid_game_root = os.path.isPath(bpy.context.scene.hpl_parser.hpl_game_root_path)
-    #print(bpy.context.scene.hpl_parser.hpl_game_root_path)
-    #is_valid_game_root = check_for_game_exe()
     if bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
         row = layout.row()
         #row.scale_y = 2

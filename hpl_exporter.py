@@ -1,6 +1,8 @@
 import bpy, os
 from glob import glob
 from . import hpl_config
+from . import hpl_property_reader
+from . import hpl_material
 
 class HPL_OT_DAEEXPORTER(bpy.types.Operator):
     
@@ -16,6 +18,7 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
+        #hpl_property_reader.hpl_porperties.get_material_vars()
         hpl_export_objects()
         return {'FINISHED'}
 

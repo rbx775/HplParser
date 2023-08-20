@@ -6,8 +6,10 @@ class hpl_porperties():
 
     def get_entity_vars(ent):
 
+        root = bpy.context.scene.hpl_parser.hpl_game_root_path
+
         entity_type = 'Prop_Grab' #TODO: get *.ent file class of selected object.
-        def_file_path = bpy.context.scene.hpl_parser.hpl_game_root_path + 'editor\\userclasses\\' + hpl_config.hpl_properties['entities']
+        def_file_path = root + hpl_config.hpl_properties['entities']
         #def_file_path = 'F:\\SteamLibrary\\steamapps\\common\\Amnesia The Bunker\\editor\\userclasses\\EntityClasses.def'
         def_file = ""
 
@@ -37,3 +39,17 @@ class hpl_porperties():
                             #base_class(i.tag, i.attrib)
         derived_class.update(derived_class)
         return derived_class
+    
+    def get_material_vars(mat_file):
+        if mat_file:
+            tree = xtree.parse(mat_file).getroot()
+            mat_data = {}
+
+            for c in hpl_config.hpl_mat_containers:
+                data_tree = tree.find(f'{c}')
+                for data in data_tree.iter():
+                    if data.attrib:
+                        mat_data[data.tag] = data.attrib
+            return mat_data
+        else:
+            return None
