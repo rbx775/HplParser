@@ -29,18 +29,15 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
 
 def hpl_export_objects():
     #Eventhough we are working with context overrides \
-    # we need the seection for the DAE Exporter
+    # we need the selection for the DAE Exporter
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
     root = bpy.context.scene.hpl_parser.hpl_project_root_col
 
-    #if root is not None:
     selection = bpy.context.selected_ids
-    #selected_collections = [sel for sel in selection if sel.rna_type.name == 'Collection']
 
     root_children = bpy.data.collections[root].children
     ent_collections = [col for col in root_children]
-    print(ent_collections)
 
     entities = [ent.objects for ent in ent_collections]
 

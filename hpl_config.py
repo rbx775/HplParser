@@ -11,6 +11,11 @@ hpl_sub_folders = {'config' : 'config', 'entities' : 'entities', 'particles' : '
 
 hpl_asset_filetypes = {'geometry' : '.dae', 'material' : '.mat', 'entity' : '.ent'}
 
+#TODO: rename prefixes to cfg instead of hpl. Create new hpl_environments.py and use env as prefix for global variables.
+hpl_asset_material_files = {}
+hpl_asset_entity_files = {}
+hpl_asset_categories_dict = {}
+
 hpl_properties = {'entities' : 'editor\\userclasses\\EntityClasses.def'}
 
 hpl_datacounter = {'HPMTOTALVERTCOUNT' : 0, 'HPMTOTALFACECORNERCOUNT' : 0, \
@@ -24,4 +29,4 @@ hpl_texture_types = {'Diffuse':'Diffuse','NMap':'Normal Map','Specular':'Specula
 
 hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariables':'ShaderValues'}
 
-hpl_asset_categories_dict = {}
+hpl_dae_containers = {'library_images':'library_images','image':'image','init_from':'init_from'}

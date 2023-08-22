@@ -1,18 +1,20 @@
-## Hpl Parser
+# Hpl Parser
  Blender to HPL3 Engine Parser for Mod Creation.
+ > [!NOTE]
+> ❤️ Frictional Games
 
-# Supported Blender Versions
+## Supported Blender Versions
 - [x] 3.6+
 - [x] 4.0+
 
-# Supported Games
+## Supported Games
 - [x] Amnesia The Bunker
 - [x] Amnesia Rebirth
 - [ ] Soma
 
-# Known issues
+## Known issues
 
-# Planned Features
+## Planned Features
 1. Usability
    - Asset Thumbnails
      - Creation
@@ -23,7 +25,3 @@
 1. Soma Integration
 
 [Click Here](https://github.com/rbx775/HplParser/issues) to report bugs or request features.
-
-
-> [!NOTE]
-> ❤️ Frictional Games

@@ -57,20 +57,38 @@ def hpl_import_assets(op):
     #TODO: SAVE FILE PROMPT BEFORE EXECUTION!
     error_list = []
     hpl_config.hpl_asset_categories_dict = {}
+    hpl_config.hpl_asset_material_files = {}
+    hpl_config.hpl_asset_entity_files = {}
     dae_files_subfolders = []
 
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    if root is not None:
+    if root:
+        #Meshes often use materials across sub folders.
+        #Its necessary to collect them globally and use some heuristic to determine pairing later.
+        for filename in glob(f'{root}/**/*.mat', recursive=True):
+            filename = filename.replace('\\', '/')
+            f = filename.rsplit('/')[-1][:-4]
+            hpl_config.hpl_asset_material_files[f] = filename
+        for filename in glob(f'{root}/**/*.ent', recursive=True):
+            filename = filename.replace('\\', '/')
+            f = filename.rsplit('/')[-1][:-4]
+            hpl_config.hpl_asset_entity_files[f] = filename
+
         dae_files_subfolders = pre_scan_for_dae_files(root)
         dae_valid_sub_folders = set(dae_files_subfolders) - set(hpl_config.hpl_exclude_import_subfolders.keys())
         for subpath in dae_valid_sub_folders:
             assets_dict = {}
             for filename in glob(f'{root+subpath}/**/*.dae', recursive=True):
                 filetypes_dict = {}
-                for filetype in list(hpl_config.hpl_asset_filetypes.keys()):
-                    filetypes_dict[filetype] = filename[:-4]+hpl_config.hpl_asset_filetypes[filetype]
+                for filetype in hpl_config.hpl_asset_filetypes:
+                    filetypes_dict[filetype] = filename[:-4]+hpl_config.hpl_asset_filetypes[filetype] if filetype == 'geometry' else None
                 assets_dict[filename.split('\\')[-1].split('.')[0]] = filetypes_dict.copy()
             hpl_config.hpl_asset_categories_dict[subpath] = assets_dict.copy()
+            for asset in hpl_config.hpl_asset_categories_dict[subpath]:
+                dae_file = hpl_config.hpl_asset_categories_dict[subpath][asset]['geometry']
+                hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
+
+
 
         assetlib_name = root.split("\\")[-2]
         assetlib_path = os.path.dirname(__file__)+'\\'+assetlib_name+'\\'
@@ -90,26 +108,26 @@ def hpl_import_assets(op):
             hpl_catalogue_io.append_catalogue(assetlib_path, catalogue_name)
 
         #Too many assets for one file(3000+). splitting up by subfolders avoids crashes.
-        for asset_category in list(hpl_config.hpl_asset_categories_dict): 
+        for asset_category in hpl_config.hpl_asset_categories_dict:
             reset_blend() #TODO: bpy.ops.wm.read_homefile(use_factory_startup=True, use_empty=True) via persistent handlers might be cleaner.
 
             max_count = 0
             for asset in hpl_config.hpl_asset_categories_dict[asset_category]:
-                if max_count > 14:
-                    continue
+                if max_count > 54:
+                    pass
                 max_count = max_count+1
-                
-                if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['material']):
-                    mat_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['material']
-                    #mat_file = 'F:\\SteamLibrary\\steamapps\\common\\Amnesia The Bunker\\static_objects\\bunker\\cave\\cave_muddy_tunnel.mat'
-                    hpl_property_reader.hpl_porperties.get_material_vars(mat_file)
-                if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']):
-                    ent_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']
-                #break
+
                 bpy.ops.object.select_all(action='DESELECT')
                 scene_objs = set(bpy.context.scene.objects)
-                
                 dae_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['geometry']
+
+                mat_path = hpl_config.hpl_asset_categories_dict[asset_category][asset]['material']
+                if mat_path:
+                    if not os.path.isfile(mat_path):
+                        hpl_config.hpl_asset_categories_dict[asset_category][asset]['material'] = mat_path
+
+                #if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']):
+                #    ent_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']
                 #mat_file = asset_categories_dict[asset_category][asset]['material']
 
                 try: #\entities\cistern\gameplay\oil_flask_ottoman\oil_flask_ottoman.dae & entities\cistern\storage\chained_closet\chained_closet.dae crash the dae importer
@@ -153,7 +171,7 @@ def hpl_import_assets(op):
                         with bpy.context.temp_override(id=col): #TODO: Check C++ for params
                             bpy.ops.ed.lib_id_generate_preview()
                             #id.preview_ensure()
-                        time.sleep(0.2) #TODO: Wait only once, and not for every single asset.
+                        #time.sleep(0.2) #TODO: Wait only once, and not for every single asset.
 
             #material Creation
             hpl_material.HPL_MATERIAL.hpl_purge_materials()

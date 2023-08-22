@@ -1,4 +1,5 @@
 import bpy
+import fnmatch
 import xml.etree.ElementTree as xtree
 from . import hpl_config
 
@@ -35,8 +36,7 @@ class hpl_porperties():
                     if hpl_config.hpl_xml_typevars in e.tag:
                         e=e[0]
                         for i in e:
-                            print(i.tag, i.attrib)
-                            #base_class(i.tag, i.attrib)
+                            pass
         derived_class.update(derived_class)
         return derived_class
     
@@ -53,3 +53,60 @@ class hpl_porperties():
             return mat_data
         else:
             return None
+        
+    def get_material_file_from_dae(dae_file):
+
+        root = bpy.context.scene.hpl_parser.hpl_game_root_path
+        def check_for_mat_tags(dae_file):    
+            with open(dae_file, 'r', encoding='ascii') as fobj:
+                fl = False
+                #TODO: proper xml parser ?
+                #io reading the file for a few lines is somehow more reliable than ElementTree.
+                for i in range(0,49):
+                    xml_line = fobj.readline()
+                    if '<image id=' in xml_line:
+                        fl = True
+                    if fl:
+                        if '<init_from>' in xml_line:
+                            return xml_line
+                        else:
+                            fl = False
+            return None
+        
+        def step_through_chars(xml_line, mat):
+            skip_x = False
+            score = 0
+            fscore = 0
+            for x in xml_line:
+                if score > fscore:
+                    fscore = score
+                if skip_x:
+                    skip_x = False
+                    continue
+                for m in mat:
+                    if x == m:
+                        score = score + 1
+                        skip_x = True
+                        continue
+                    else:
+                        score = 0
+            return fscore
+        
+        if dae_file:
+            xml_line = check_for_mat_tags(dae_file)
+            if xml_line:
+                if '.' in xml_line:
+                    xml_line = xml_line.rsplit('.')[0]
+                xml_line = xml_line.rsplit('\\')[-1]
+                xml_line = xml_line.rsplit('/')[-1]
+                
+                score = 0
+                final_score = 0
+                mat_name = None
+                for mat in hpl_config.hpl_asset_material_files:
+                    if mat in xml_line:
+                        score = abs(len(set(mat) - set(xml_line))-len(xml_line))
+                        if score > final_score:
+                            final_score = score
+                            mat_name = hpl_config.hpl_asset_material_files[mat]
+                return mat_name

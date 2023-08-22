@@ -310,8 +310,6 @@ class HPL_PT_CREATE(bpy.types.Panel):
     def asset_library_listener(context):
         
         new_obj = set(context.scene.objects)
-        print("Load Handler:", new_obj)
-        #print("Load Handler:", dir(dummy.cxr_data))
 
     bpy.app.handlers.depsgraph_update_post.append(asset_library_listener(bpy.context))
     '''
