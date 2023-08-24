@@ -1,6 +1,6 @@
 import bpy, os
 from . import hpl_config
-from . import hpl_property_reader
+from . import hpl_property_io
 
 class HPL_MATERIAL():
 
@@ -100,7 +100,7 @@ class HPL_MATERIAL():
             #mat_file = None
             #if os.path.isfile(hpl_config.hpl_asset_categories_dict[category][col.name]['material']):
             mat_file = hpl_config.hpl_asset_categories_dict[category][col.name]['material']
-            mat_vars = hpl_property_reader.hpl_porperties.get_material_vars(mat_file)
+            mat_vars = hpl_property_io.hpl_porperties.get_material_vars(mat_file)
             mat = create_material(col.name)
 
             #print(mat_file)

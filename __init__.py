@@ -19,7 +19,7 @@ from glob import glob
 import os
 
 from . import hpl_config
-from . import hpl_property_reader
+from . import hpl_property_io
 from . import hpl_importer
 from .hpm_exporter import (HPM_OT_EXPORTER)
 from .hpl_exporter import (HPL_OT_DAEEXPORTER)

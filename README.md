@@ -3,12 +3,12 @@
 
 > [!NOTE]
 >### Supported Blender Versions
->- [x] 3.6+
->- [x] 4.0+
+> [x] 3.6+
+> [x] 4.0+
 >
 >### Supported Games
->- [x] Amnesia The Bunker
->- [x] Amnesia Rebirth
+> [x] Amnesia The Bunker
+> [x] Amnesia Rebirth
 
 ### Known Issues
 1. Crash when generating asset thumbnails

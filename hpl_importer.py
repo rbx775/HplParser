@@ -5,7 +5,7 @@ from bpy.types import Context, Event
 from . import hpl_config
 from . import hpl_catalogue_io
 from . import hpl_material
-from . import hpl_property_reader
+from . import hpl_property_io
 
 class HPL_OT_ASSETIMPORTER(bpy.types.Operator):
 
@@ -87,7 +87,7 @@ def hpl_import_assets(op):
             for asset in hpl_config.hpl_asset_categories_dict[subpath]:
                 dae_file = hpl_config.hpl_asset_categories_dict[subpath][asset]['geometry']
                 #hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
-                mat_file_heuristic = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
+                mat_file_heuristic = hpl_property_io.hpl_porperties.get_material_file_from_dae(dae_file)
 
                 mat_path = hpl_config.hpl_asset_categories_dict[subpath][asset]['material']
                 if mat_path:

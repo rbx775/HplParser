@@ -3,7 +3,7 @@ import os
 import math
 from glob import glob
 from . import hpl_config
-from . import hpl_property_reader
+from . import hpl_property_io
 from . import hpl_material
 
 class HPL_OT_DAEEXPORTER(bpy.types.Operator):
