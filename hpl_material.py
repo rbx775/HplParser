@@ -17,16 +17,16 @@ class HPL_MATERIAL():
         
         for i in image_info:
             image_name = image_info[i].split('.')[0].split('\\')[-1]
-            def check_for_image(i):
-                for img in bpy.data.images: #TODO: List comprehension pls
+
+            def check_for_image():
+                for img in bpy.data.images: #TODO: List comprehension
                     if image_name == img.name:
                         return True
-                return None
+                return False
             
-            if not check_for_image(i):
-                bpy.data.images.load(image_info[i], check_existing=True)
-                #bpy.ops.image.open(filepath = image_info[i])
-
+            if check_for_image():
+                if os.path.isfile(image_info[i]):
+                    bpy.data.images.load(image_info[i], check_existing=True)
 
     def hpl_create_shader_for_mat(links, nodes, mat_vars, mat_file):
 
@@ -48,14 +48,11 @@ class HPL_MATERIAL():
             for ii in imported_images_:
                 for mv in mat_vars:
                     if ii == mv:
-                        if '/' in mat_vars[mv]['File']:
-                            image_info[imported_images_[mv]] = root+mat_vars[mv]['File']
-                        else:
-                            image_info[imported_images_[mv]] = mat_file.rsplit('\\', 1)[0]+'\\'+mat_vars[mv]['File']
+                        image_info[imported_images_[mv]] = mat_file.rsplit('\\', 1)[0]+'\\'+mat_vars[mv]['File'].rsplit('/', 1)[-1] #TODO: fix, is faulty
             return image_info
         image_info = get_texture_path_from_mat() if mat_vars else None
 
-        if mat_vars:
+        if image_info:
             HPL_MATERIAL.hpl_load_images(image_info)
 
         def create_nodes(node, prev_node, pos, tex_node):
@@ -69,7 +66,9 @@ class HPL_MATERIAL():
                     prev_node = nodes['Principled BSDF']
                     links.new(n.outputs[images_link_dict[tex_node]['output']], prev_node.inputs[images_link_dict[tex_node]['input']]) 
                     if image_info:
-                        n.image = bpy.data.images.get(image_info[tex_node].split('.')[0].split('\\')[-1]) 
+                        if tex_node in image_info:
+                            #print(image_info[tex_node].rsplit('\\')[-1])
+                            n.image = bpy.data.images.get(image_info[tex_node].rsplit('\\')[-1]) 
             return n
 
         prev_node = None
@@ -103,6 +102,9 @@ class HPL_MATERIAL():
             mat_file = hpl_config.hpl_asset_categories_dict[category][col.name]['material']
             mat_vars = hpl_property_reader.hpl_porperties.get_material_vars(mat_file)
             mat = create_material(col.name)
+
+            #print(mat_file)
+            #print(mat_vars)
 
             HPL_MATERIAL.hpl_create_shader_for_mat(mat.node_tree.links, mat.node_tree.nodes, mat_vars, mat_file)
 

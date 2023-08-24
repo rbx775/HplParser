@@ -1,5 +1,7 @@
 #---HPM PARSER CONFIG
 
+hpl_map_collection_identifier = 'Maps'
+
 hpl_unit_factor = 45
 
 hpl_xml_typevars = 'TypeVars'

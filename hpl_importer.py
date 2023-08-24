@@ -81,14 +81,21 @@ def hpl_import_assets(op):
             for filename in glob(f'{root+subpath}/**/*.dae', recursive=True):
                 filetypes_dict = {}
                 for filetype in hpl_config.hpl_asset_filetypes:
-                    filetypes_dict[filetype] = filename[:-4]+hpl_config.hpl_asset_filetypes[filetype] if filetype == 'geometry' else None
+                    filetypes_dict[filetype] = filename[:-4]+hpl_config.hpl_asset_filetypes[filetype] #if filetype == 'geometry' else None
                 assets_dict[filename.split('\\')[-1].split('.')[0]] = filetypes_dict.copy()
             hpl_config.hpl_asset_categories_dict[subpath] = assets_dict.copy()
             for asset in hpl_config.hpl_asset_categories_dict[subpath]:
                 dae_file = hpl_config.hpl_asset_categories_dict[subpath][asset]['geometry']
-                hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
+                #hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
+                mat_file_heuristic = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
 
+                mat_path = hpl_config.hpl_asset_categories_dict[subpath][asset]['material']
+                if mat_path:
+                    if not os.path.isfile(mat_path):
+                        hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = mat_file_heuristic
 
+                #print('MESH: ',dae_file)
+                #print('MATERIAL: ',hpl_config.hpl_asset_categories_dict[subpath][asset]['material'])
 
         assetlib_name = root.split("\\")[-2]
         assetlib_path = os.path.dirname(__file__)+'\\'+assetlib_name+'\\'
@@ -113,7 +120,7 @@ def hpl_import_assets(op):
 
             max_count = 0
             for asset in hpl_config.hpl_asset_categories_dict[asset_category]:
-                if max_count > 54:
+                if max_count > 14:
                     pass
                 max_count = max_count+1
 
@@ -121,11 +128,7 @@ def hpl_import_assets(op):
                 scene_objs = set(bpy.context.scene.objects)
                 dae_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['geometry']
 
-                mat_path = hpl_config.hpl_asset_categories_dict[asset_category][asset]['material']
-                if mat_path:
-                    if not os.path.isfile(mat_path):
-                        hpl_config.hpl_asset_categories_dict[asset_category][asset]['material'] = mat_path
-
+ 
                 #if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']):
                 #    ent_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']
                 #mat_file = asset_categories_dict[asset_category][asset]['material']

@@ -1,4 +1,5 @@
 import bpy
+import os
 import fnmatch
 import xml.etree.ElementTree as xtree
 from . import hpl_config
@@ -73,6 +74,7 @@ class hpl_porperties():
                             fl = False
             return None
         
+        #alternative heuristic to determine mesh:mat pairs
         def step_through_chars(xml_line, mat):
             skip_x = False
             score = 0
@@ -93,13 +95,23 @@ class hpl_porperties():
             return fscore
         
         if dae_file:
+            
             xml_line = check_for_mat_tags(dae_file)
             if xml_line:
+
                 if '.' in xml_line:
                     xml_line = xml_line.rsplit('.')[0]
                 xml_line = xml_line.rsplit('\\')[-1]
                 xml_line = xml_line.rsplit('/')[-1]
                 
+                #check if *.mat is in *.daes subfolder beforehand
+                path_length = len(dae_file.rsplit('\\')[-1])
+                mat_path = dae_file[:-path_length] + xml_line + '.mat'
+                if mat_path:
+                    if not os.path.isfile(mat_path):
+                        return mat_path
+                
+                #heuristic to check for across-subfolder *.dae - *.mat references
                 score = 0
                 final_score = 0
                 mat_name = None
