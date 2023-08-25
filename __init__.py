@@ -90,6 +90,7 @@ def get_hpl_project_root_col(self):
 
 def set_hpl_project_root_col(self, value):
     self['hpl_project_root_col'] = value
+    hpl_property_io.hpl_porperties.get_properties_from_entity_classes('Prop_Grab')
     return
     
 def getBackgroundBlur(self):
@@ -283,6 +284,22 @@ def draw_panel_content(context, layout):
                     var_ui_name = var[0][4:].replace('_',' ').title()
                     singleRow = box.row(align=True)
                     singleRow.prop(coll, f'["{var[0]}"]', icon_only=True, text=var_ui_name, expand=False)
+
+    def initialize_editor_vars():
+        obj = bpy.context.active_object
+        for var in hpl_porperties.var_list:
+            var_value = var['DefaultValue']
+            var_type = var['Type'].lower()
+
+            if var_type == 'vec3':
+                var_type = 'tuple'
+                var_value = (0.0,0.0,0.0)
+            
+            if var_type == 'bool':
+                if var_value == 'false':
+                    var_value = None
+
+            obj['hpl_'+var['Name']] = eval(var_type)(var_value)
 
 
 class HPL_PT_CREATE(bpy.types.Panel):

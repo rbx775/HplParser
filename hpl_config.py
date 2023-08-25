@@ -30,3 +30,5 @@ hpl_texture_types = {'Diffuse':'Diffuse','NMap':'Normal Map','Specular':'Specula
 hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariables':'ShaderValues'}
 
 hpl_dae_containers = {'library_images':'library_images','image':'image','init_from':'init_from'}
+
+hpl_def_sub_path = '\\editor\\userclasses\\EntityClasses.def'

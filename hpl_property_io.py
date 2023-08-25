@@ -1,10 +1,48 @@
 import bpy
 import os
 import fnmatch
+from mathutils import Vector
 import xml.etree.ElementTree as xtree
 from . import hpl_config
 
+
+
 class hpl_porperties():
+
+    var_list = []
+    def traverse_tree(tree, found_class, key_tag, key_attrib):
+        #print(found_class)
+        #found_tag = None 
+        for t in tree:
+            if hpl_porperties.var_list:
+                break
+            #print('t.attrib: ',t.attrib)
+            #print('VARLIST_Start: ',True if hpl_porperties.var_list else False)
+            if key_tag in t.attrib:            
+                if not found_class:
+                    #print('if found_class: ',t.attrib)
+                    if next(iter(key_attrib)) in t.attrib[key_tag]:
+                        #print('found_attrib: ',t.attrib)
+                        found_class = t.attrib
+                        #print('found_class: ',found_class)
+                        key_attrib = key_attrib[next(iter(key_attrib))]
+                        #traverse_tree(t, t.attrib, key_tag, key_attrib[next(iter(key_attrib))])        
+                else:
+                    if key_attrib in t.attrib[key_tag]:
+                        #if found_class:   
+                        #if key_tag in t.attrib:
+                            #key_attrib_ = t.attrib
+                        #var_list = []
+                        for i in t:
+                            hpl_porperties.var_list.append(i.attrib)
+                        #return t.attrib
+                        #print('CLASS: ',found_class)
+                        #print('VARLIST: ',hpl_porperties.var_list)
+                        #print('VARLIST_Populated: ',True if hpl_porperties.var_list else False)
+            #if not found_class:
+            #print('loop: ',t.tag, t.attrib)
+            hpl_porperties.traverse_tree(t, found_class, key_tag, key_attrib)
+
 
     def get_entity_vars(ent):
 
@@ -12,9 +50,8 @@ class hpl_porperties():
 
         entity_type = 'Prop_Grab' #TODO: get *.ent file class of selected object.
         def_file_path = root + hpl_config.hpl_properties['entities']
-        #def_file_path = 'F:\\SteamLibrary\\steamapps\\common\\Amnesia The Bunker\\editor\\userclasses\\EntityClasses.def'
-        def_file = ""
 
+        def_file = ""
         with open(def_file_path, 'rt', encoding='ascii') as fobj:
             def_file = fobj.read()
 
@@ -95,7 +132,6 @@ class hpl_porperties():
             return fscore
         
         if dae_file:
-            
             xml_line = check_for_mat_tags(dae_file)
             if xml_line:
 
@@ -122,3 +158,33 @@ class hpl_porperties():
                             final_score = score
                             mat_name = hpl_config.hpl_asset_material_files[mat]
                 return mat_name
+            
+    def get_properties_from_entity_classes(ent):
+        
+        entity_vars = {}
+        root = bpy.context.scene.hpl_parser.hpl_game_root_path
+        def_file_path = root + hpl_config.hpl_def_sub_path
+        prop = 'Prop_Grab'
+
+        def_file = ""
+        with open(def_file_path, 'r') as def_f:
+            def_file = def_f.read()
+        #print(def_file)
+
+        #TODO: build xml handler that ignores quotation segments
+        def_file = def_file.replace('&', '')
+        def_file = def_file.replace(' < ', '')
+        def_file = def_file.replace(' > ', '')
+
+        if def_file_path:
+            xml_root = xtree.fromstring(def_file)
+            hpl_porperties.traverse_tree(xml_root, None, 'Name', {'Prop_Grab':'Grab'})
+
+            return hpl_porperties.var_list
+            #for i in xml_root.findall('.//'+prop+'/'):
+            #    print(i.tag)
+
+            #tree = xtree.fromstring(def_file)
+        else:
+            return None
+        

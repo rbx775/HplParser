@@ -1,14 +1,13 @@
 ## HPL Parser
- Blender to HPL3 Engine Parser for Mod Creation. ❤️ Frictional Games
+Blender to HPL3 Engine Parser for Mod Creation. ❤️ Frictional Games
 
-> [!NOTE]
->### Supported Blender Versions
-> [x] 3.6+
-> [x] 4.0+
->
->### Supported Games
-> [x] Amnesia The Bunker
-> [x] Amnesia Rebirth
+### Supported Blender Versions
+- [x] 3.6+
+- [x] 4.0+
+
+### Supported Games
+- [x] Amnesia The Bunker
+- [x] Amnesia Rebirth
 
 ### Known Issues
 1. Crash when generating asset thumbnails
