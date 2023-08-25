@@ -67,7 +67,6 @@ class HPL_MATERIAL():
                     links.new(n.outputs[images_link_dict[tex_node]['output']], prev_node.inputs[images_link_dict[tex_node]['input']]) 
                     if image_info:
                         if tex_node in image_info:
-                            #print(image_info[tex_node].rsplit('\\')[-1])
                             n.image = bpy.data.images.get(image_info[tex_node].rsplit('\\')[-1]) 
             return n
 
@@ -100,11 +99,8 @@ class HPL_MATERIAL():
             #mat_file = None
             #if os.path.isfile(hpl_config.hpl_asset_categories_dict[category][col.name]['material']):
             mat_file = hpl_config.hpl_asset_categories_dict[category][col.name]['material']
-            mat_vars = hpl_property_io.hpl_porperties.get_material_vars(mat_file)
+            mat_vars = hpl_property_io.hpl_properties.get_material_vars(mat_file)
             mat = create_material(col.name)
-
-            #print(mat_file)
-            #print(mat_vars)
 
             HPL_MATERIAL.hpl_create_shader_for_mat(mat.node_tree.links, mat.node_tree.nodes, mat_vars, mat_file)
 

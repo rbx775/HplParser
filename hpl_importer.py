@@ -86,16 +86,13 @@ def hpl_import_assets(op):
             hpl_config.hpl_asset_categories_dict[subpath] = assets_dict.copy()
             for asset in hpl_config.hpl_asset_categories_dict[subpath]:
                 dae_file = hpl_config.hpl_asset_categories_dict[subpath][asset]['geometry']
-                #hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = hpl_property_reader.hpl_porperties.get_material_file_from_dae(dae_file)
-                mat_file_heuristic = hpl_property_io.hpl_porperties.get_material_file_from_dae(dae_file)
+                #hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = hpl_property_reader.hpl_properties.get_material_file_from_dae(dae_file)
+                mat_file_heuristic = hpl_property_io.hpl_properties.get_material_file_from_dae(dae_file)
 
                 mat_path = hpl_config.hpl_asset_categories_dict[subpath][asset]['material']
                 if mat_path:
                     if not os.path.isfile(mat_path):
                         hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = mat_file_heuristic
-
-                #print('MESH: ',dae_file)
-                #print('MATERIAL: ',hpl_config.hpl_asset_categories_dict[subpath][asset]['material'])
 
         assetlib_name = root.split("\\")[-2]
         assetlib_path = os.path.dirname(__file__)+'\\'+assetlib_name+'\\'

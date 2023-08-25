@@ -40,7 +40,6 @@ bl_info = {
 def get_hpl_game_root_path(self):
     try:
         value = self['hpl_game_root_path']
-        #bpy.context.scene.hpl_parser.hpl_is_game_root_valid = True
     except:
         value = ''
     return value
@@ -81,6 +80,17 @@ def setSkinGeneratorExclusive(self, value):
     self['skinGeneratorExclusive'] = value
     return
 
+def get_hpl_base_classes_enum(self): 
+    try:
+        value = self['hpl_base_classes_enum']
+    except:
+        value = 0
+    return value
+
+def set_hpl_base_classes_enum(self, value):
+    self['hpl_base_classes_enum'] = value
+    return
+
 def get_hpl_project_root_col(self):
     try:
         value = self['hpl_project_root_col']
@@ -90,7 +100,6 @@ def get_hpl_project_root_col(self):
 
 def set_hpl_project_root_col(self, value):
     self['hpl_project_root_col'] = value
-    hpl_property_io.hpl_porperties.get_properties_from_entity_classes('Prop_Grab')
     return
     
 def getBackgroundBlur(self):
@@ -128,9 +137,7 @@ class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     def update_hpl_game_root_path(self, context):
         filename = glob(self['hpl_game_root_path']+'*.exe')
-        #if any(filename == self['hpl_game_root_path'].split("\\")[-2].replace(' ','')):
         bpy.context.scene.hpl_parser.hpl_is_game_root_valid = any(filename)
-        #bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
     
     hpl_game_root_path: bpy.props.StringProperty(name="game path",
                                         description='Select the game path were the games *.exe is located',
@@ -160,20 +167,38 @@ class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
     
     def update_hpl_project_root_col(self, context):
         data = []
-        fdata = "ProjectRoot", "ProjectRoot", ""
         for collection in bpy.context.scene.collection.children:
-                #for obj in collection.all_objects:
             fdata = (collection.name,collection.name,'')
             data.append(fdata)
         return data
     
-    
     hpl_project_root_col: bpy.props.EnumProperty(
+        name='Project Name',
         options={'LIBRARY_EDITABLE'},
-        description='Should be the name of your Amnesia mod. All map collection go in here',
+        description='Should be the name of your Amnesia mod. All map collections go in here',
         items=update_hpl_project_root_col,
         get=get_hpl_project_root_col, 
         set=set_hpl_project_root_col,
+    )
+
+    
+    def update_hpl_base_classes_enum(self, context):
+        if not hpl_property_io.hpl_properties.baseclass_list:
+            hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
+        data = []
+        for name in hpl_property_io.hpl_properties.baseclass_list:
+                #for obj in collection.all_objects:
+            fdata = (name,name,'')
+            data.append(fdata)
+        return data
+
+    hpl_base_classes_enum: bpy.props.EnumProperty(
+        name='Entity Types',
+        options={'LIBRARY_EDITABLE'},
+        description='Prop types for hpl entities',
+        items=update_hpl_base_classes_enum,
+        get=get_hpl_base_classes_enum, 
+        set=set_hpl_base_classes_enum,
     )
     
 
@@ -237,29 +262,14 @@ def draw_panel_content(context, layout):
 
 
         op = box.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
-        #op.dae_file_coounter = bpy.context.scene.hpl_parser.dae_file_count
-        #box.operator(bpy.ops.hpl.daeexporter('EXEC_DEFAULT', root= get_hpl_project_root_col))
-        #box.prop(props, 'skinGeneratorExclusive')
-        #box.separator()
-    
-        #row = layout.row()
-        #box = col.box()
-        #row = layout.row()
-        '''
-        
-        row.prop(props, "settings",
-            icon="TRIA_DOWN" if props.settings else "TRIA_RIGHT",
-            icon_only=True, emboss=False
-        )
-        
-        row.label(text="Settings")
-        if props.settings:
-        
-            row = layout.row()
-            box = col.box()
-            row.prop(props, 'backgroundBlur') 
-            row.prop(props, 'badgeColorAL')
-        '''
+
+        col = layout.column(align=True)
+        box = col.box()
+        box.label(text='Collection Settings')
+        singleRow = box.row(align=True)
+        #pbox.enabled = is_valid_game_root
+        singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+
     obj = context.object
     coll = context.view_layer.active_layer_collection.collection
 
@@ -287,7 +297,7 @@ def draw_panel_content(context, layout):
 
     def initialize_editor_vars():
         obj = bpy.context.active_object
-        for var in hpl_porperties.var_list:
+        for var in hpl_property_io.hpl_properties.var_list:
             var_value = var['DefaultValue']
             var_type = var['Type'].lower()
 
@@ -314,7 +324,6 @@ class HPL_PT_CREATE(bpy.types.Panel):
         return True
     
     def execute(self, context, event): #INIT UI
-
         pass
     
     def invoke(self, context, event):
