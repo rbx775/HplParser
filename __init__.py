@@ -37,7 +37,22 @@ bl_info = {
 	"category": "Object"
 }
 
-def get_hpl_game_root_path(self):
+coll_id = []
+
+
+def get_hpl_selected_collection(self): 
+    try:
+        value = self['hpl_selected_collection']
+    except:
+        value = 0
+    return value
+
+def set_hpl_selected_collection(self, value):
+    self['hpl_selected_collection'] = value
+    return
+
+
+def get_hpl_game_root_path(self): 
     try:
         value = self['hpl_game_root_path']
     except:
@@ -57,29 +72,6 @@ def set_hpl_game_root_path(self, value):
             bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
     return
 
-
-def getPerforceName(self):
-    try:
-        value = self['perforceName']
-    except:
-        value = 'Default'
-    return value
-    
-def setPerforceName(self, value):
-    self['perforceName'] = value
-    return
-
-def getSkinGeneratorExclusive(self):
-    try:
-        value = self['skinGeneratorExclusive']
-    except:
-        value = False
-    return value
-    
-def setSkinGeneratorExclusive(self, value):
-    self['skinGeneratorExclusive'] = value
-    return
-
 def get_hpl_base_classes_enum(self): 
     try:
         value = self['hpl_base_classes_enum']
@@ -89,6 +81,8 @@ def get_hpl_base_classes_enum(self):
 
 def set_hpl_base_classes_enum(self, value):
     self['hpl_base_classes_enum'] = value
+    hpl_property_io.hpl_properties.get_properties_from_entity_classes({'Prop_Grab':'Grab'})
+    hpl_property_io.hpl_properties.initialize_editor_vars(bpy.data.collections['Suzanne'])
     return
 
 def get_hpl_project_root_col(self):
@@ -135,6 +129,10 @@ class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
     settings : bpy.props.BoolProperty(default=True)
     hpl_is_game_root_valid : bpy.props.BoolProperty(default=False)
 
+    hpl_selected_collection: bpy.props.StringProperty(name="selected object",                               
+                                        get=get_hpl_selected_collection, 
+                                        set=set_hpl_selected_collection)
+    
     def update_hpl_game_root_path(self, context):
         filename = glob(self['hpl_game_root_path']+'*.exe')
         bpy.context.scene.hpl_parser.hpl_is_game_root_valid = any(filename)
@@ -147,19 +145,6 @@ class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
                                         get=get_hpl_game_root_path, 
                                         set=set_hpl_game_root_path,
                                         update=update_hpl_game_root_path)
-
-    perforceUserName: bpy.props.StringProperty(name="Perforce Username",
-                                        description="Some elaborate description",
-                                        default="",
-                                        subtype="FILE_NAME",
-                                        get=getPerforceName, 
-                                        set=setPerforceName)
-
-    skinGeneratorExclusive: bpy.props.BoolProperty(name="Exclude from Base Generation",
-                                        description="Exclude this skin from the Base NFT List generation.\nTo make it only available in the overrides menu for unique Skins",
-                                        default=False,
-                                        get=getSkinGeneratorExclusive, 
-                                        set=setSkinGeneratorExclusive)
     
     hpl_create_preview: bpy.props.BoolProperty(name="Create Asset Thumbnails",
                                         description="Renders preview Images for every asset, very slow. Can take up to two hours",
@@ -187,7 +172,6 @@ class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
             hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
         data = []
         for name in hpl_property_io.hpl_properties.baseclass_list:
-                #for obj in collection.all_objects:
             fdata = (name,name,'')
             data.append(fdata)
         return data
@@ -259,57 +243,73 @@ def draw_panel_content(context, layout):
         singleRow = box.row(align=True)
         split = singleRow.split(factor=1, align=True)
         singleRow.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
-
-
         op = box.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
 
+    def get_outliner_selection_name():
+        if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
+            for window in context.window_manager.windows:
+                screen = window.screen
+                for area in screen.areas:
+                    if area.type == 'OUTLINER':
+                        with context.temp_override(window=window, area=area):
+                            objects_in_selection = {}
+                            if context.selected_ids:
+                                item = context.selected_ids[0]
+                            
+                                if item.bl_rna.identifier == "Collection":
+                                    objects_in_selection.setdefault("Collections",[]).append(item)
+                                if item.bl_rna.identifier == "Object":
+                                    objects_in_selection.setdefault("Objects",[]).append(item)
+                                '''
+                                if item.type == 'MESH':
+                                    objects_in_selection.setdefault("Meshes",[]).append(item)
+                                if item.type == 'LIGHT':
+                                    objects_in_selection.setdefault("Lights",[]).append(item)
+                                if item.type == 'CAMERA':
+                                    objects_in_selection.setdefault("Cameras",[]).append(item)
+                                if item.bl_rna.identifier == "Material":
+                                    objects_in_selection.setdefault("Materials",[]).append(item)
+                                '''
+                                
+                                c = objects_in_selection.get("Collections")
+                                o = objects_in_selection.get("Objects")
+                                
+                                if c:
+                                    return c[0], None
+                                
+                                if o:
+                                    if o[0].instance_collection:
+                                        return o[0].instance_collection, o[0]
+        return None, None
+    
+    coll_id = get_outliner_selection_name()
+
+    def is_selection_instance():
+        if coll_id[0]:
+            if coll_id[1]:
+                if bpy.context.active_object == coll_id[1]:
+                    return True
+            else:
+                return True
+        else:
+            return False
+
+    if is_selection_instance():
         col = layout.column(align=True)
         box = col.box()
-        box.label(text='Collection Settings')
+        box.separator()
+        box.label(text=f'{coll_id[0].name}') # TODO: Get sub type from *.ent Entity Properties
         singleRow = box.row(align=True)
         #pbox.enabled = is_valid_game_root
+        #singleRow = singleRow.split(factor=0.4, align=False)
         singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-
-    obj = context.object
-    coll = context.view_layer.active_layer_collection.collection
-
-    if obj and bpy.context.selected_objects:
-        if any('hpl_' in var[0] for var in obj.items()):
-            col = layout.column(align=True)
-            box = col.box()
-            box.label(text='Object Entity Properties') # TODO: Get sub type from *.ent
-            for var in obj.items():
+        if any('hpl_' in var[0] for var in bpy.data.collections[coll_id[0].name].items()):
+            for var in bpy.data.collections[coll_id[0].name].items():
                 if 'hpl_' in var[0]:
                     var_ui_name = var[0][4:].replace('_',' ').title()
-                    singleRow = box.row(align=True)
-                    singleRow.prop(obj, f'["{var[0]}"]', icon_only=True, text=var_ui_name, expand=False)
-
-    if coll and not bpy.context.selected_objects:
-        if any('hpl_' in var[0] for var in coll.items()):
-            col = layout.column(align=True)
-            box = col.box()
-            box.label(text='Collection Entity Properties') # TODO: Get sub type from *.ent
-            for var in coll.items():
-                if 'hpl_' in var[0]:
-                    var_ui_name = var[0][4:].replace('_',' ').title()
-                    singleRow = box.row(align=True)
-                    singleRow.prop(coll, f'["{var[0]}"]', icon_only=True, text=var_ui_name, expand=False)
-
-    def initialize_editor_vars():
-        obj = bpy.context.active_object
-        for var in hpl_property_io.hpl_properties.var_list:
-            var_value = var['DefaultValue']
-            var_type = var['Type'].lower()
-
-            if var_type == 'vec3':
-                var_type = 'tuple'
-                var_value = (0.0,0.0,0.0)
-            
-            if var_type == 'bool':
-                if var_value == 'false':
-                    var_value = None
-
-            obj['hpl_'+var['Name']] = eval(var_type)(var_value)
+                    singleRow = box.row(align=False)
+                    singleRow.prop(bpy.data.collections[coll_id[0].name], f'["{var[0]}"]', \
+                                   icon_only=True, text=var_ui_name, expand=False, text_ctxt='hi')
 
 
 class HPL_PT_CREATE(bpy.types.Panel):

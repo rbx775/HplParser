@@ -5,8 +5,6 @@ from mathutils import Vector
 import xml.etree.ElementTree as xtree
 from . import hpl_config
 
-
-
 class hpl_properties():
 
     var_list = []
@@ -88,7 +86,7 @@ class hpl_properties():
             with open(dae_file, 'r', encoding='ascii') as fobj:
                 fl = False
                 #TODO: proper xml parser ?
-                #io reading the file for a few lines is somehow more reliable than ElementTree.
+                #io reading the file for a few lines is somehow more reliable than ElementTree. Or I suck at ElementTree
                 for i in range(0,49):
                     xml_line = fobj.readline()
                     if '<image id=' in xml_line:
@@ -170,7 +168,7 @@ class hpl_properties():
 
         if def_file:
             xml_root = xtree.fromstring(def_file)
-            hpl_properties.traverse_tree(xml_root, None, 'Name', {'Prop_Grab':'Grab'})
+            hpl_properties.traverse_tree(xml_root, None, 'Name', ent)
             return hpl_properties.var_list
         else:
             return None
@@ -184,3 +182,27 @@ class hpl_properties():
             return hpl_properties.baseclass_list
         else:
             return None
+        
+    def initialize_editor_vars(ent):
+        print(hpl_properties.var_list)
+        print(ent)
+        for var in hpl_properties.var_list:
+            var_value = var['DefaultValue']
+            var_type = var['Type'].lower()
+
+            if var_type == 'vec3':
+                var_type = 'tuple'
+                var_value = (0.0,0.0,0.0)
+            
+            if var_type == 'bool':
+                if var_value == 'false':
+                    var_value = None
+            variable = 'hpl_'+var['Name']
+            ent[variable] = eval(var_type)(var_value)
+
+            id_props = ent.id_properties_ui(variable)
+            if 'Max' in var:
+                id_props.update(min=var['Min'],max=var['Max'])
+            if 'Description' in var:
+                id_props.update(description=var['Description'])
+            ent.property_overridable_library_set(f'["{variable}"]', True)
