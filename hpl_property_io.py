@@ -6,30 +6,12 @@ import xml.etree.ElementTree as xtree
 from . import hpl_config
 
 class hpl_properties():
-
-    var_list = []
-    baseclass_list = []
-
-    def traverse_tree(tree, found_class, key_tag, key_attrib):
-        for t in tree:
-            if hpl_properties.var_list:
-                break
-            if key_tag in t.attrib:            
-                if not found_class:
-                    if next(iter(key_attrib)) in t.attrib[key_tag]:
-                        found_class = t.attrib
-                        key_attrib = key_attrib[next(iter(key_attrib))]
-                else:
-                    if key_attrib in t.attrib[key_tag]:
-                        for i in t:
-                            hpl_properties.var_list.append(i.attrib)
-            hpl_properties.traverse_tree(t, found_class, key_tag, key_attrib)
-
-    def traverse_tree_headers(tree, key_tag):
-        for t in tree:
-            if key_tag in t.tag:
-                for i in t:
-                    hpl_properties.baseclass_list.append(i.attrib['Name'])
+            
+    def traverse_tree_headers(xml_tree, key_tag):
+        for tree in xml_tree:
+            if key_tag in tree.tag:
+                for i in tree:
+                    hpl_properties.entity_baseclass_list.append(i.attrib['Name'])
 
     def get_entity_vars(ent):
 
@@ -161,17 +143,21 @@ class hpl_properties():
             def_file = def_file.replace(' > ', '')
 
             return def_file
-        return None
-            
-    def get_properties_from_entity_classes(ent):
-        def_file = hpl_properties.load_def_file()
+        return ''
 
-        if def_file:
-            xml_root = xtree.fromstring(def_file)
-            hpl_properties.traverse_tree(xml_root, None, 'Name', ent)
-            return hpl_properties.var_list
-        else:
-            return None
+    entity_baseclass_list = []
+    entity_prop_dict = {}
+    def get_leveleditor_properties_from_entity_classes(id, group_type):
+        entity_type = {'General':'TypeVars/Group', 'Entity':'InstanceVars/Group'}
+        tree = xtree.fromstring(hpl_properties.load_def_file())
+
+        ent_classes = tree.findall('Classes/Class')
+        for ent_class in ent_classes:
+            if id == ent_class.attrib['Name']:
+                hpl_properties.entity_prop_dict['Inherits'] = ent_class.attrib
+                sub_classes = ent_class.findall(entity_type[group_type])
+                for sub_class in sub_classes:
+                    hpl_properties.entity_prop_dict['Data'] = list(t.attrib for t in sub_class.iter("Var"))
         
     def get_base_classes_from_entity_classes():
         def_file = hpl_properties.load_def_file()
@@ -179,30 +165,45 @@ class hpl_properties():
         if def_file:
             xml_root = xtree.fromstring(def_file)
             hpl_properties.traverse_tree_headers(xml_root, 'Class')
-            return hpl_properties.baseclass_list
+            return hpl_properties.entity_baseclass_list
         else:
             return None
         
     def initialize_editor_vars(ent):
-        print(hpl_properties.var_list)
-        print(ent)
-        for var in hpl_properties.var_list:
-            var_value = var['DefaultValue']
-            var_type = var['Type'].lower()
 
-            if var_type == 'vec3':
-                var_type = 'tuple'
-                var_value = (0.0,0.0,0.0)
-            
-            if var_type == 'bool':
-                if var_value == 'false':
-                    var_value = None
-            variable = 'hpl_'+var['Name']
-            ent[variable] = eval(var_type)(var_value)
+        delete_vars = []
+        for var in ent.items():
+            print('DEL:',var[0])
+            if 'hpl_' in var[0]:
+                delete_vars.append(var[0])
 
-            id_props = ent.id_properties_ui(variable)
-            if 'Max' in var:
-                id_props.update(min=var['Min'],max=var['Max'])
-            if 'Description' in var:
-                id_props.update(description=var['Description'])
-            ent.property_overridable_library_set(f'["{variable}"]', True)
+        for var in delete_vars:
+            del ent[var]
+
+        if hpl_properties.entity_prop_dict:
+            for var in hpl_properties.entity_prop_dict['Data']:
+                var_value = var['DefaultValue']
+                var_type = var['Type'].lower()
+
+                if var_type == 'vec3':
+                    var_type = 'tuple'
+                    var_value = (0.0,0.0,0.0)
+
+                if var_type == 'bool':
+                    if var_value == 'false':
+                        var_value = None
+
+                variable = 'hpl_'+var['Name']
+
+                if var_type == 'string':
+                    ent[variable] = ''
+                else:
+                    ent[variable] = eval(var_type)(var_value)
+                
+                id_props = ent.id_properties_ui(variable)
+                if 'Max' in var:
+                    id_props.update(min=var['Min'],max=var['Max'])
+                if 'Description' in var:
+                    id_props.update(description=var['Description'])
+
+                ent.property_overridable_library_set(f'["{variable}"]', True)

@@ -17,6 +17,7 @@ from bpy.app.handlers import persistent
 import bpy.utils.previews
 from glob import glob
 import os
+import re
 
 from . import hpl_config
 from . import hpl_property_io
@@ -81,7 +82,7 @@ def get_hpl_base_classes_enum(self):
 
 def set_hpl_base_classes_enum(self, value):
     self['hpl_base_classes_enum'] = value
-    hpl_property_io.hpl_properties.get_properties_from_entity_classes({'Prop_Grab':'Grab'})
+    hpl_property_io.hpl_properties.get_leveleditor_properties_from_entity_classes(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'Entity')
     hpl_property_io.hpl_properties.initialize_editor_vars(bpy.data.collections['Suzanne'])
     return
 
@@ -168,10 +169,10 @@ class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     
     def update_hpl_base_classes_enum(self, context):
-        if not hpl_property_io.hpl_properties.baseclass_list:
+        if not hpl_property_io.hpl_properties.entity_baseclass_list:
             hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
         data = []
-        for name in hpl_property_io.hpl_properties.baseclass_list:
+        for name in hpl_property_io.hpl_properties.entity_baseclass_list:
             fdata = (name,name,'')
             data.append(fdata)
         return data
@@ -211,6 +212,55 @@ def check_for_game_exe(root):
         game_name = root.split("\\")[-2].replace(' ','')
         return os.path.isfile(root+game_name+'.exe')
     return False
+
+def get_outliner_selection_name():
+    if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
+        for window in bpy.context.window_manager.windows:
+            screen = window.screen
+            for area in screen.areas:
+                if area.type == 'OUTLINER':
+                    with bpy.context.temp_override(window=window, area=area):
+                        objects_in_selection = {}
+                        if bpy.context.selected_ids:
+                            item = bpy.context.selected_ids[0]
+                        
+                            if item.bl_rna.identifier == "Collection":
+                                objects_in_selection.setdefault("Collections",[]).append(item)
+                            if item.bl_rna.identifier == "Object":
+                                objects_in_selection.setdefault("Objects",[]).append(item)
+                            '''
+                            if item.type == 'MESH':
+                                objects_in_selection.setdefault("Meshes",[]).append(item)
+                            if item.type == 'LIGHT':
+                                objects_in_selection.setdefault("Lights",[]).append(item)
+                            if item.type == 'CAMERA':
+                                objects_in_selection.setdefault("Cameras",[]).append(item)
+                            if item.bl_rna.identifier == "Material":
+                                objects_in_selection.setdefault("Materials",[]).append(item)
+                            '''
+                            
+                            c = objects_in_selection.get("Collections")
+                            o = objects_in_selection.get("Objects")
+                            
+                            if c:
+                                return c[0], None
+                            
+                            if o:
+                                if o[0].instance_collection:
+                                    return o[0].instance_collection, o[0]
+    return None, None
+
+def is_selection_instance(coll_id):
+    if coll_id[0]:
+        if coll_id[1]:
+            if bpy.context.active_object == coll_id[1]:
+                #instanced Collection
+                return True
+        else:
+            #original Collection
+            return True
+    else:
+        return False
     
 def draw_panel_content(context, layout):	
 
@@ -244,72 +294,23 @@ def draw_panel_content(context, layout):
         split = singleRow.split(factor=1, align=True)
         singleRow.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
         op = box.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
-
-    def get_outliner_selection_name():
-        if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
-            for window in context.window_manager.windows:
-                screen = window.screen
-                for area in screen.areas:
-                    if area.type == 'OUTLINER':
-                        with context.temp_override(window=window, area=area):
-                            objects_in_selection = {}
-                            if context.selected_ids:
-                                item = context.selected_ids[0]
-                            
-                                if item.bl_rna.identifier == "Collection":
-                                    objects_in_selection.setdefault("Collections",[]).append(item)
-                                if item.bl_rna.identifier == "Object":
-                                    objects_in_selection.setdefault("Objects",[]).append(item)
-                                '''
-                                if item.type == 'MESH':
-                                    objects_in_selection.setdefault("Meshes",[]).append(item)
-                                if item.type == 'LIGHT':
-                                    objects_in_selection.setdefault("Lights",[]).append(item)
-                                if item.type == 'CAMERA':
-                                    objects_in_selection.setdefault("Cameras",[]).append(item)
-                                if item.bl_rna.identifier == "Material":
-                                    objects_in_selection.setdefault("Materials",[]).append(item)
-                                '''
-                                
-                                c = objects_in_selection.get("Collections")
-                                o = objects_in_selection.get("Objects")
-                                
-                                if c:
-                                    return c[0], None
-                                
-                                if o:
-                                    if o[0].instance_collection:
-                                        return o[0].instance_collection, o[0]
-        return None, None
     
     coll_id = get_outliner_selection_name()
-
-    def is_selection_instance():
-        if coll_id[0]:
-            if coll_id[1]:
-                if bpy.context.active_object == coll_id[1]:
-                    return True
-            else:
-                return True
-        else:
-            return False
-
-    if is_selection_instance():
+    if is_selection_instance(coll_id):
         col = layout.column(align=True)
         box = col.box()
         box.separator()
         box.label(text=f'{coll_id[0].name}') # TODO: Get sub type from *.ent Entity Properties
         singleRow = box.row(align=True)
-        #pbox.enabled = is_valid_game_root
-        #singleRow = singleRow.split(factor=0.4, align=False)
         singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
         if any('hpl_' in var[0] for var in bpy.data.collections[coll_id[0].name].items()):
             for var in bpy.data.collections[coll_id[0].name].items():
-                if 'hpl_' in var[0]:
-                    var_ui_name = var[0][4:].replace('_',' ').title()
+                prefix = 'hpl_instance_' if bpy.context.active_object == coll_id[1] else 'hpl_'
+                if prefix in var[0]:
+                    var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[0][4:].replace('_',' '))
                     singleRow = box.row(align=False)
                     singleRow.prop(bpy.data.collections[coll_id[0].name], f'["{var[0]}"]', \
-                                   icon_only=True, text=var_ui_name, expand=False, text_ctxt='hi')
+                                    icon_only=True, text=var_ui_name, expand=False, text_ctxt='hi')
 
 
 class HPL_PT_CREATE(bpy.types.Panel):
