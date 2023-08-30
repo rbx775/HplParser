@@ -18,6 +18,7 @@ import bpy.utils.previews
 from glob import glob
 import os
 import re
+import random
 
 from . import hpl_config
 from . import hpl_property_io
@@ -84,6 +85,8 @@ def set_hpl_base_classes_enum(self, value):
     self['hpl_base_classes_enum'] = value
     hpl_property_io.hpl_properties.get_leveleditor_properties_from_entity_classes(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'Entity')
     hpl_property_io.hpl_properties.initialize_editor_vars(bpy.data.collections['Suzanne'])
+    print('COLLECTION: ',get_uuid_collection(bpy.context.collection))
+    print('OBJECT: ',get_uuid_object(bpy.context.object))
     return
 
 def get_hpl_project_root_col(self):
@@ -121,7 +124,70 @@ def setBadgeColorAL(self, value):
     bpy.data.materials["Badge"].node_tree.nodes["ColorAL"].inputs[2].default_value = value
     return
 
-class HPMSettingsPropertyGroup(bpy.types.PropertyGroup):
+### COLLECTION ###
+class HPLDATA_PROP_uuids_Collection(bpy.types.PropertyGroup):
+
+    uuid_collection : bpy.props.IntProperty()
+    owner_collection : bpy.props.PointerProperty(type=bpy.types.Collection)
+
+class HPLDATA_PROP_Scene_Collection(bpy.types.PropertyGroup): 
+    uuids_collection : bpy.props.CollectionProperty(type=HPLDATA_PROP_uuids_Collection)
+
+def get_uuid_collection(self):
+
+    uuids_collection = bpy.context.collection.hpldata.uuids_collection
+    uuid_collection = {e.owner_collection:e.uuid_collection for e in uuids_collection}.get(self.id_data)
+
+    if (uuid_collection is None): 
+        print("generating uuid..")
+
+        new = uuids_collection.add()
+        new.owner_collection = self.id_data
+        new.uuid_collection = random.randint(-2_147_483_647,2_147_483_647) 
+        #Be Careful, IntPropery has max range >>> ValueError: bpy_struct: item.attr = val:  value not in 'int' range ((-2147483647 - 1), 2147483647)
+        #we could make sure generated uuid do not exist already, considering the odds, it is safe to say it is not necessary
+
+        return new.uuid_collection
+    return uuid_collection
+
+class HPLDATA_PROP_Object_Collection(bpy.types.PropertyGroup): 
+    
+    uuid_collection : bpy.props.IntProperty(
+        get=get_uuid_collection, 
+        description="random id between -2.147.483.647 & 2.147.483.647",
+        )
+
+### OBJECT ###
+class HPLDATA_PROP_uuids_Object(bpy.types.PropertyGroup): #==CollectionProperty
+
+    uuid_object : bpy.props.IntProperty()
+    owner_object : bpy.props.PointerProperty(type=bpy.types.Object)
+
+class HPLDATA_PROP_Scene_Object(bpy.types.PropertyGroup): 
+    uuids_object : bpy.props.CollectionProperty(type=HPLDATA_PROP_uuids_Object)
+
+def get_uuid_object(self):
+
+    uuids_object = bpy.context.object.hpldata.uuids_object
+    uuid_object = {e.owner_object:e.uuid_object for e in uuids_object}.get(self.id_data)
+
+    if (uuid_object is None): 
+        print("generating uuid..")
+
+        new = uuids_object.add()
+        new.owner_object = self.id_data
+        new.uuid_object = random.randint(-2_147_483_647,2_147_483_647)
+        return new.uuid_object
+    return uuid_object
+
+class HPLDATA_PROP_Object_Object(bpy.types.PropertyGroup): 
+    
+    uuid_object : bpy.props.IntProperty(
+        get=get_uuid_object, 
+        description="random id between -2.147.483.647 & 2.147.483.647",
+        )
+
+class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     dae_file_count: bpy.props.StringProperty(default='', name = 'dae file count')
 
@@ -312,14 +378,13 @@ def draw_panel_content(context, layout):
                     singleRow.prop(bpy.data.collections[coll_id[0].name], f'["{var[0]}"]', \
                                     icon_only=True, text=var_ui_name, expand=False, text_ctxt='hi')
 
-
 class HPL_PT_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'HPL'
     bl_label = "HPL Parser"
     bl_idname = "HPL_PT_CREATE"
-
+    
     @classmethod
     def poll(cls, context):
         return True
@@ -345,13 +410,41 @@ def register():
     bpy.utils.register_class(HPM_OT_EXPORTER)
     bpy.utils.register_class(HPL_OT_DAEEXPORTER)
     bpy.utils.register_class(HPL_OT_ASSETIMPORTER)
-    bpy.utils.register_class(HPMSettingsPropertyGroup)
-    bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPMSettingsPropertyGroup)
+    bpy.utils.register_class(HPLSettingsPropertyGroup)
+    bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPLSettingsPropertyGroup)
+
+    
+    bpy.utils.register_class(HPLDATA_PROP_uuids_Collection)
+    bpy.utils.register_class(HPLDATA_PROP_Scene_Collection)
+    bpy.types.Collection.hpldata = bpy.props.PointerProperty(type=HPLDATA_PROP_Scene_Collection)
+    bpy.utils.register_class(HPLDATA_PROP_Object_Collection)
+    
+    bpy.utils.register_class(HPLDATA_PROP_uuids_Object)
+    bpy.utils.register_class(HPLDATA_PROP_Scene_Object)
+    bpy.types.Object.hpldata = bpy.props.PointerProperty(type=HPLDATA_PROP_Scene_Object)
+    bpy.utils.register_class(HPLDATA_PROP_Object_Object)
+    
+    
+    #bpy.types.Scene.my_plugin = bpy.props.PointerProperty(type=MYPLUGIN_PROP_Object)
+
+    
+    
 
 def unregister():
     bpy.utils.unregister_class(HPL_PT_CREATE)
     bpy.utils.unregister_class(HPM_OT_EXPORTER)
     bpy.utils.unregister_class(HPL_OT_DAEEXPORTER)
     bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
-    bpy.utils.unregister_class(HPMSettingsPropertyGroup)
+
+    bpy.utils.unregister_class(HPLDATA_PROP_Object_Collection)
+    bpy.utils.unregister_class(HPLDATA_PROP_Scene_Collection)
+    bpy.utils.unregister_class(HPLDATA_PROP_uuids_Collection)
+
+    bpy.utils.unregister_class(HPLDATA_PROP_Object_Object)
+    bpy.utils.unregister_class(HPLDATA_PROP_Scene_Object)
+    bpy.utils.unregister_class(HPLDATA_PROP_uuids_Object)
+
+    bpy.utils.unregister_class(HPLSettingsPropertyGroup)
     del bpy.types.Scene.hpl_parser
+    del bpy.types.Collection.hpldata
+    del bpy.types.Object.hpldata

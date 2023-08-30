@@ -1,6 +1,5 @@
 import bpy
 import os
-import fnmatch
 from mathutils import Vector
 import xml.etree.ElementTree as xtree
 from . import hpl_config
@@ -128,9 +127,9 @@ class hpl_properties():
                             mat_name = hpl_config.hpl_asset_material_files[mat]
                 return mat_name
             
-    def load_def_file():
+    def load_def_file(file_path):
         root = bpy.context.scene.hpl_parser.hpl_game_root_path
-        def_file_path = root + hpl_config.hpl_def_sub_path
+        def_file_path = root + file_path
 
         if os.path.isfile(def_file_path):
             def_file = ""
@@ -141,26 +140,56 @@ class hpl_properties():
             def_file = def_file.replace('&', '')
             def_file = def_file.replace(' < ', '')
             def_file = def_file.replace(' > ', '')
-
             return def_file
         return ''
 
     entity_baseclass_list = []
     entity_prop_dict = {}
     def get_leveleditor_properties_from_entity_classes(id, group_type):
-        entity_type = {'General':'TypeVars/Group', 'Entity':'InstanceVars/Group'}
-        tree = xtree.fromstring(hpl_properties.load_def_file())
-
-        ent_classes = tree.findall('Classes/Class')
-        for ent_class in ent_classes:
-            if id == ent_class.attrib['Name']:
-                hpl_properties.entity_prop_dict['Inherits'] = ent_class.attrib
-                sub_classes = ent_class.findall(entity_type[group_type])
-                for sub_class in sub_classes:
-                    hpl_properties.entity_prop_dict['Data'] = list(t.attrib for t in sub_class.iter("Var"))
         
+        entity_class_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path))
+        globals_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path))
+
+        sub_prop = 'Prop_PlayerBody'
+        variable_type = 'TypeVars'
+        inherits = ''
+
+        def get_vars(classes, variable_type):
+            var_dict = {}
+            for sub_classes in classes:
+                if sub_classes.tag == variable_type:
+                    for groups in sub_classes:
+                        var_dict[groups.get('Name')] = list(v.attrib for v in groups.iter("Var"))
+                    return var_dict
+
+        classes = [var for var in entity_class_tree.findall(f'.//Class') if var.get('Name') == sub_prop]
+        base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass')]
+        var_dict = get_vars(classes[0], variable_type)
+
+        inherits = [classes[0].attrib[var] for var in classes[0].attrib if var == 'InheritsFrom']
+        components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib if var == 'UsesComponents'][0]
+
+        #Adding Inherits
+        for i in inherits:
+            base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass') if var.get('Name') == i]
+            var_dict.update(get_vars(base_classes[0], variable_type))
+
+        #Adding components
+        var_hidden_dict = []
+        for c in components:
+            base_classes = [var for var in globals_tree.findall(f'.//Components') if var.get('Name') == c]
+            print(base_classes)
+            var_hidden_dict = get_vars(base_classes, variable_type)
+        
+        print(var_dict)
+        print(var_hidden_dict)
+        #hpl_properties.entity_prop_dict['Inherits']    
+
+        #print(var_dict)
+        #hpl_properties.entity_prop_dict['Data'].update(var_dict)
+
     def get_base_classes_from_entity_classes():
-        def_file = hpl_properties.load_def_file()
+        def_file = hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path)
 
         if def_file:
             xml_root = xtree.fromstring(def_file)
@@ -173,7 +202,6 @@ class hpl_properties():
 
         delete_vars = []
         for var in ent.items():
-            print('DEL:',var[0])
             if 'hpl_' in var[0]:
                 delete_vars.append(var[0])
 
@@ -195,6 +223,7 @@ class hpl_properties():
 
                 variable = 'hpl_'+var['Name']
 
+                
                 if var_type == 'string':
                     ent[variable] = ''
                 else:
@@ -207,3 +236,15 @@ class hpl_properties():
                     id_props.update(description=var['Description'])
 
                 ent.property_overridable_library_set(f'["{variable}"]', True)
+                '''
+                #location = getattr(object, "location")
+                if var_type == 'string':
+                    setattr(ent, variable, '')
+                else:
+                    setattr(ent, variable, eval(var_type)(var_value))
+                '''
+
+
+
+
+                {'InteractConnection': [{'Name': 'Animation', 'Type': 'String', 'DefaultValue': '', 'Description': 'Name of the animation to be influenced by the interact connection.'}, {'Name': 'AnimationDirection', 'Type': 'Enum', 'DefaultValue': 'Both', 'Description': 'The direction the animation is allowed to move when influenced by the interact connection.'}, {'Name': 'AnimationStuckState', 'Type': 'Int', 'DefaultValue': '-1', 'Description': "Locks the animation when it reaches the specified state. -1 = can't get stuck."}], 'Base': [{'Name': 'Health', 'Type': 'Float', 'DefaultValue': '1.0', 'Description': 'The amount of damamge an entity can take.'}, {'Name': 'Toughness', 'Type': 'Int', 'DefaultValue': '0', 'Description': 'If strength of attack is 1 lower than damage is halfed. 2 or more lower damage is 0. If equal or higher, damage stays the same.'}, {'Name': 'MaxInteractDistance', 'Type': 'Int', 'DefaultValue': '0', 'Description': 'The max distance that interaction can take place. If within player height, then made in 2D (xz). If 0, default is used!'}, {'Name': 'EventTag', 'Type': 'String', 'DefaultValue': '', 'Description': 'A tag string used that is mainly used by the event system to group certain type of objects.'}, {'Name': 'ShowHints', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If it is allowed to show hints upon interaction with entity.'}, {'Name': 'LifeLength', 'Type': 'Float', 'DefaultValue': '0', 'Description': 'A time after which the entity automatically breaks. 0=lasts forever.'}, {'Name': 'DissolveDuringLifeDecrease', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If the entity should dissolve when the life count decreases.'}, {'Name': 'QuickSave', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'Skips saving variables and only saves the transform of this prop type and its sub entities'}, {'Name': 'FullGameSave', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the all things in the entity should be saved when exiting the level. Only use on few entities!'}, {'Name': 'AllowMapTransfer', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the prop can be moved between maps'}, {'Name': 'VoiceSourceBone', 'Type': 'String', 'DefaultValue': '', 'Description': "The bone where a voice will be played in the Prop. If '' then props position is used."}], 'Physics': [{'Name': 'BlocksLineOfSight', 'Type': 'Enum', 'DefaultValue': 'MaterialBased', 'Description': 'If this object should block line of sight tests. If Material Based is selected only solid SubMeshes will be checked'}, {'Name': 'MainPhysicsBody', 'Type': 'String', 'DefaultValue': '', 'Description': 'This is the name of the most imporant physics body. The body that sounds are played from and objects attached to (attached as results from script!).'}, {'Name': 'NoGravityWhenUnderwater', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'When this object is in an liquid area and fully submerged it has no gravity.'}, {'Name': 'DisableFreezeAtStart', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'By default (unless skeletalphysics) bodies are frozen at start of a map. This disables that for this entity.'}], 'Script': [{'Name': 'CustomScriptFile', 'Type': 'String', 'DefaultValue': '', 'Description': 'The file of the custom script.'}, {'Name': 'CustomScriptClass', 'Type': 'String', 'DefaultValue': '', 'Description': 'The class name of the custom script. '}], 'Appearance': [{'Name': 'ShowMesh', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If the mesh should be visible. Having this false might useful for blocker objects.'}, {'Name': 'DissolveOnDestruction', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the dissolve effect should used when entity is destroyed.'}, {'Name': 'DissolveTime', 'Type': 'Float', 'DefaultValue': '1.0', 'Description': 'The time it takes for the dissolve effect to be over.'}, {'Name': 'RandomizeAnimationStart', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'Should the animation start time be randomized at start. If false all animations of entity are synchronized.'}, {'Name': 'RootMotionBone', 'Type': 'String', 'DefaultValue': '', 'Description': 'Bone to use when setting up root motion. The entity will follow the movement of this bone'}], 'Effects': [{'Name': 'EffectsOnSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made when turned on. (used for lamps lit/unlit, but also other entity types).'}, {'Name': 'EffectsOffSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made when turned off. (used for lamps lit/unlit, but also other entity types).'}, {'Name': 'EffectsOnTime', 'Type': 'Float', 'DefaultValue': '0.2', 'Description': 'Time it takes for on effect to be done. (used for lamps lit/unlit, but also other entity types).'}, {'Name': 'EffectsOffTime', 'Type': 'Float', 'DefaultValue': '0.2', 'Description': 'Time it takes for off effect to be done. (used for lamps lit/unlit, but also other entity types).'}], 'StaticMove': [{'Name': 'StaticMoveCheckCollision', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If a static move should check for collision. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveStartSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made at the start of a static move. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveStopSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made at the end of a static move. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveLoopSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made during a static move. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveLoopSoundFade', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If the static move sound should fade in and out or be instant. (used when static bodies are moved through script of type specific effect.)'}], 'Break': [{'Name': 'BreakActive', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If entity is broken when hit hard enough or health is 0.'}, {'Name': 'CustomBreakBehaviour', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If true, void OnCustomBreak() will be called inside the prop script and override the normal break behaviour.'}, {'Name': 'BreakOnlyOnMainBody', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the entity will only break from impact if the main body is hit.'}, {'Name': 'BreakDestroyJoints', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If all physics joints should be destroyed when broken.'}, {'Name': 'BreakMinEnergy', 'Type': 'Float', 'DefaultValue': '100', 'Description': 'The minimum energy needed for breakage. Energy = Object1Speed * Object1Mass + Object2Speed * Object2Mass. Speed = m/s. If Object 2 is floor or something static, its speed is always 0 and does not contribute to total energy!'}, {'Name': 'BreakEntity', 'Type': 'File', 'Extensions': 'ent', 'DefaultValue': '', 'Description': 'The entity this entity turns into when broken.'}, {'Name': 'BreakEntityAlignBody', 'Type': 'String', 'DefaultValue': '', 'Description': "The body BreakEntity uses to align itself when created. ''=no entity is created."}, {'Name': 'BreakSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'The sound made when broken.'}, {'Name': 'BreakAIEventSoundRadius', 'Type': 'Float', 'DefaultValue': '18', 'Description': 'The radius of the sound AI event.'}, {'Name': 'BreakAIEventSoundPrio', 'Type': 'Int', 'DefaultValue': '4', 'Description': 'The prio of the sound AI event.'}, {'Name': 'BreakParticleSystem', 'Type': 'File', 'ResType': 'ParticleSystem', 'DefaultValue': '', 'Description': 'Particle system shown when broken.'}, {'Name': 'BreakImpulse', 'Type': 'Float', 'DefaultValue': '4', 'Description': 'Impulse (speed in m/s really) added to all bodies in BreakENtity when created. The direction of impulse is outwards from center of entity.'}]}
