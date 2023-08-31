@@ -3,6 +3,8 @@ import os
 from mathutils import Vector
 import xml.etree.ElementTree as xtree
 from . import hpl_config
+from bpy.props import FloatVectorProperty
+import mathutils
 
 class hpl_properties():
             
@@ -145,14 +147,10 @@ class hpl_properties():
 
     entity_baseclass_list = []
     entity_prop_dict = {}
-    def get_leveleditor_properties_from_entity_classes(id, group_type):
+    def get_properties(sub_prop, variable_type):
         
         entity_class_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path))
-        globals_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path))
-
-        sub_prop = 'Prop_PlayerBody'
-        variable_type = 'TypeVars'
-        inherits = ''
+        globals_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_globals_file_sub_path))
 
         def get_vars(classes, variable_type):
             var_dict = {}
@@ -167,26 +165,16 @@ class hpl_properties():
         var_dict = get_vars(classes[0], variable_type)
 
         inherits = [classes[0].attrib[var] for var in classes[0].attrib if var == 'InheritsFrom']
-        components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib if var == 'UsesComponents'][0]
-
+        components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib][0] if 'UsesComponents' in classes[0].attrib else []
         #Adding Inherits
         for i in inherits:
             base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass') if var.get('Name') == i]
             var_dict.update(get_vars(base_classes[0], variable_type))
 
         #Adding components
-        var_hidden_dict = []
         for c in components:
-            base_classes = [var for var in globals_tree.findall(f'.//Components') if var.get('Name') == c]
-            print(base_classes)
-            var_hidden_dict = get_vars(base_classes, variable_type)
-        
-        print(var_dict)
-        print(var_hidden_dict)
-        #hpl_properties.entity_prop_dict['Inherits']    
-
-        #print(var_dict)
-        #hpl_properties.entity_prop_dict['Data'].update(var_dict)
+            component_classes = [var for var in globals_tree.findall(f'.//Component') if var.get('Name') == c]
+        return var_dict
 
     def get_base_classes_from_entity_classes():
         def_file = hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path)
@@ -199,6 +187,7 @@ class hpl_properties():
             return None
         
     def initialize_editor_vars(ent):
+        ent_variables = eval(bpy.context.scene.hpl_parser.temp_property_variables)
 
         delete_vars = []
         for var in ent.items():
@@ -208,43 +197,97 @@ class hpl_properties():
         for var in delete_vars:
             del ent[var]
 
-        if hpl_properties.entity_prop_dict:
-            for var in hpl_properties.entity_prop_dict['Data']:
-                var_value = var['DefaultValue']
-                var_type = var['Type'].lower()
+        if ent_variables:
+            for group in ent_variables:
+                for var in ent_variables[group]:
+                    is_color = False
+                    
+                    var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
+                    var_type = var['Type'].lower()
 
-                if var_type == 'vec3':
-                    var_type = 'tuple'
-                    var_value = (0.0,0.0,0.0)
+                    variable = 'hpl_'+var['Name']
+                    
+                    #Variable Conversion
+                    if var_type == 'color':
+                        is_color = True
 
-                if var_type == 'bool':
-                    if var_value == 'false':
-                        var_value = None
+                    if var_type == 'vec3':
+                        var_type = 'tuple'
+                        var_value = (0.0,0.0,0.0)
 
-                variable = 'hpl_'+var['Name']
+                    if var_type == 'bool':
+                        if var_value == 'false':
+                            var_value = None
+                    
+                    #Variable Execution, some types needs to be evaluated differently \ 
+                    #because theres not a 'direct' counterpart in blender.
+                    #Also we can not use bpy.types... because the variables are created at runtime - directly read from *.def.
+                    if var_type == 'string':
+                        ent[variable] = ''
+                    elif is_color:
+                        color = (float(i) for i in var['DefaultValue'].split(' '))
+                        ent[variable] = mathutils.Vector(color)
+                    elif var_type == 'function':
+                        ent[variable] = 'hpl_function'
+                    elif var_type == 'enum':
+                        ent[variable] = 'hpl_enum'
+                    elif var_type == 'file':
+                        ent[variable] = 'hpl_file'
+                    else:
+                        ent[variable] = eval(var_type)(var_value)
+                        
+                    id_props = ent.id_properties_ui(variable)
 
-                
-                if var_type == 'string':
-                    ent[variable] = ''
-                else:
-                    ent[variable] = eval(var_type)(var_value)
-                
-                id_props = ent.id_properties_ui(variable)
-                if 'Max' in var:
-                    id_props.update(min=var['Min'],max=var['Max'])
-                if 'Description' in var:
-                    id_props.update(description=var['Description'])
+                    if is_color:
+                        id_props.update(subtype='COLOR', min=0, max=1)
+                    if 'Max' in var:
+                        id_props.update(min=int(var['Min']),max=int(var['Max']))
+                    if 'Description' in var:
+                        id_props.update(description=var['Description'])
 
-                ent.property_overridable_library_set(f'["{variable}"]', True)
-                '''
-                #location = getattr(object, "location")
-                if var_type == 'string':
-                    setattr(ent, variable, '')
-                else:
-                    setattr(ent, variable, eval(var_type)(var_value))
-                '''
-
-
-
-
-                {'InteractConnection': [{'Name': 'Animation', 'Type': 'String', 'DefaultValue': '', 'Description': 'Name of the animation to be influenced by the interact connection.'}, {'Name': 'AnimationDirection', 'Type': 'Enum', 'DefaultValue': 'Both', 'Description': 'The direction the animation is allowed to move when influenced by the interact connection.'}, {'Name': 'AnimationStuckState', 'Type': 'Int', 'DefaultValue': '-1', 'Description': "Locks the animation when it reaches the specified state. -1 = can't get stuck."}], 'Base': [{'Name': 'Health', 'Type': 'Float', 'DefaultValue': '1.0', 'Description': 'The amount of damamge an entity can take.'}, {'Name': 'Toughness', 'Type': 'Int', 'DefaultValue': '0', 'Description': 'If strength of attack is 1 lower than damage is halfed. 2 or more lower damage is 0. If equal or higher, damage stays the same.'}, {'Name': 'MaxInteractDistance', 'Type': 'Int', 'DefaultValue': '0', 'Description': 'The max distance that interaction can take place. If within player height, then made in 2D (xz). If 0, default is used!'}, {'Name': 'EventTag', 'Type': 'String', 'DefaultValue': '', 'Description': 'A tag string used that is mainly used by the event system to group certain type of objects.'}, {'Name': 'ShowHints', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If it is allowed to show hints upon interaction with entity.'}, {'Name': 'LifeLength', 'Type': 'Float', 'DefaultValue': '0', 'Description': 'A time after which the entity automatically breaks. 0=lasts forever.'}, {'Name': 'DissolveDuringLifeDecrease', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If the entity should dissolve when the life count decreases.'}, {'Name': 'QuickSave', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'Skips saving variables and only saves the transform of this prop type and its sub entities'}, {'Name': 'FullGameSave', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the all things in the entity should be saved when exiting the level. Only use on few entities!'}, {'Name': 'AllowMapTransfer', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the prop can be moved between maps'}, {'Name': 'VoiceSourceBone', 'Type': 'String', 'DefaultValue': '', 'Description': "The bone where a voice will be played in the Prop. If '' then props position is used."}], 'Physics': [{'Name': 'BlocksLineOfSight', 'Type': 'Enum', 'DefaultValue': 'MaterialBased', 'Description': 'If this object should block line of sight tests. If Material Based is selected only solid SubMeshes will be checked'}, {'Name': 'MainPhysicsBody', 'Type': 'String', 'DefaultValue': '', 'Description': 'This is the name of the most imporant physics body. The body that sounds are played from and objects attached to (attached as results from script!).'}, {'Name': 'NoGravityWhenUnderwater', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'When this object is in an liquid area and fully submerged it has no gravity.'}, {'Name': 'DisableFreezeAtStart', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'By default (unless skeletalphysics) bodies are frozen at start of a map. This disables that for this entity.'}], 'Script': [{'Name': 'CustomScriptFile', 'Type': 'String', 'DefaultValue': '', 'Description': 'The file of the custom script.'}, {'Name': 'CustomScriptClass', 'Type': 'String', 'DefaultValue': '', 'Description': 'The class name of the custom script. '}], 'Appearance': [{'Name': 'ShowMesh', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If the mesh should be visible. Having this false might useful for blocker objects.'}, {'Name': 'DissolveOnDestruction', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the dissolve effect should used when entity is destroyed.'}, {'Name': 'DissolveTime', 'Type': 'Float', 'DefaultValue': '1.0', 'Description': 'The time it takes for the dissolve effect to be over.'}, {'Name': 'RandomizeAnimationStart', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'Should the animation start time be randomized at start. If false all animations of entity are synchronized.'}, {'Name': 'RootMotionBone', 'Type': 'String', 'DefaultValue': '', 'Description': 'Bone to use when setting up root motion. The entity will follow the movement of this bone'}], 'Effects': [{'Name': 'EffectsOnSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made when turned on. (used for lamps lit/unlit, but also other entity types).'}, {'Name': 'EffectsOffSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made when turned off. (used for lamps lit/unlit, but also other entity types).'}, {'Name': 'EffectsOnTime', 'Type': 'Float', 'DefaultValue': '0.2', 'Description': 'Time it takes for on effect to be done. (used for lamps lit/unlit, but also other entity types).'}, {'Name': 'EffectsOffTime', 'Type': 'Float', 'DefaultValue': '0.2', 'Description': 'Time it takes for off effect to be done. (used for lamps lit/unlit, but also other entity types).'}], 'StaticMove': [{'Name': 'StaticMoveCheckCollision', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If a static move should check for collision. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveStartSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made at the start of a static move. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveStopSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made at the end of a static move. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveLoopSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'Sound made during a static move. (used when static bodies are moved through script of type specific effect.)'}, {'Name': 'StaticMoveLoopSoundFade', 'Type': 'Bool', 'DefaultValue': 'true', 'Description': 'If the static move sound should fade in and out or be instant. (used when static bodies are moved through script of type specific effect.)'}], 'Break': [{'Name': 'BreakActive', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If entity is broken when hit hard enough or health is 0.'}, {'Name': 'CustomBreakBehaviour', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If true, void OnCustomBreak() will be called inside the prop script and override the normal break behaviour.'}, {'Name': 'BreakOnlyOnMainBody', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If the entity will only break from impact if the main body is hit.'}, {'Name': 'BreakDestroyJoints', 'Type': 'Bool', 'DefaultValue': 'false', 'Description': 'If all physics joints should be destroyed when broken.'}, {'Name': 'BreakMinEnergy', 'Type': 'Float', 'DefaultValue': '100', 'Description': 'The minimum energy needed for breakage. Energy = Object1Speed * Object1Mass + Object2Speed * Object2Mass. Speed = m/s. If Object 2 is floor or something static, its speed is always 0 and does not contribute to total energy!'}, {'Name': 'BreakEntity', 'Type': 'File', 'Extensions': 'ent', 'DefaultValue': '', 'Description': 'The entity this entity turns into when broken.'}, {'Name': 'BreakEntityAlignBody', 'Type': 'String', 'DefaultValue': '', 'Description': "The body BreakEntity uses to align itself when created. ''=no entity is created."}, {'Name': 'BreakSound', 'Type': 'File', 'ResType': 'Sound', 'DefaultValue': '', 'Description': 'The sound made when broken.'}, {'Name': 'BreakAIEventSoundRadius', 'Type': 'Float', 'DefaultValue': '18', 'Description': 'The radius of the sound AI event.'}, {'Name': 'BreakAIEventSoundPrio', 'Type': 'Int', 'DefaultValue': '4', 'Description': 'The prio of the sound AI event.'}, {'Name': 'BreakParticleSystem', 'Type': 'File', 'ResType': 'ParticleSystem', 'DefaultValue': '', 'Description': 'Particle system shown when broken.'}, {'Name': 'BreakImpulse', 'Type': 'Float', 'DefaultValue': '4', 'Description': 'Impulse (speed in m/s really) added to all bodies in BreakENtity when created. The direction of impulse is outwards from center of entity.'}]}
+                    ent.property_overridable_library_set(f'["{variable}"]', True)
+                    '''
+                    #location = getattr(object, "location")
+                    if var_type == 'string':
+                        setattr(ent, variable, '')
+                    else:
+                        setattr(ent, variable, eval(var_type)(var_value))
+                    '''
+            
+    def get_outliner_selection():
+        if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
+            for window in bpy.context.window_manager.windows:
+                screen = window.screen
+                for area in screen.areas:
+                    if area.type == 'OUTLINER':
+                        with bpy.context.temp_override(window=window, area=area):
+                            objects_in_selection = {}
+                            if bpy.context.selected_ids:
+                                ent = bpy.context.selected_ids[0]
+                                return ent
+                            
+                                if item.bl_rna.identifier == "Collection":
+                                    objects_in_selection.setdefault("Collections",[]).append(item)
+                                if item.bl_rna.identifier == "Object":
+                                    objects_in_selection.setdefault("Objects",[]).append(item)
+                                '''
+                                if item.type == 'MESH':
+                                    objects_in_selection.setdefault("Meshes",[]).append(item)
+                                if item.type == 'LIGHT':
+                                    objects_in_selection.setdefault("Lights",[]).append(item)
+                                if item.type == 'CAMERA':
+                                    objects_in_selection.setdefault("Cameras",[]).append(item)
+                                if item.bl_rna.identifier == "Material":
+                                    objects_in_selection.setdefault("Materials",[]).append(item)
+                                '''
+                                
+    def is_selection_valid():
+        ent = hpl_properties.get_outliner_selection()
+        if ent.bl_rna.identifier == 'Collection':
+            return ent
+        if ent.bl_rna.identifier == 'Object':
+            if ent.is_instancer:
+                return ent
+            else:
+                return None
+            

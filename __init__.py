@@ -83,10 +83,12 @@ def get_hpl_base_classes_enum(self):
 
 def set_hpl_base_classes_enum(self, value):
     self['hpl_base_classes_enum'] = value
-    hpl_property_io.hpl_properties.get_leveleditor_properties_from_entity_classes(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'Entity')
-    hpl_property_io.hpl_properties.initialize_editor_vars(bpy.data.collections['Suzanne'])
-    print('COLLECTION: ',get_uuid_collection(bpy.context.collection))
-    print('OBJECT: ',get_uuid_object(bpy.context.object))
+    ent = hpl_property_io.hpl_properties.is_selection_valid()
+    if ent:
+        var_type = 'InstanceVars' if ent.bl_rna.identifier == 'Object' else 'TypeVars'
+        bpy.context.scene.hpl_parser.temp_property_variables = str(hpl_property_io.hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, var_type))
+        hpl_property_io.hpl_properties.initialize_editor_vars(ent)
+    
     return
 
 def get_hpl_project_root_col(self):
@@ -99,7 +101,7 @@ def get_hpl_project_root_col(self):
 def set_hpl_project_root_col(self, value):
     self['hpl_project_root_col'] = value
     return
-    
+'''    
 def getBackgroundBlur(self):
     try:
         value = self['backgroundBlur']
@@ -123,44 +125,39 @@ def setBadgeColorAL(self, value):
     self['badgeColorAL'] = value
     bpy.data.materials["Badge"].node_tree.nodes["ColorAL"].inputs[2].default_value = value
     return
-
+'''
 ### COLLECTION ###
 class HPLDATA_PROP_uuids_Collection(bpy.types.PropertyGroup):
-
-    uuid_collection : bpy.props.IntProperty()
+    var_collection : bpy.props.CollectionProperty(type=bpy.types.Collection)
     owner_collection : bpy.props.PointerProperty(type=bpy.types.Collection)
 
 class HPLDATA_PROP_Scene_Collection(bpy.types.PropertyGroup): 
     uuids_collection : bpy.props.CollectionProperty(type=HPLDATA_PROP_uuids_Collection)
 
-def get_uuid_collection(self):
-
+def get_uuid_collection(self, var_dict):
     uuids_collection = bpy.context.collection.hpldata.uuids_collection
-    uuid_collection = {e.owner_collection:e.uuid_collection for e in uuids_collection}.get(self.id_data)
+    var_collection = {e.owner_collection:e.var_collection for e in uuids_collection}.get(self.id_data)
 
-    if (uuid_collection is None): 
+    if (var_collection is None): 
         print("generating uuid..")
 
         new = uuids_collection.add()
         new.owner_collection = self.id_data
-        new.uuid_collection = random.randint(-2_147_483_647,2_147_483_647) 
-        #Be Careful, IntPropery has max range >>> ValueError: bpy_struct: item.attr = val:  value not in 'int' range ((-2147483647 - 1), 2147483647)
-        #we could make sure generated uuid do not exist already, considering the odds, it is safe to say it is not necessary
+        new.var_collection = var_dict
 
-        return new.uuid_collection
-    return uuid_collection
+        return new.var_collection
+    #print('Print: ',uuids_collection.get(self.id_data))
+    return var_collection
 
 class HPLDATA_PROP_Object_Collection(bpy.types.PropertyGroup): 
-    
-    uuid_collection : bpy.props.IntProperty(
-        get=get_uuid_collection, 
-        description="random id between -2.147.483.647 & 2.147.483.647",
+    var_collection : bpy.props.CollectionProperty(
+        get=get_uuid_collection,
+        #description="random id between -2.147.483.647 & 2.147.483.647",
         )
 
 ### OBJECT ###
 class HPLDATA_PROP_uuids_Object(bpy.types.PropertyGroup): #==CollectionProperty
-
-    uuid_object : bpy.props.IntProperty()
+    uuid_object : bpy.props.StringProperty()
     owner_object : bpy.props.PointerProperty(type=bpy.types.Object)
 
 class HPLDATA_PROP_Scene_Object(bpy.types.PropertyGroup): 
@@ -176,7 +173,8 @@ def get_uuid_object(self):
 
         new = uuids_object.add()
         new.owner_object = self.id_data
-        new.uuid_object = random.randint(-2_147_483_647,2_147_483_647)
+        #new.uuid_object = '1'
+        new.uuid_object = str(hpl_property_io.hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'TypeVars'))
         return new.uuid_object
     return uuid_object
 
@@ -189,6 +187,7 @@ class HPLDATA_PROP_Object_Object(bpy.types.PropertyGroup):
 
 class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
+    temp_property_variables: bpy.props.StringProperty(default='', name = 'dae file count')
     dae_file_count: bpy.props.StringProperty(default='', name = 'dae file count')
 
     vmf_scale: bpy.props.IntProperty(default=45, name = '', min = 1, max = 256)
@@ -252,7 +251,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         set=set_hpl_base_classes_enum,
     )
     
-
+    '''
     backgroundBlur: bpy.props.FloatProperty(name="Background blur", description='',
                                             default=0.025, min=0, max=1, step=0.0, precision=3, subtype = 'FACTOR',     
                                             get=getBackgroundBlur,
@@ -267,7 +266,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
                                             default = (0.75,0.75,0.75,0.2),
                                             get=getBadgeColorAL,
                                             set=setBadgeColorAL)
-
+    '''
     def update_presets(self, context):
         enum_name = bpy.context.scene.hpl_parser.hpl_parser_preset_enu
         bpy.context.scene.hpl_parser.hpl_parser_preset_nam = enum_name[:-4].title().replace('_',' ')
@@ -278,55 +277,6 @@ def check_for_game_exe(root):
         game_name = root.split("\\")[-2].replace(' ','')
         return os.path.isfile(root+game_name+'.exe')
     return False
-
-def get_outliner_selection_name():
-    if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
-        for window in bpy.context.window_manager.windows:
-            screen = window.screen
-            for area in screen.areas:
-                if area.type == 'OUTLINER':
-                    with bpy.context.temp_override(window=window, area=area):
-                        objects_in_selection = {}
-                        if bpy.context.selected_ids:
-                            item = bpy.context.selected_ids[0]
-                        
-                            if item.bl_rna.identifier == "Collection":
-                                objects_in_selection.setdefault("Collections",[]).append(item)
-                            if item.bl_rna.identifier == "Object":
-                                objects_in_selection.setdefault("Objects",[]).append(item)
-                            '''
-                            if item.type == 'MESH':
-                                objects_in_selection.setdefault("Meshes",[]).append(item)
-                            if item.type == 'LIGHT':
-                                objects_in_selection.setdefault("Lights",[]).append(item)
-                            if item.type == 'CAMERA':
-                                objects_in_selection.setdefault("Cameras",[]).append(item)
-                            if item.bl_rna.identifier == "Material":
-                                objects_in_selection.setdefault("Materials",[]).append(item)
-                            '''
-                            
-                            c = objects_in_selection.get("Collections")
-                            o = objects_in_selection.get("Objects")
-                            
-                            if c:
-                                return c[0], None
-                            
-                            if o:
-                                if o[0].instance_collection:
-                                    return o[0].instance_collection, o[0]
-    return None, None
-
-def is_selection_instance(coll_id):
-    if coll_id[0]:
-        if coll_id[1]:
-            if bpy.context.active_object == coll_id[1]:
-                #instanced Collection
-                return True
-        else:
-            #original Collection
-            return True
-    else:
-        return False
     
 def draw_panel_content(context, layout):	
 
@@ -360,24 +310,22 @@ def draw_panel_content(context, layout):
         split = singleRow.split(factor=1, align=True)
         singleRow.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
         op = box.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
-    
-    coll_id = get_outliner_selection_name()
-    if is_selection_instance(coll_id):
-        col = layout.column(align=True)
-        box = col.box()
-        box.separator()
-        box.label(text=f'{coll_id[0].name}') # TODO: Get sub type from *.ent Entity Properties
-        singleRow = box.row(align=True)
-        singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-        if any('hpl_' in var[0] for var in bpy.data.collections[coll_id[0].name].items()):
-            for var in bpy.data.collections[coll_id[0].name].items():
-                prefix = 'hpl_instance_' if bpy.context.active_object == coll_id[1] else 'hpl_'
-                if prefix in var[0]:
+
+        ent = hpl_property_io.hpl_properties.is_selection_valid()
+        if ent:
+            col = layout.column(align=True)
+            box = col.box()
+            box.separator()
+            box.label(text=f'{ent.name}') # TODO: Get sub type from *.ent Entity Properties
+            singleRow = box.row(align=True)
+            singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+
+            for var in ent.items():
+                if 'hpl_' in var[0]:
                     var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[0][4:].replace('_',' '))
                     singleRow = box.row(align=False)
-                    singleRow.prop(bpy.data.collections[coll_id[0].name], f'["{var[0]}"]', \
-                                    icon_only=True, text=var_ui_name, expand=False, text_ctxt='hi')
-
+                    singleRow.prop(ent, f'["{var[0]}"]', icon_only=True, text=var_ui_name, expand=False)
+            
 class HPL_PT_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -397,6 +345,7 @@ class HPL_PT_CREATE(bpy.types.Panel):
 
     def draw(self, context):
         draw_panel_content(context, self.layout)
+    #persistent handler for later importing assets feature
     '''
     #@persistent
     def asset_library_listener(context):
@@ -413,17 +362,17 @@ def register():
     bpy.utils.register_class(HPLSettingsPropertyGroup)
     bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPLSettingsPropertyGroup)
 
-    
+    '''
     bpy.utils.register_class(HPLDATA_PROP_uuids_Collection)
     bpy.utils.register_class(HPLDATA_PROP_Scene_Collection)
-    bpy.types.Collection.hpldata = bpy.props.PointerProperty(type=HPLDATA_PROP_Scene_Collection)
+    bpy.types.Collection.hpldata = bpy.props.CollectionProperty(type=HPLDATA_PROP_Scene_Collection)
     bpy.utils.register_class(HPLDATA_PROP_Object_Collection)
     
     bpy.utils.register_class(HPLDATA_PROP_uuids_Object)
     bpy.utils.register_class(HPLDATA_PROP_Scene_Object)
     bpy.types.Object.hpldata = bpy.props.PointerProperty(type=HPLDATA_PROP_Scene_Object)
     bpy.utils.register_class(HPLDATA_PROP_Object_Object)
-    
+    '''
     
     #bpy.types.Scene.my_plugin = bpy.props.PointerProperty(type=MYPLUGIN_PROP_Object)
 
@@ -435,7 +384,9 @@ def unregister():
     bpy.utils.unregister_class(HPM_OT_EXPORTER)
     bpy.utils.unregister_class(HPL_OT_DAEEXPORTER)
     bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
-
+    bpy.utils.unregister_class(HPLSettingsPropertyGroup)
+    del bpy.types.Scene.hpl_parser
+    '''
     bpy.utils.unregister_class(HPLDATA_PROP_Object_Collection)
     bpy.utils.unregister_class(HPLDATA_PROP_Scene_Collection)
     bpy.utils.unregister_class(HPLDATA_PROP_uuids_Collection)
@@ -444,7 +395,7 @@ def unregister():
     bpy.utils.unregister_class(HPLDATA_PROP_Scene_Object)
     bpy.utils.unregister_class(HPLDATA_PROP_uuids_Object)
 
-    bpy.utils.unregister_class(HPLSettingsPropertyGroup)
-    del bpy.types.Scene.hpl_parser
+
     del bpy.types.Collection.hpldata
     del bpy.types.Object.hpldata
+    '''

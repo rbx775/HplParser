@@ -124,7 +124,6 @@ def hpl_import_assets(op):
                 bpy.ops.object.select_all(action='DESELECT')
                 scene_objs = set(bpy.context.scene.objects)
                 dae_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['geometry']
-
  
                 #if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']):
                 #    ent_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']
