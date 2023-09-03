@@ -12,7 +12,8 @@ class hpl_properties():
         for tree in xml_tree:
             if key_tag in tree.tag:
                 for i in tree:
-                    hpl_properties.entity_baseclass_list.append(i.attrib['Name'])
+                    if 'Prop' != i.attrib['Name']:
+                        hpl_properties.entity_baseclass_list.append(i.attrib['Name'])
 
     def get_entity_vars(ent):
 
@@ -157,23 +158,33 @@ class hpl_properties():
             for sub_classes in classes:
                 if sub_classes.tag == variable_type:
                     for groups in sub_classes:
+                        #var_dict['hpldropdown_'+groups.get('Name')] = [{'Name': 'hpldropdown_'+groups.get('Name'), 'Type': 'Bool', 'DefaultValue': 'false', 'Description': ''}]
                         var_dict[groups.get('Name')] = list(v.attrib for v in groups.iter("Var"))
                     return var_dict
+            return {}
 
         classes = [var for var in entity_class_tree.findall(f'.//Class') if var.get('Name') == sub_prop]
         base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass')]
-        var_dict = get_vars(classes[0], variable_type)
+        if classes:
+            var_dict = get_vars(classes[0], variable_type)
 
         inherits = [classes[0].attrib[var] for var in classes[0].attrib if var == 'InheritsFrom']
-        components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib][0] if 'UsesComponents' in classes[0].attrib else []
+        components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib if var == 'UsesComponents']
+
         #Adding Inherits
-        for i in inherits:
-            base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass') if var.get('Name') == i]
-            var_dict.update(get_vars(base_classes[0], variable_type))
+        if inherits:
+            for i in inherits:
+                base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass') if var.get('Name') == i]
+                var_dict.update(get_vars(base_classes[0], variable_type))
 
         #Adding components
-        for c in components:
-            component_classes = [var for var in globals_tree.findall(f'.//Component') if var.get('Name') == c]
+        #TODO: better component system, new search function
+        if components:
+            for c in components[0]:
+                component_classes = [var for var in globals_tree.findall(f'.//Component') if var.get('Name') == c]
+                var_dict.update(get_vars(component_classes[0], variable_type))
+
+
         return var_dict
 
     def get_base_classes_from_entity_classes():
@@ -186,22 +197,27 @@ class hpl_properties():
         else:
             return None
         
-    def initialize_editor_vars(ent):
-        ent_variables = eval(bpy.context.scene.hpl_parser.temp_property_variables)
-
+    def reset_editor_vars(ent):
         delete_vars = []
         for var in ent.items():
-            if 'hpl_' in var[0]:
+            if 'hpl_' or 'hpldropdown' in var[0]:
                 delete_vars.append(var[0])
 
         for var in delete_vars:
             del ent[var]
+        
+    def initialize_editor_vars(ent):
+        ent_variables = eval(bpy.context.scene.hpl_parser.temp_property_variables)
+        hpl_properties.reset_editor_vars(ent)
 
+        group_dict = {}
         if ent_variables:
             for group in ent_variables:
+                ent['hpldropdown_'+group] = False
+                var_list = []
                 for var in ent_variables[group]:
+
                     is_color = False
-                    
                     var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
                     var_type = var['Type'].lower()
 
@@ -211,24 +227,23 @@ class hpl_properties():
                     if var_type == 'color':
                         is_color = True
 
-                    if var_type == 'vec3':
-                        var_type = 'tuple'
-                        var_value = (0.0,0.0,0.0)
-
                     if var_type == 'bool':
                         if var_value == 'false':
                             var_value = None
                     
-                    #Variable Execution, some types needs to be evaluated differently \ 
-                    #because theres not a 'direct' counterpart in blender.
-                    #Also we can not use bpy.types... because the variables are created at runtime - directly read from *.def.
+                    #Variable Assignment, some types needs to be evaluated differently \ 
+                    #since there are no direct counterparts in blender.
+                    #Because variables are created at runtime - we can not use bpy.types.
                     if var_type == 'string':
-                        ent[variable] = ''
+                        ent[variable] = var_value
                     elif is_color:
                         color = (float(i) for i in var['DefaultValue'].split(' '))
                         ent[variable] = mathutils.Vector(color)
                     elif var_type == 'function':
                         ent[variable] = 'hpl_function'
+                    elif var_type == 'vec3':
+                        vec3 = (float(i) for i in var['DefaultValue'].split(' '))
+                        ent[variable] = mathutils.Vector(vec3)
                     elif var_type == 'enum':
                         ent[variable] = 'hpl_enum'
                     elif var_type == 'file':
@@ -237,22 +252,19 @@ class hpl_properties():
                         ent[variable] = eval(var_type)(var_value)
                         
                     id_props = ent.id_properties_ui(variable)
-
+                    
+                    #Some variable properties can only be set after creation
                     if is_color:
                         id_props.update(subtype='COLOR', min=0, max=1)
                     if 'Max' in var:
                         id_props.update(min=int(var['Min']),max=int(var['Max']))
                     if 'Description' in var:
                         id_props.update(description=var['Description'])
-
                     ent.property_overridable_library_set(f'["{variable}"]', True)
-                    '''
-                    #location = getattr(object, "location")
-                    if var_type == 'string':
-                        setattr(ent, variable, '')
-                    else:
-                        setattr(ent, variable, eval(var_type)(var_value))
-                    '''
+
+                    var_list.append(variable)
+                group_dict[group] = var_list
+        bpy.context.scene.hpl_parser.temp_property_groups = str(group_dict)
             
     def get_outliner_selection():
         if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
@@ -261,33 +273,21 @@ class hpl_properties():
                 for area in screen.areas:
                     if area.type == 'OUTLINER':
                         with bpy.context.temp_override(window=window, area=area):
-                            objects_in_selection = {}
                             if bpy.context.selected_ids:
                                 ent = bpy.context.selected_ids[0]
                                 return ent
-                            
-                                if item.bl_rna.identifier == "Collection":
-                                    objects_in_selection.setdefault("Collections",[]).append(item)
-                                if item.bl_rna.identifier == "Object":
-                                    objects_in_selection.setdefault("Objects",[]).append(item)
-                                '''
-                                if item.type == 'MESH':
-                                    objects_in_selection.setdefault("Meshes",[]).append(item)
-                                if item.type == 'LIGHT':
-                                    objects_in_selection.setdefault("Lights",[]).append(item)
-                                if item.type == 'CAMERA':
-                                    objects_in_selection.setdefault("Cameras",[]).append(item)
-                                if item.bl_rna.identifier == "Material":
-                                    objects_in_selection.setdefault("Materials",[]).append(item)
-                                '''
-                                
+        return None
+
     def is_selection_valid():
         ent = hpl_properties.get_outliner_selection()
-        if ent.bl_rna.identifier == 'Collection':
-            return ent
-        if ent.bl_rna.identifier == 'Object':
-            if ent.is_instancer:
+        if ent:
+            if ent.bl_rna.identifier == 'Collection':
+                #if ent.users_collection.name ==bpy.context.scene.hpl_parser.hpl_project_root_col:
                 return ent
-            else:
-                return None
-            
+            if ent.bl_rna.identifier == 'Object':
+                if ent.is_instancer:
+                #if ent.users_collection.name == bpy.context.scene.hpl_parser.hpl_project_root_col:
+                    return ent
+                else:
+                    return None
+        return None

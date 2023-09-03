@@ -19,6 +19,7 @@ from glob import glob
 import os
 import re
 import random
+from mathutils import Vector, Matrix
 
 from . import hpl_config
 from . import hpl_property_io
@@ -38,9 +39,6 @@ bl_info = {
 	"location": "View3D > Properties Panel",
 	"category": "Object"
 }
-
-coll_id = []
-
 
 def get_hpl_selected_collection(self): 
     try:
@@ -86,9 +84,12 @@ def set_hpl_base_classes_enum(self, value):
     ent = hpl_property_io.hpl_properties.is_selection_valid()
     if ent:
         var_type = 'InstanceVars' if ent.bl_rna.identifier == 'Object' else 'TypeVars'
-        bpy.context.scene.hpl_parser.temp_property_variables = str(hpl_property_io.hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, var_type))
-        hpl_property_io.hpl_properties.initialize_editor_vars(ent)
-    
+        if bpy.context.scene.hpl_parser.hpl_base_classes_enum != 'None':
+            bpy.context.scene.hpl_parser.temp_property_variables = str(hpl_property_io.hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, var_type))
+            hpl_property_io.hpl_properties.initialize_editor_vars(ent)
+        else:
+            hpl_property_io.hpl_properties.reset_editor_vars(ent)
+            bpy.context.scene.hpl_parser.temp_property_groups = ''
     return
 
 def get_hpl_project_root_col(self):
@@ -139,14 +140,12 @@ def get_uuid_collection(self, var_dict):
     var_collection = {e.owner_collection:e.var_collection for e in uuids_collection}.get(self.id_data)
 
     if (var_collection is None): 
-        print("generating uuid..")
 
         new = uuids_collection.add()
         new.owner_collection = self.id_data
         new.var_collection = var_dict
 
         return new.var_collection
-    #print('Print: ',uuids_collection.get(self.id_data))
     return var_collection
 
 class HPLDATA_PROP_Object_Collection(bpy.types.PropertyGroup): 
@@ -169,7 +168,6 @@ def get_uuid_object(self):
     uuid_object = {e.owner_object:e.uuid_object for e in uuids_object}.get(self.id_data)
 
     if (uuid_object is None): 
-        print("generating uuid..")
 
         new = uuids_object.add()
         new.owner_object = self.id_data
@@ -187,7 +185,10 @@ class HPLDATA_PROP_Object_Object(bpy.types.PropertyGroup):
 
 class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
-    temp_property_variables: bpy.props.StringProperty(default='', name = 'dae file count')
+    temp_selection: bpy.props.StringProperty(default='')
+    temp_property_variables: bpy.props.StringProperty(default='', name = '')
+    temp_property_groups: bpy.props.StringProperty(default='', name = '')
+    dropdown: bpy.props.BoolProperty(default=False)
     dae_file_count: bpy.props.StringProperty(default='', name = 'dae file count')
 
     vmf_scale: bpy.props.IntProperty(default=45, name = '', min = 1, max = 256)
@@ -236,7 +237,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     def update_hpl_base_classes_enum(self, context):
         if not hpl_property_io.hpl_properties.entity_baseclass_list:
             hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
-        data = []
+        data = [('None','None','')]
         for name in hpl_property_io.hpl_properties.entity_baseclass_list:
             fdata = (name,name,'')
             data.append(fdata)
@@ -316,16 +317,34 @@ def draw_panel_content(context, layout):
             col = layout.column(align=True)
             box = col.box()
             box.separator()
-            box.label(text=f'{ent.name}') # TODO: Get sub type from *.ent Entity Properties
+            box.label(text=f'{ent.name}', icon= 'OUTLINER_COLLECTION' if ent.bl_rna.identifier == 'Collection' else 'GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             singleRow = box.row(align=True)
-            singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-
-            for var in ent.items():
-                if 'hpl_' in var[0]:
-                    var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[0][4:].replace('_',' '))
-                    singleRow = box.row(align=False)
-                    singleRow.prop(ent, f'["{var[0]}"]', icon_only=True, text=var_ui_name, expand=False)
+            if ent.bl_rna.identifier == 'Collection':
+                singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
             
+            #if bpy.context.scene.hpl_parser.temp_property_variables:
+            print(bpy.context.scene.hpl_parser.temp_selection)
+            print(bpy.context.scene.hpl_parser.temp_property_groups)
+            if bpy.context.scene.hpl_parser.temp_property_groups: 
+                group_dict = eval(bpy.context.scene.hpl_parser.temp_property_groups)
+                for group in group_dict:
+                    row = layout.row()
+                    row.prop(ent, f'["hpldropdown_{group}"]',
+                        icon="TRIA_DOWN" if ent['hpldropdown_'+group] else "TRIA_RIGHT",
+                        icon_only=True, emboss=False
+                    )
+
+                    row.label(text=group.rsplit('_')[-1])
+                    if ent['hpldropdown_'+group]:
+                        row = layout.row()      
+                        col = layout.column(align=True)
+                        box = col.box()
+                        for var in group_dict[group]:
+                            #print('VAR: ', var)
+                            var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[4:].replace('_',' '))
+                            singleRow = box.row(align=False)
+                            singleRow.prop(ent, f'["{var}"]', icon_only=True, text=var_ui_name, expand=False)
+
 class HPL_PT_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -345,15 +364,15 @@ class HPL_PT_CREATE(bpy.types.Panel):
 
     def draw(self, context):
         draw_panel_content(context, self.layout)
-    #persistent handler for later importing assets feature
-    '''
-    #@persistent
-    def asset_library_listener(context):
-        
-        new_obj = set(context.scene.objects)
 
-    bpy.app.handlers.depsgraph_update_post.append(asset_library_listener(bpy.context))
-    '''
+    #persistent handler for later asset import
+    
+    #@persistent
+
+
+def scene_selection_listener(self, context):  
+    bpy.context.scene.hpl_parser.temp_selection = str(hpl_property_io.hpl_properties.is_selection_valid())
+
 def register():
     bpy.utils.register_class(HPL_PT_CREATE)
     bpy.utils.register_class(HPM_OT_EXPORTER)
@@ -361,7 +380,7 @@ def register():
     bpy.utils.register_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.register_class(HPLSettingsPropertyGroup)
     bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPLSettingsPropertyGroup)
-
+    bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener)
     '''
     bpy.utils.register_class(HPLDATA_PROP_uuids_Collection)
     bpy.utils.register_class(HPLDATA_PROP_Scene_Collection)
@@ -373,11 +392,7 @@ def register():
     bpy.types.Object.hpldata = bpy.props.PointerProperty(type=HPLDATA_PROP_Scene_Object)
     bpy.utils.register_class(HPLDATA_PROP_Object_Object)
     '''
-    
     #bpy.types.Scene.my_plugin = bpy.props.PointerProperty(type=MYPLUGIN_PROP_Object)
-
-    
-    
 
 def unregister():
     bpy.utils.unregister_class(HPL_PT_CREATE)
@@ -386,6 +401,7 @@ def unregister():
     bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.unregister_class(HPLSettingsPropertyGroup)
     del bpy.types.Scene.hpl_parser
+    bpy.app.handlers.depsgraph_update_post.clear()
     '''
     bpy.utils.unregister_class(HPLDATA_PROP_Object_Collection)
     bpy.utils.unregister_class(HPLDATA_PROP_Scene_Collection)
