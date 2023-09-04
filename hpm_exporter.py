@@ -1,4 +1,5 @@
 import bpy, os, math
+import hashlib
 import xml.etree.ElementTree as xtree
 from bpy.types import Context, Event
 from . import hpl_config
@@ -10,23 +11,23 @@ HPMString = ""
 class HPM_OT_EXPORTER(bpy.types.Operator):
     
     bl_idname = "hpl.hpmexporter"
-    bl_label = "Write HPM File"
+    bl_label = "Export Poject"
     bl_description = "This will write the HPM file to disk, to be opened with HPL LE then"
     bl_options = {'REGISTER', 'UNDO'}
-
+    
     def modal(self, context: Context, event: Event):# -> Set[int] | Set[str]:
         return super().modal(context, event)
     
     @classmethod
     def poll(self, context):
-        return True
+        return
         
     def execute(self, context):
         write_hpm(self)
-        #return {'FINISHED'}
 
     def register():
         return
+    
     def unregister():
         return
 '''
@@ -40,6 +41,8 @@ def write_hpm():
 def write_hpm():
     #Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
+
+
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col

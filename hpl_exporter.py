@@ -1,6 +1,7 @@
 import bpy
 import os
 import math
+import hashlib
 from glob import glob
 from . import hpl_config
 from . import hpl_property_io
@@ -9,8 +10,8 @@ from . import hpl_material
 class HPL_OT_DAEEXPORTER(bpy.types.Operator):
     
     bl_idname = "hpl.daeexporter"
-    bl_label = "Write dae files"
-    bl_description = "This will write the dae files to disk, to be opened with HPL LE then"
+    bl_label = "Export Project"
+    bl_description = "This will write all assets to disk, to be read by the HPL3 engine"
     bl_options = {'REGISTER', 'UNDO'}
 
     root : bpy.props.StringProperty()
@@ -20,15 +21,23 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        hpl_export_objects()
+        hpl_export_queue()
         return {'FINISHED'}
 
     def register():
         return
     def unregister():
         return
+    
+def hpl_export_queue():
+
+    pass
 
 def hpl_export_objects():
+
+    h = hashlib.shake_256(b'Nobody inspects the spammish repetition')
+    h.hexdigest(20)
+
     #Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
     sel_objs = bpy.context.selected_objects

@@ -94,7 +94,21 @@ def get_hpl_project_root_col(self):
     return value
 
 def set_hpl_project_root_col(self, value):
-    self['hpl_project_root_col'] = value
+    self['hpl_project_root_col'] = value    
+    if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps']):
+        bpy.ops.collection.create(name='Maps')
+        bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections['Maps'])
+    return
+
+def get_hpl_map_root_col(self):
+    try:
+        value = self['get_hpl_map_root_col']
+    except:
+        value = 0
+    return value
+
+def set_hpl_map_root_col(self, value):
+    self['set_hpl_map_root_col'] = value
     return
 '''    
 def getBackgroundBlur(self):
@@ -150,6 +164,13 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
                                         description="Renders preview Images for every asset, very slow. Can take up to two hours",
                                         default=False)
     
+    hpl_export_textures : bpy.props.BoolProperty(default=True, name="Textures",
+                                        description="Convert and export all referenced textures to HPL")
+    hpl_export_meshes : bpy.props.BoolProperty(default=True, name="Meshes",
+                                        description="Export all meshes")
+    hpl_export_maps : bpy.props.BoolProperty(default=True, name="Maps",
+                                        description="write out *.hpm files")
+    
     def update_hpl_project_root_col(self, context):
         data = []
         for collection in bpy.context.scene.collection.children:
@@ -165,7 +186,23 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_project_root_col, 
         set=set_hpl_project_root_col,
     )
-
+        
+    def update_hpl_map_root_col(self, context):
+        data = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col:
+            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
+                fdata = (collection.name,collection.name,'')
+                data.append(fdata)
+        return data
+        
+    hpl_map_root_col: bpy.props.EnumProperty(
+        name='Project Name',
+        options={'LIBRARY_EDITABLE'},
+        description='Should be the name of your Amnesia mod. All map collections go in here',
+        items=update_hpl_map_root_col,
+        get=get_hpl_map_root_col, 
+        set=set_hpl_map_root_col,
+    )
     
     def update_hpl_base_classes_enum(self, context):
         if not hpl_property_io.hpl_properties.entity_baseclass_list:
@@ -241,42 +278,58 @@ def draw_panel_content(context, layout):
         box.label(text='Project Settings')
 
         singleRow = box.row(align=True)
-        split = singleRow.split(factor=1, align=True)
         singleRow.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
-        op = box.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
+        if not any([col for col in bpy.data.collections if col.name == 'Maps']):
+            box.label(text=f'Create a collection called \'Maps\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'', icon= 'ERROR')
+        
+        singleRow = box.row(align=True)
+        singleRow.enabled = bpy.context.scene.hpl_parser.hpl_project_root_col != None and any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps'])
+        singleRow.scale_y = 2
+        singleRow.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
 
+        layout.use_property_split = False
+        col = layout.column(align=False)
+        singleRow = box.row(align=True)
+        singleRow.use_property_split = False
+        singleRow.prop(props, 'hpl_export_textures', expand=False)
+        singleRow.prop(props, 'hpl_export_meshes', expand=False)
+        singleRow.prop(props, 'hpl_export_maps', expand=False)
+        
         code, ent = hpl_property_io.hpl_properties.get_valid_selection()
-        if code == 0:
-            pass
+        
+        layout.use_property_split = True
+        col = layout.column(align=True)
+        if code == 7:
+            box = col.box()
+            box.label(text=f'\'{ent.name}\' must be stored inside \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'.', icon='ERROR')    
+        elif code == 6:
+            box = col.box()
+            box.label(text=f'\'{ent.name}\' is a level collection.', icon='HOME')
+        elif code == 5:
+            box = col.box()
+            box.label(text=f'\'{ent.name}\' is not stored in \'{hpl_config.hpl_map_collection_identifier}\', therefore ignored for export.', icon='INFO')
         elif code == 4:
-            col = layout.column(align=True)
             box = col.box()
-            box.separator()
-            box.label(text=f'\'{ent.name}\' is the Level Collection.', icon= 'HOME') 
+            box.label(text=f'\'{ent.name}\' is the root level collection. All levels go in here.', icon='HOME')
         elif code == 3:
-            col = layout.column(align=True)
             box = col.box()
-            box.separator()
-            box.label(text=f'\'{ent.name}\' is the Root Collection.', icon= 'WORLD') 
+            box.label(text=f'\'{ent.name}\' is the root collection.', icon='WORLD')
         elif code == 2:
-            col = layout.column(align=True)
             box = col.box()
-            box.separator()
-            box.label(text=f'\'{ent.name}\' is not stored in \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\', ignored for export.', icon= 'INFO') 
+            box.label(text=f'\'{ent.name}\' is not stored in \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\', therefore ignored for export.', icon='INFO') 
         elif code == 1:
-            col = layout.column(align=True)
             box = col.box()
-            box.separator()
-            box.label(text=f'{ent.name}', icon= 'OUTLINER_COLLECTION' if ent.bl_rna.identifier == 'Collection' else 'GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            singleRow = box.row(align=True)
-            if ent.bl_rna.identifier == 'Collection':
-                singleRow.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+            if ent.bl_rna.identifier == 'Object':
+                box.label(text=f'\'{ent.name}\' is an entity instance.', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            else:
+                box.label(text=f'\'{ent.name}\' is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+                col = layout.column(align=True)
+                box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
                 singleRowbtn = box.row(align=True)
                 singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "FILE_REFRESH")
                 singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
                 
             for group in hpl_config.hpl_ui_var_dict:
-                #if any([g for g in ent.items() if g == f'hpl_parserdropdown_{group}']):
                 row = layout.row()
                 row.prop(ent, f'["{group}"]',
                     icon = "TRIA_DOWN" if ent[group] else "TRIA_RIGHT",
@@ -322,12 +375,13 @@ class HPL_PT_CREATE(bpy.types.Panel):
 def get_dict_from_entity_vars(ent):
     _temp_ui_var_dict = {}
     group = None
-    for var in ent.items():
-        if 'hpl_parserdropdown_' in var[0]:
-            group = var[0]
-            _temp_ui_var_dict[group] = []
-        if 'hpl_parser_' in var[0]:
-            _temp_ui_var_dict[group].append(var[0])
+    if ent:
+        for var in ent.items():
+            if 'hpl_parserdropdown_' in var[0]:
+                group = var[0]
+                _temp_ui_var_dict[group] = []
+            if 'hpl_parser_' in var[0]:
+                _temp_ui_var_dict[group].append(var[0])
     return _temp_ui_var_dict
 
 def scene_selection_listener(self, context):
