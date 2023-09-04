@@ -15,6 +15,7 @@ hpl_asset_filetypes = {'geometry' : '.dae', 'material' : '.mat', 'entity' : '.en
 hpl_asset_material_files = {}
 hpl_asset_entity_files = {}
 hpl_asset_categories_dict = {}
+hpl_ui_var_dict = {}
 
 hpl_properties = {'entities' : 'editor\\userclasses\\EntityClasses.def'}
 
@@ -44,7 +45,7 @@ hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity'
                                         #first stop                                                    #search inside container
 hpl_entity_file_identifier =            {'Identifier':'Objects'             , 'File':hpl_entity_classes_file_sub_path, 'Tag':None,    'Attribute':None}         #*.hpm file
 hpl_entity_class_file_identifier =      {'Identifier':'TypeVars'            , 'File':hpl_entity_classes_file_sub_path, 'Tag':'Group', 'Attribute':'Name'}       #Blender original collection
-hpl_leveleditor_general_identifier =    {'Identifier':'UserDefinedVariables', 'File':hpl_hpm_sub_path, 'Tag':None   , 'Attribute':'EntityType'} #*.ent file
+hpl_leveleditor_general_identifier =    {'Identifier':'UserDefinedVariables', 'File':hpl_hpm_sub_path, 'Tag':None   , 'Attribute':'EntityType'}                 #*.ent file
 hpl_leveleditor_entity_identifier =     {'Identifier':'InstanceVars'        , 'File':hpl_entity_classes_file_sub_path, 'Tag':'Group', 'Attribute':'Name'}       #Blender instanced collection
 
 hpl_ent_containers = {'Entity_File':hpl_entity_file_identifier, 'Entity_Class_File':hpl_entity_class_file_identifier, 'LevelEditor_General':hpl_leveleditor_general_identifier, 'LevelEditor_Entity':hpl_leveleditor_entity_identifier}

@@ -6,8 +6,31 @@ from . import hpl_config
 from bpy.props import FloatVectorProperty
 import mathutils
 
+
+class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
+    
+    bl_idname = "hpl.resetproperties"
+    bl_label = "Reset to Default"
+    bl_description = "This will reset all the variables of this entity"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    root : bpy.props.StringProperty()
+
+    @classmethod
+    def poll(self, context):
+        return True
+        
+    def execute(self, context):
+        hpl_properties.set_entity_type()
+        return {'FINISHED'}
+
+    def register():
+        return
+    
+    def unregister():
+        return
+
 class hpl_properties():
-            
     def traverse_tree_headers(xml_tree, key_tag):
         for tree in xml_tree:
             if key_tag in tree.tag:
@@ -15,8 +38,7 @@ class hpl_properties():
                     if 'Prop' != i.attrib['Name']:
                         hpl_properties.entity_baseclass_list.append(i.attrib['Name'])
 
-    def get_entity_vars(ent):
-
+    def get_entity_vars(ent): #TODO Delete
         root = bpy.context.scene.hpl_parser.hpl_game_root_path
 
         entity_type = 'Prop_Grab' #TODO: get *.ent file class of selected object.
@@ -149,6 +171,9 @@ class hpl_properties():
     entity_baseclass_list = []
     entity_prop_dict = {}
     def get_properties(sub_prop, variable_type):
+
+        if sub_prop == 'None':
+            return {}
         
         entity_class_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path))
         globals_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_globals_file_sub_path))
@@ -183,8 +208,6 @@ class hpl_properties():
             for c in components[0]:
                 component_classes = [var for var in globals_tree.findall(f'.//Component') if var.get('Name') == c]
                 var_dict.update(get_vars(component_classes[0], variable_type))
-
-
         return var_dict
 
     def get_base_classes_from_entity_classes():
@@ -199,21 +222,26 @@ class hpl_properties():
         
     def reset_editor_vars(ent):
         delete_vars = []
+        
         for var in ent.items():
-            if 'hpl_' or 'hpldropdown' in var[0]:
+            if 'hpl_parser' in var[0]:
+                #if 'hpl_parserenum_entity_type' in var[0]:
+                #    continue
                 delete_vars.append(var[0])
 
         for var in delete_vars:
             del ent[var]
         
-    def initialize_editor_vars(ent):
-        ent_variables = eval(bpy.context.scene.hpl_parser.temp_property_variables)
+    def initialize_editor_vars(ent, var_dict):
+        ent_variables = var_dict        
         hpl_properties.reset_editor_vars(ent)
 
         group_dict = {}
         if ent_variables:
+            if ent.bl_rna.identifier == 'Collection':
+                ent['hpl_parserenum_entity_type'] = bpy.context.scene.hpl_parser.hpl_base_classes_enum
             for group in ent_variables:
-                ent['hpldropdown_'+group] = False
+                ent['hpl_parserdropdown_'+group] = False
                 var_list = []
                 for var in ent_variables[group]:
 
@@ -221,7 +249,7 @@ class hpl_properties():
                     var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
                     var_type = var['Type'].lower()
 
-                    variable = 'hpl_'+var['Name']
+                    variable = 'hpl_parser_'+var['Name']
                     
                     #Variable Conversion
                     if var_type == 'color':
@@ -264,7 +292,6 @@ class hpl_properties():
 
                     var_list.append(variable)
                 group_dict[group] = var_list
-        bpy.context.scene.hpl_parser.temp_property_groups = str(group_dict)
             
     def get_outliner_selection():
         if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
@@ -274,20 +301,47 @@ class hpl_properties():
                     if area.type == 'OUTLINER':
                         with bpy.context.temp_override(window=window, area=area):
                             if bpy.context.selected_ids:
-                                ent = bpy.context.selected_ids[0]
-                                return ent
+                                return bpy.context.selected_ids[0]
         return None
 
-    def is_selection_valid():
+    def get_valid_selection():
         ent = hpl_properties.get_outliner_selection()
+
         if ent:
             if ent.bl_rna.identifier == 'Collection':
-                #if ent.users_collection.name ==bpy.context.scene.hpl_parser.hpl_project_root_col:
-                return ent
+                if ent == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
+                    return 3, ent
+                if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children_recursive if col == ent]):
+                    return 2, ent
+                if ent.name == hpl_config.hpl_map_collection_identifier:
+                    return 4, ent
+                return 1, ent
             if ent.bl_rna.identifier == 'Object':
                 if ent.is_instancer:
-                #if ent.users_collection.name == bpy.context.scene.hpl_parser.hpl_project_root_col:
-                    return ent
-                else:
-                    return None
-        return None
+                    if not any([valid_col for valid_col in ent.users_collection if valid_col.name == bpy.context.scene.hpl_parser.hpl_project_root_col]):
+                        return 2, ent
+                    return 1, ent
+        return 0, None
+    
+    def set_collection_properties_on_instances(ent):
+        for instance_ent in bpy.data.objects:
+            if instance_ent.is_instancer:
+                if instance_ent.instance_collection == ent:
+                    ent_type = 'None'
+                    for var in ent.items():
+                        if var[0] == 'hpl_parserenum_entity_type':
+                            ent_type = ent['hpl_parserenum_entity_type']
+                    var_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
+                    hpl_properties.initialize_editor_vars(instance_ent, var_dict)
+    
+    def set_entity_type_on_collection():
+        code, ent = hpl_properties.get_valid_selection()
+        if ent:
+            if ent.bl_rna.identifier == 'Collection':
+                #if bpy.context.scene.hpl_parser.hpl_base_classes_enum != 'None':
+                var_dict = hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'TypeVars')
+                hpl_properties.initialize_editor_vars(ent, var_dict)
+                hpl_properties.set_collection_properties_on_instances(ent)
+                #else:
+                #    hpl_properties.reset_editor_vars(ent)
+                #    hpl_properties.set_collection_properties_on_instances()
