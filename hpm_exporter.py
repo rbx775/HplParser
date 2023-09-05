@@ -3,6 +3,7 @@ import hashlib
 import xml.etree.ElementTree as xtree
 from bpy.types import Context, Event
 from . import hpl_config
+from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
 
@@ -15,15 +16,16 @@ class HPM_OT_EXPORTER(bpy.types.Operator):
     bl_description = "This will write the HPM file to disk, to be opened with HPL LE then"
     bl_options = {'REGISTER', 'UNDO'}
     
-    def modal(self, context: Context, event: Event):# -> Set[int] | Set[str]:
-        return super().modal(context, event)
+    #def modal(self, context: Context, event: Event):# -> Set[int] | Set[str]:
+    #    return super().modal(context, event)
     
     @classmethod
     def poll(self, context):
         return
         
     def execute(self, context):
-        write_hpm(self)
+        write_hpm()
+        return {'FINISHED'}
 
     def register():
         return
@@ -41,8 +43,32 @@ def write_hpm():
 def write_hpm():
     #Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
+    root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    mod = bpy.context.scene.hpl_parser.hpl_project_root_col
 
+    print(root)
+    print(mod)
 
+    '''
+    root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    def_file_path = root + hpl_config.hpl_properties['entities']
+
+    def_file = ""
+    with open(def_file_path, 'rt', encoding='ascii') as fobj:
+        def_file = fobj.read()
+
+    #TODO: build xml handler that ignores quotation segments
+    def_file = def_file.replace('&', '')
+    def_file = def_file.replace(' < ', '')
+    def_file = def_file.replace(' > ', '')
+    '''
+
+    for item in hpm_config.hpm_maintags:
+        item = str(item)
+        item.set('updated', 'yes')
+    xtree.write('output.xml')
+
+def write_dae():
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col

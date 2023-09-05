@@ -2,8 +2,11 @@ import bpy
 import os
 import math
 import hashlib
+import xml.etree.ElementTree as xtree
+
 from glob import glob
 from . import hpl_config
+from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
 
@@ -21,13 +24,47 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        hpl_export_queue()
+        write_hpm()
         return {'FINISHED'}
 
     def register():
         return
     def unregister():
         return
+
+def write_hpm():
+    #Eventhough we are working with context overrides \
+    # we need the selection for the DAE Exporter at the end.
+    root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    mod = bpy.context.scene.hpl_parser.hpl_project_root_col
+
+    map_path = root+'mods\\'+mod+'\\maps\\'+'Hut\\'
+
+    '''
+    root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    def_file_path = root + hpl_config.hpl_properties['entities']
+
+    def_file = ""
+    with open(def_file_path, 'rt', encoding='ascii') as fobj:
+        def_file = fobj.read()
+
+    #TODO: build xml handler that ignores quotation segments
+    def_file = def_file.replace('&', '')
+    def_file = def_file.replace(' < ', '')
+    def_file = def_file.replace(' > ', '')
+    '''
+
+    for item in hpm_config.hpm_maintags:
+        item = str(item)
+    
+    if not os.path.exists(map_path):
+        os.mkdir(map_path)
+    
+    #a = xtree.Element(hpm_config.hpm_maintags)
+    a = xtree.Element('a')
+    map_file = xtree.ElementTree(a)
+    with open(map_path+'hut.hpm', 'w') as f:
+        map_file.write(f, encoding='unicode')
     
 def hpl_export_queue():
 

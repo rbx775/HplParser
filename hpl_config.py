@@ -40,6 +40,8 @@ hpl_level_editor_general_vars_list =    [{'Name':"Active", 'Type':"Bool", 'Defau
                                         {'Name':"Distance Culling", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, no matter the distance."},
                                         {'Name':"Culles by Fog", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, even if fog occludes it."}]
 
+hpl_level_editor_general_vars_dict = {'General' : hpl_level_editor_general_vars_list}
+
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
                                         #first stop                                                    #search inside container

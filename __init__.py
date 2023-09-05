@@ -29,8 +29,6 @@ from .hpl_exporter import (HPL_OT_DAEEXPORTER)
 from .hpl_importer import (HPL_OT_ASSETIMPORTER)
 from .hpl_property_io import (HPL_OT_RESETPROPERTIES)
 
-var_dict = {}
-
 bl_info = {
     "name" : "hpl_parser",
     "author" : "Christian Friedrich",
@@ -296,39 +294,40 @@ def draw_panel_content(context, layout):
         singleRow.prop(props, 'hpl_export_maps', expand=False)
         
         code, ent = hpl_property_io.hpl_properties.get_valid_selection()
-        
+
         layout.use_property_split = True
         col = layout.column(align=True)
         if code == 7:
             box = col.box()
-            box.label(text=f'\'{ent.name}\' must be stored inside \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'.', icon='ERROR')    
+            box.label(text=f'\"{ent.name}\" must be stored inside \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\".', icon='ERROR')    
         elif code == 6:
             box = col.box()
-            box.label(text=f'\'{ent.name}\' is a level collection.', icon='HOME')
+            box.label(text=f'\"{ent.name}\" is a level collection.', icon='HOME')
         elif code == 5:
             box = col.box()
-            box.label(text=f'\'{ent.name}\' is not stored in \'{hpl_config.hpl_map_collection_identifier}\', therefore ignored for export.', icon='INFO')
+            box.label(text=f'\"{ent.name}\" is not stored in \"{hpl_config.hpl_map_collection_identifier}\", therefore ignored for export.', icon='INFO')
         elif code == 4:
             box = col.box()
-            box.label(text=f'\'{ent.name}\' is the root level collection. All levels go in here.', icon='HOME')
+            box.label(text=f'\"{ent.name}\" is the root level collection. All levels go in here.', icon='HOME')
         elif code == 3:
             box = col.box()
-            box.label(text=f'\'{ent.name}\' is the root collection.', icon='WORLD')
+            box.label(text=f'\"{ent.name}\" is the root collection.', icon='WORLD')
         elif code == 2:
             box = col.box()
-            box.label(text=f'\'{ent.name}\' is not stored in \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\', therefore ignored for export.', icon='INFO') 
+            box.label(text=f'\"{ent.name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
         elif code == 1:
             box = col.box()
             if ent.bl_rna.identifier == 'Object':
-                box.label(text=f'\'{ent.name}\' is an entity instance.', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+                instance_of = ent['hpl_parser_instance_of']
+                box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             else:
-                box.label(text=f'\'{ent.name}\' is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+                box.label(text=f'\"{ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
                 col = layout.column(align=True)
                 box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
                 singleRowbtn = box.row(align=True)
                 singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "FILE_REFRESH")
                 singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
-                
+
             for group in hpl_config.hpl_ui_var_dict:
                 row = layout.row()
                 row.prop(ent, f'["{group}"]',
@@ -342,7 +341,6 @@ def draw_panel_content(context, layout):
                     col = layout.column(align=True)
                     box = col.box()
                     for var in hpl_config.hpl_ui_var_dict[group]:
-                        #print('VAR: ', var)
                         var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[11:].replace('_',' '))
                         singleRow = box.row(align=False)
                         singleRow.prop(ent, f'["{var}"]', icon_only=True, text=var_ui_name, expand=False)
@@ -354,7 +352,6 @@ class HPL_PT_CREATE(bpy.types.Panel):
     bl_label = "HPL Parser"
     bl_idname = "HPL_PT_CREATE"
 
-    ui_var_dict = {}
     @classmethod
     def poll(cls, context):
         return True
@@ -375,18 +372,27 @@ class HPL_PT_CREATE(bpy.types.Panel):
 def get_dict_from_entity_vars(ent):
     _temp_ui_var_dict = {}
     group = None
-    if ent:
-        for var in ent.items():
-            if 'hpl_parserdropdown_' in var[0]:
-                group = var[0]
-                _temp_ui_var_dict[group] = []
+    for var in ent.items():
+        if 'hpl_parserdropdown_' in var[0]:
+            group = var[0]
+            _temp_ui_var_dict[group] = []
+        if group:
             if 'hpl_parser_' in var[0]:
                 _temp_ui_var_dict[group].append(var[0])
     return _temp_ui_var_dict
 
 def scene_selection_listener(self, context):
-    code, ent = hpl_property_io.hpl_properties.get_valid_selection()
-    hpl_config.hpl_ui_var_dict = get_dict_from_entity_vars(ent)
+    ent = hpl_property_io.hpl_properties.get_outliner_selection()
+    if ent:
+        #Catch newly created instances (Alt+G)
+        if ent.bl_rna.identifier == 'Object' and ent.is_instancer:
+            if not any([var for var in ent.items() if 'hpl_parser_' in var[0]]):
+                print('HANDLER: ', ent)
+                hpl_property_io.hpl_properties.set_collection_properties_on_instance(ent)
+        hpl_config.hpl_ui_var_dict = get_dict_from_entity_vars(ent)
+    else:
+        hpl_config.hpl_ui_var_dict = {}
+        
 
 def register():
     bpy.utils.register_class(HPL_PT_CREATE)

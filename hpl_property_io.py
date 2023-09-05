@@ -37,39 +37,6 @@ class hpl_properties():
                 for i in tree:
                     if 'Prop' != i.attrib['Name']:
                         hpl_properties.entity_baseclass_list.append(i.attrib['Name'])
-
-    def get_entity_vars(ent): #TODO Delete
-        root = bpy.context.scene.hpl_parser.hpl_game_root_path
-
-        entity_type = 'Prop_Grab' #TODO: get *.ent file class of selected object.
-        def_file_path = root + hpl_config.hpl_properties['entities']
-
-        def_file = ""
-        with open(def_file_path, 'rt', encoding='ascii') as fobj:
-            def_file = fobj.read()
-
-        #TODO: build xml handler that ignores quotation segments
-        def_file = def_file.replace('&', '')
-        def_file = def_file.replace(' < ', '')
-        def_file = def_file.replace(' > ', '')
-
-        parser = xtree.XMLParser(encoding="ascii")
-        tree = xtree.fromstring(def_file, parser=parser)
-
-        derived_class = {}
-        base_class = {}
-
-        for category in tree.iter():
-            if entity_type in category.attrib.values():
-                if hpl_config.hpl_xml_inherit_attribute in category.attrib:
-                    derived_class = category.attrib
-                for e in iter(category):
-                    if hpl_config.hpl_xml_typevars in e.tag:
-                        e=e[0]
-                        for i in e:
-                            pass
-        derived_class.update(derived_class)
-        return derived_class
     
     def get_material_vars(mat_file):
         if mat_file:
@@ -175,6 +142,7 @@ class hpl_properties():
         if sub_prop == 'None':
             return {}
         
+        var_dict = {}
         entity_class_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_entity_classes_file_sub_path))
         globals_tree = xtree.fromstring(hpl_properties.load_def_file(hpl_config.hpl_globals_file_sub_path))
 
@@ -183,15 +151,14 @@ class hpl_properties():
             for sub_classes in classes:
                 if sub_classes.tag == variable_type:
                     for groups in sub_classes:
-                        #var_dict['hpldropdown_'+groups.get('Name')] = [{'Name': 'hpldropdown_'+groups.get('Name'), 'Type': 'Bool', 'DefaultValue': 'false', 'Description': ''}]
                         var_dict[groups.get('Name')] = list(v.attrib for v in groups.iter("Var"))
                     return var_dict
             return {}
 
         classes = [var for var in entity_class_tree.findall(f'.//Class') if var.get('Name') == sub_prop]
         base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass')]
-        if classes:
-            var_dict = get_vars(classes[0], variable_type)
+        #Need to search for 'sub_prop' first, but append last, to immitate the leveleditor order.
+        sub_prop_dict = get_vars(classes[0], variable_type) if classes else {}
 
         inherits = [classes[0].attrib[var] for var in classes[0].attrib if var == 'InheritsFrom']
         components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib if var == 'UsesComponents']
@@ -208,6 +175,8 @@ class hpl_properties():
             for c in components[0]:
                 component_classes = [var for var in globals_tree.findall(f'.//Component') if var.get('Name') == c]
                 var_dict.update(get_vars(component_classes[0], variable_type))
+        
+        var_dict.update(sub_prop_dict)
         return var_dict
 
     def get_base_classes_from_entity_classes():
@@ -219,6 +188,11 @@ class hpl_properties():
             return hpl_properties.entity_baseclass_list
         else:
             return None
+        
+    def get_collection_instance_is_of(ent):
+        for collection_ent in bpy.data.collections:
+            if collection_ent == ent.instance_collection:
+                return collection_ent
         
     def reset_editor_vars(ent):
         delete_vars = []
@@ -240,6 +214,9 @@ class hpl_properties():
         if ent_variables:
             if ent.bl_rna.identifier == 'Collection':
                 ent['hpl_parserenum_entity_type'] = bpy.context.scene.hpl_parser.hpl_base_classes_enum
+            if ent.bl_rna.identifier == 'Object':
+                ent['hpl_parser_instance_of'] = hpl_properties.get_collection_instance_is_of(ent).name
+
             for group in ent_variables:
                 ent['hpl_parserdropdown_'+group] = False
                 var_list = []
@@ -327,6 +304,17 @@ class hpl_properties():
                         return 1, ent
                     return 5, ent
         return 0, None
+
+    def set_collection_properties_on_instance(ent):
+        collection_ent = hpl_properties.get_collection_instance_is_of(ent)
+        ent_type = 'None'
+        for var in collection_ent.items():
+            if var[0] == 'hpl_parserenum_entity_type':
+                ent_type = collection_ent['hpl_parserenum_entity_type']
+                var_dict = hpl_config.hpl_level_editor_general_vars_dict
+                var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
+                hpl_properties.initialize_editor_vars(ent, var_dict)
+    
     
     def set_collection_properties_on_instances(ent):
         for instance_ent in bpy.data.objects:
@@ -336,7 +324,9 @@ class hpl_properties():
                     for var in ent.items():
                         if var[0] == 'hpl_parserenum_entity_type':
                             ent_type = ent['hpl_parserenum_entity_type']
-                    var_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
+                    var_dict = hpl_config.hpl_level_editor_general_vars_dict
+                    var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
+                    print(var_dict)
                     hpl_properties.initialize_editor_vars(instance_ent, var_dict)
     
     def set_entity_type_on_collection():
