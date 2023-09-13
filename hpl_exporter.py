@@ -29,7 +29,9 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        write_hpm()
+        #write_hpm()
+        hpl_export_objects()
+        
         return {'FINISHED'}
 
     def register():
@@ -75,7 +77,7 @@ def get_object_path(obj):
     return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name+'.ent'
 
 
-def write_entities(map_tree, map_col, _map_path):
+def write_hpm_entity(map_tree, map_col, _map_path):
 
     root_id = random.randint(100000000, 999999999)
     stamp_id = random.randint(1000000000, 9999999999)
@@ -115,43 +117,62 @@ def write_entities(map_tree, map_col, _map_path):
             _Id = _Id + 1
                         
     xtree.indent(root, space="    ", level=0)
-    xtree.ElementTree(root).write(_map_path)
-            
-                    
-    #print(hpm_config.hpm_entities_dict)
-    '''
-    #HPLMapTrack_Entity
-    root = xtree.Element('HPLMapTrack_Entity', ID=0, MajorVersion=1, MinorVersion=1)
-    section = xtree.SubElement(root, 'Section', name=0)
-    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=0)
-    xtree.SubElement(file_index, "File", Path="blah")
-    '''
-    '''
-    root = xtree.Element('FileIndex_Entities')
-    doc = xtree.SubElement(root, "doc")
+    xtree.ElementTree(root).write(_map_path) 
+    
+def write_entity_files(obj_col, _ent_path):
+    
+    root_id = random.randint(100000000, 999999999)
+    stamp_id = random.randint(1000000000, 9999999999)
+    
+    entity = xtree.Element('Entity')
+    model_data = xtree.SubElement(entity, "ModelData")
+    entities = xtree.SubElement(model_data, 'Entities')
+    mesh = xtree.SubElement(model_data, 'Mesh')
+    bones = xtree.SubElement(model_data, 'Bones')
+    shapes = xtree.SubElement(model_data, 'Shapes')
+    bodies = xtree.SubElement(model_data, 'Bodies')
+    joints = xtree.SubElement(model_data, 'Joints')
+    animations = xtree.SubElement(model_data, 'Animations')
+    proc_animations = xtree.SubElement(model_data, 'ProcAnimations')
+    #user_variables = xtree.SubElement(entity, 'UserVariables')
 
-    xtree.SubElement(doc, "field1", name="blah").text = "some value1"
-    xtree.SubElement(doc, "field2", name="asdfasd").text = "some vlaue2"
+    _Id = 0
     
-    #map_tree = xtree.ElementTree(root)
-    xtree.indent(root, space="    ", level=0)
-    print(_map_path)
-    xtree.ElementTree(root).write(_map_path, encoding='utf-8')
-    #doc.write(_map_path, encoding='utf-8')
-    #tree.write("filename.xml")
-    '''
-    '''
-    attrib = map_tree.find(f'.//Entity')
-    objects = xtree.Element('Element')
-    entity = xtree.SubElement(objects, 'SubElement')
-    
-    #new_entity = copy.deepcopy(attrib)
-    map_tree_objects = map_tree.find(f'.//Objects')
-    #map_tree_objects.append(new_entity)
-    map_tree_objects.append(entity)
-    #attrib.set(hpm_var, var[1])
-    '''
-    
+    for obj in obj_col.objects:
+        if not obj.is_instancer:
+
+            sub_mesh = xtree.SubElement(mesh, 'Entity', ID=str(root_id+_Id))
+            
+            #xtree.SubElement(file_index, 'File', Id=str(_Id), Path=get_object_path(obj))
+
+            sub_mesh.set('ID', str(root_id+_Id))
+            sub_mesh.set('Name', str(obj.name))
+            sub_mesh.set('CreStamp', str(stamp_id))
+            sub_mesh.set('ModStamp', str(stamp_id))
+            sub_mesh.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
+            sub_mesh.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
+            sub_mesh.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+
+            mesh_data = obj.data
+            mesh_data.calc_loop_triangles()
+            tri_count = len(mesh_data.loop_triangles)
+            sub_mesh.set('TriCount', str(tri_count))
+            sub_mesh.set('Material', str(obj.material_slots[0].name) if list(obj.material_slots) else '') #TODO: check if available first
+
+    user_defined_variables = xtree.SubElement(entity, 'UserDefinedVariables')
+    user_defined_variables.set('EntityType', obj_col['hpl_parserenum_entity_type']) #TODO: check if available first
+    vars = [item for item in obj_col.items() if 'hpl_parser_' in item[0]]
+    for var in vars:
+        var_name = var[0].split('hpl_parser_')[-1]
+        xml_var = xtree.SubElement(user_defined_variables,'Var')
+        #xml_var.set('ObjectId', str(root_id+_Id))
+        xml_var.set('Name', var_name)
+        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+    _Id = _Id + 1
+                        
+    xtree.indent(entity, space="    ", level=0)
+    xtree.ElementTree(entity).write(_ent_path+obj_col.name+'.ent')
+
 def write_hpm():
     #Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
@@ -177,21 +198,13 @@ def write_hpm():
             #    write_static_objects(map_tree, map_col)
             
             if container == '_Entity':
-                map_tree = write_entities(map_tree, map_col, _map_path)
-                #map_tree.write(_map_path, encoding='utf-8')
-            
-    
-def hpl_export_queue():
-
-    pass
+                map_tree = write_hpm_entity(map_tree, map_col, _map_path)
+                
 
 def hpl_export_objects():
 
-    h = hashlib.shake_256(b'Nobody inspects the spammish repetition')
-    h.hexdigest(20)
-
     #Eventhough we are working with context overrides \
-    # we need the selection for the DAE Exporter at the end.
+    #we need the selection for the DAE Exporter at the end.
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
@@ -220,10 +233,10 @@ def hpl_export_objects():
             obj.location[0] = -obj.location[0]
 
 
-        path = root+'\\mods\\'+root_collection+'\\static_objects\\'+export_collection.name+'\\'
+        path = root+'\\mods\\'+root_collection+'\\entities\\'#+export_collection.name+'\\'
         #if not os.path.isfile(path):
         #    os.mkdir(path)
-        #Delete HPL *.msh file. This will be recreated when Level Editor is launched.
+        #Delete HPL *.msh file. This will be recreated when Level Editor or game is launched.
         if os.path.isfile(path+export_collection.name[:3]+'msh'):
             os.remove(path+export_collection.name[:3]+'msh')
         
@@ -232,6 +245,8 @@ def hpl_export_objects():
                                 export_global_forward_selection = 'Z', export_global_up_selection = 'Y', \
                                 apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                 triangulate = False) #-Y, Z
+        
+        write_entity_files(ent, path)
 
         for obj in export_objects:
             obj.modifiers.remove(obj.modifiers.get("_Triangulate"))
