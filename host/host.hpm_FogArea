@@ -1,0 +1,7 @@
+<HPLMapTrack_FogArea ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
+    <Section Name="9347656469469383509">
+        <Objects>
+            <FogArea ID="268435467" Name="FogArea_1" CreStamp="1694098627" ModStamp="1694098627" WorldPos="-3.5 0 2.25" Rotation="0 0 0" Scale="1 1 1" Color="1 1 1 1" Brightness="1" Start="0" End="10" FalloffExp="1" Prio="0" ShownBacksideWhenOutside="false" ShownBacksideWhenInside="true" Underwater="false" Lighten="false" HeightBased="false" Exponential="false" Density="0.25" HeightDensity="0.25" HeightHorizon="1" NoiseStrength="0" NoiseSize="8" NoiseTurbulence="0.5 0.5 0.5" Skybox="false" Static="false" CulledByDistance="false" CulledByFog="true" UID="16 6 268435467" />
+        </Objects>
+    </Section>
+</HPLMapTrack_FogArea>

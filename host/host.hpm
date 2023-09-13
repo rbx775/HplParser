@@ -1,0 +1,14 @@
+<HPLMap ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
+    <GlobalSettings>
+        <Fog Active="false" Culling="true" Color="1 1 1 1" Brightness="1" FadeStart="0" FadeEnd="20" FalloffExp="1" Underwater="false" Lighten="false" UseSkybox="false" NoiseStrength="0" NoiseSize="8" NoiseTurbulence="0.5 0.5 0.5" ApplyAfterFogAreas="true" HeightBased="false" Exponential="false" Density="0.01" HeightDensity="0.01" HeightHorizon="5" SecondaryActive="false" SecondaryColor="1 1 1 1" SecondaryFadeStart="0" SecondaryFadeEnd="20" SecondaryFalloffExp="1" SecondaryDensity="0.01" SecondaryHeightDensity="0.25" SecondaryHeightHorizon="5" />
+        <SkyBox Active="false" Color="1 1 1 1" Texture="" Brightness="1" />
+        <DirLight Active="false" ShadowCasterDist="35" ShadowDistance="-1" DiffuseColor="1 1 1 1" Brightness="1 1 1 1" Gobo="" GoboAnimMode="None" GoboAnimStartTime="0" GoboAnimFrameTime="0" GoboScale="1 1" Direction="0.57735 -0.57735 0.57735" CastShadows="false" SkyCol="1 1 1 1" GroundCol="1 1 1 1" ShadowMapBiasMul="3" ShadowMapSlopeScaleBiasMul="2.5" AutoShadowSliceSettings="true" AutoShadowSliceLogTerm="0.9" />
+        <SSAO NormalMap="false" NumOfDirections="0" NumOfSteps="0" AngleBias="0" Power="4.4" Radius="2" BufferSizeDiv="2" />
+        <EnvParticles Active="false" />
+        <PostEffects ToneMappingKey="0.5" ToneMappingExposure="0" ToneMappingWhiteCut="3.5" ColorGradingTexture="" />
+        <DistanceCulling Active="false" MinRange="0" ScreenSize="0.05" RandomSize="0.25" />
+    </GlobalSettings>
+    <RegisteredUsers>
+        <User ID="9347656469469383509" RegistrationTimestamp="0" />
+    </RegisteredUsers>
+</HPLMap>

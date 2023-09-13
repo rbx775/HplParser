@@ -1,0 +1,16 @@
+<HPLMapTrack_DetailMeshes ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
+    <DetailMeshes MaxRange="4000">
+        <Sections>
+            <Section Name="9347656469469383509">
+                <DetailMesh File="detail_meshes/bunker_rocks/bunker_rocks_group_01.dae" NumOfInstances="1">
+                    <DetailMeshEntityIDs>268435478</DetailMeshEntityIDs>
+                    <DetailMeshEntityPositions>-1.75 0 4.25</DetailMeshEntityPositions>
+                    <DetailMeshEntityRotations>1 0 0 0</DetailMeshEntityRotations>
+                    <DetailMeshEntityRadii>0.419833</DetailMeshEntityRadii>
+                    <DetailMeshEntityColors>1 1 1</DetailMeshEntityColors>
+                    <DetailMeshEntityModStamps>1694098771</DetailMeshEntityModStamps>
+                </DetailMesh>
+            </Section>
+        </Sections>
+    </DetailMeshes>
+</HPLMapTrack_DetailMeshes>

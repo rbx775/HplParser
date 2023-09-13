@@ -33,12 +33,13 @@ hpl_dae_containers = {'library_images':'library_images','image':'image','init_fr
 hpl_entity_classes_file_sub_path = '\\editor\\userclasses\\EntityClasses.def'
 hpl_globals_file_sub_path = '\\editor\\userclasses\\Globals.def'
 hpl_hpm_sub_path = '\\mods\\maps'
+hpl_common_variable_types = [bool, int, float, str]
 
 hpl_level_editor_general_vars_list =    [{'Name':"Active", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Activate or Deactivate the Object"},
                                         {'Name':"Important", 'Type':"Bool", 'DefaultValue':"false", 'Description':""},
                                         {'Name':"Static", 'Type':"Bool", 'DefaultValue':"false", 'Description':"Enable if this entity should stationary."},
-                                        {'Name':"Distance Culling", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, no matter the distance."},
-                                        {'Name':"Culles by Fog", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, even if fog occludes it."}]
+                                        {'Name':"CulledByDistance", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, no matter the distance."},
+                                        {'Name':"CulledByFog", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, even if fog occludes it."}]
 
 hpl_level_editor_general_vars_dict = {'General' : hpl_level_editor_general_vars_list}
 

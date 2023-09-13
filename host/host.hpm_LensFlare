@@ -1,0 +1,7 @@
+<HPLMapTrack_LensFlare ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
+    <Section Name="9347656469469383509">
+        <Objects>
+            <LensFlare ID="268435475" Name="LensFlar1_1" CreStamp="1694098725" ModStamp="1694098725" WorldPos="-3.5 0 -2.75" Rotation="0 0 0" Scale="1 1 1" ActiveAnamorphic="false" MaterialAnamorphic="F:/SteamLibrary/steamapps/common/Amnesia The Bunker/billboards/halo/dwf_railing_light_billboard.mat" SizeAnamorphic="0.125 0.125" ColorAnamorphic="1 1 1 1" ActiveFlare="true" MaterialFlare="F:/SteamLibrary/steamapps/common/Amnesia The Bunker/billboards/halo/blur_test.mat" SizeFlare="0.125 0.125" ColorFlare="1 1 1 1" ActiveMultiIris="false" MaterialMultiIris="" SizeMultiIris="0.125 0.125" ColorMultiIris="1 1 1 1" MultiIrisSeed="1481" MultiIrisCount="16" UseParentMeshForOcclusion="true" ShrinkWhenOccluded="true" MulMultiIrisWithGlare="true" SourceSize="0.5 0.5 0.5" InnerFOV="6.28319" OuterFOV="6.28319" GlareBrightness="0.5" GlareFOV="3.14159" GlareStareAt="0" SizeChangeBasedOnDistance="0" MultiIrisTextureAtlasGrid="1 1" RangeMax="-1 -1" RangeMin="-1 -1" GlareRange="-1 -1" Brightness="1" Static="false" CulledByDistance="false" CulledByFog="true" UID="16 0 268435475" />
+        </Objects>
+    </Section>
+</HPLMapTrack_LensFlare>

@@ -3,6 +3,11 @@ import os
 import math
 import hashlib
 import xml.etree.ElementTree as xtree
+import copy
+import hashlib
+import random
+import mathutils
+import re
 
 from glob import glob
 from . import hpl_config
@@ -31,40 +36,150 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
         return
     def unregister():
         return
+    
 
+def load_map_file(file_path):
+    #root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    #map_file_path = root + file_path
+
+    if os.path.isfile(file_path):
+        map_file = ""
+        with open(file_path, 'r') as _map_file:
+            map_file = _map_file.read()
+
+        #TODO: build xml handler that ignores quotation segments
+        #map_file = map_file.replace('&', '')
+        #map_file = map_file.replace(' < ', '')
+        #map_file = map_file.replace(' > ', '')
+        return map_file
+    return ''
+
+def write_static_objects(map_tree, map_col):
+    for obj in map_col.objects:
+        if obj.is_instancer:
+            vars = [item for item in obj.items() if 'hpl_parser_' in item[0]]
+            for var in vars:
+                for hpm_var in hpm_config.hpm_staticobjects_properties['StaticObject']:
+                    if hpm_var == var[0].split('hpl_parser_')[-1]:
+                        attrib = map_tree.find('StaticObject')
+                        attrib.set(hpm_var, var[1])
+    #count = map_tree.find(list(hpm_config.hpm_staticobjects_file_count.keys())[0])
+    #map_tree.find(hpm_config.hpm_staticobjects_file_count)
+    #hpm_config.hpm_staticobjects_file_count
+    #hpm_config.hpm_staticobjects_file_id
+    #hpm_config.hpm_staticobjects_properties
+def traverse_config_dict():
+    pass
+
+def get_object_path(obj):
+    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name+'.ent'
+
+
+def write_entities(map_tree, map_col, _map_path):
+
+    root_id = random.randint(100000000, 999999999)
+    stamp_id = random.randint(1000000000, 9999999999)
+    
+    root = xtree.Element('HPLMapTrack_Entity', ID=str(hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()), MajorVersion='1', MinorVersion='1')
+    section = xtree.SubElement(root, "Section")
+    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(len(map_col.objects)))
+    objects = xtree.SubElement(section, 'Objects')
+    _Id = 0
+    
+    for obj in map_col.objects:
+        if obj.is_instancer:
+            
+            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_Id))
+            user_variables = xtree.SubElement(entity, 'UserVariables')
+            xtree.SubElement(file_index, 'File', Id=str(_Id), Path=get_object_path(obj))
+
+            entity.set('ID', str(root_id+_Id))
+            entity.set('Name', str(obj.name))
+            entity.set('CreStamp', str(stamp_id))
+            entity.set('ModStamp', str(stamp_id))
+            entity.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('FileIndex', str(_Id))
+            
+            vars = [item for item in obj.items() if 'hpl_parser_' in item[0]]
+            for var in vars:
+                var_name = var[0].split('hpl_parser_')[-1]
+                if var_name in hpm_config.hpm_entities_properties['Entity']:
+                    entity.set(var_name, str(var[1]))
+                else:
+                    xml_var = xtree.SubElement(user_variables,'Var')
+                    xml_var.set('ObjectId', str(root_id+_Id))
+                    xml_var.set('Name', var_name)
+                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+            _Id = _Id + 1
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+            
+                    
+    #print(hpm_config.hpm_entities_dict)
+    '''
+    #HPLMapTrack_Entity
+    root = xtree.Element('HPLMapTrack_Entity', ID=0, MajorVersion=1, MinorVersion=1)
+    section = xtree.SubElement(root, 'Section', name=0)
+    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=0)
+    xtree.SubElement(file_index, "File", Path="blah")
+    '''
+    '''
+    root = xtree.Element('FileIndex_Entities')
+    doc = xtree.SubElement(root, "doc")
+
+    xtree.SubElement(doc, "field1", name="blah").text = "some value1"
+    xtree.SubElement(doc, "field2", name="asdfasd").text = "some vlaue2"
+    
+    #map_tree = xtree.ElementTree(root)
+    xtree.indent(root, space="    ", level=0)
+    print(_map_path)
+    xtree.ElementTree(root).write(_map_path, encoding='utf-8')
+    #doc.write(_map_path, encoding='utf-8')
+    #tree.write("filename.xml")
+    '''
+    '''
+    attrib = map_tree.find(f'.//Entity')
+    objects = xtree.Element('Element')
+    entity = xtree.SubElement(objects, 'SubElement')
+    
+    #new_entity = copy.deepcopy(attrib)
+    map_tree_objects = map_tree.find(f'.//Objects')
+    #map_tree_objects.append(new_entity)
+    map_tree_objects.append(entity)
+    #attrib.set(hpm_var, var[1])
+    '''
+    
 def write_hpm():
     #Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
     mod = bpy.context.scene.hpl_parser.hpl_project_root_col
 
-    map_path = root+'mods\\'+mod+'\\maps\\'+'Hut\\'
+    map_path = root+'mods\\'+mod+'\\maps\\'
+    host_file_path = os.path.dirname(os.path.realpath(__file__))+'\\host\\host.hpm'
 
-    '''
-    root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    def_file_path = root + hpl_config.hpl_properties['entities']
+    for map_col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children:
 
-    def_file = ""
-    with open(def_file_path, 'rt', encoding='ascii') as fobj:
-        def_file = fobj.read()
+        if not os.path.exists(map_path + map_col.name):
+            os.mkdir(map_path + map_col.name)
 
-    #TODO: build xml handler that ignores quotation segments
-    def_file = def_file.replace('&', '')
-    def_file = def_file.replace(' < ', '')
-    def_file = def_file.replace(' > ', '')
-    '''
+        for container in hpm_config.hpm_file_containers:
 
-    for item in hpm_config.hpm_maintags:
-        item = str(item)
-    
-    if not os.path.exists(map_path):
-        os.mkdir(map_path)
-    
-    #a = xtree.Element(hpm_config.hpm_maintags)
-    a = xtree.Element('a')
-    map_file = xtree.ElementTree(a)
-    with open(map_path+'hut.hpm', 'w') as f:
-        map_file.write(f, encoding='unicode')
+            _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
+
+            map_file = load_map_file(host_file_path + container)
+            map_tree = xtree.ElementTree(xtree.fromstring(map_file))
+
+            #if container == '_StaticObject':
+            #    write_static_objects(map_tree, map_col)
+            
+            if container == '_Entity':
+                map_tree = write_entities(map_tree, map_col, _map_path)
+                #map_tree.write(_map_path, encoding='utf-8')
+            
     
 def hpl_export_queue():
 

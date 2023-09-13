@@ -1,0 +1,10 @@
+<HPLMapTrack_StaticObject ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
+    <Section Name="9347656469469383509">
+        <FileIndex_StaticObjects NumOfFiles="1">
+            <File Id="0" Path="static_objects/arabic_fort/exterior/walls/ab_exterior_wall_cap_door01.dae" />
+        </FileIndex_StaticObjects>
+        <Objects>
+            <StaticObject ID="268435459" Name="arabic_fort_exterior_walls_ab_exterior_wall_cap_door01_1" CreStamp="1694098469" ModStamp="1694098469" WorldPos="0 0 -4.25" Rotation="0 0 0" Scale="1 1 1" FileIndex="0" Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 12 268435459" />
+        </Objects>
+    </Section>
+</HPLMapTrack_StaticObject>

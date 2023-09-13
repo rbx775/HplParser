@@ -36,9 +36,11 @@ Blender to HPL3 Engine Parser for Mod Creation.
 2. [x] v0.1: Basic level decoration. texture, material, model, entity file export is mostly working.
 2. [ ] v0.2: Basic asset imports. game content imports are mostly working.
 2. [ ] v0.3: Mod Initialization.
-2. ...
+2. [ ] v0.4: ...
 
 
 [Click Here](https://github.com/rbx775/HplParser/issues) to report bugs or request features.
 
 ❤️ Frictional Games
+
+

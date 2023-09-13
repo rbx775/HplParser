@@ -71,26 +71,6 @@ class hpl_properties():
                             fl = False
             return None
         
-        #alternative heuristic to determine mesh:mat pairs
-        def step_through_chars(xml_line, mat):
-            skip_x = False
-            score = 0
-            fscore = 0
-            for x in xml_line:
-                if score > fscore:
-                    fscore = score
-                if skip_x:
-                    skip_x = False
-                    continue
-                for m in mat:
-                    if x == m:
-                        score = score + 1
-                        skip_x = True
-                        continue
-                    else:
-                        score = 0
-            return fscore
-        
         if dae_file:
             xml_line = check_for_mat_tags(dae_file)
             if xml_line:
@@ -107,7 +87,7 @@ class hpl_properties():
                     if not os.path.isfile(mat_path):
                         return mat_path
                 
-                #heuristic to check for across-subfolder *.dae - *.mat references
+                #heuristic to check for across-subfolder *.dae : *.mat references
                 score = 0
                 final_score = 0
                 mat_name = None
@@ -215,8 +195,7 @@ class hpl_properties():
             if ent.bl_rna.identifier == 'Collection':
                 ent['hpl_parserenum_entity_type'] = bpy.context.scene.hpl_parser.hpl_base_classes_enum
             if ent.bl_rna.identifier == 'Object':
-                ent['hpl_parser_instance_of'] = hpl_properties.get_collection_instance_is_of(ent).name
-
+                ent['hpl_parserinstance_of'] = hpl_properties.get_collection_instance_is_of(ent).name
             for group in ent_variables:
                 ent['hpl_parserdropdown_'+group] = False
                 var_list = []
@@ -264,7 +243,7 @@ class hpl_properties():
                     if 'Max' in var:
                         id_props.update(min=int(var['Min']),max=int(var['Max']))
                     if 'Description' in var:
-                        id_props.update(description=var['Description'])
+                        id_props.update(description=var['Description']+'|'+var_type)
                     ent.property_overridable_library_set(f'["{variable}"]', True)
 
                     var_list.append(variable)
@@ -300,7 +279,7 @@ class hpl_properties():
                 return 1, ent
             if ent.bl_rna.identifier == 'Object':
                 if ent.is_instancer:
-                    if ent.users_collection[0].name == hpl_config.hpl_map_collection_identifier:
+                    if ent.users_collection[0] in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children_recursive:
                         return 1, ent
                     return 5, ent
         return 0, None
@@ -326,7 +305,6 @@ class hpl_properties():
                             ent_type = ent['hpl_parserenum_entity_type']
                     var_dict = hpl_config.hpl_level_editor_general_vars_dict
                     var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
-                    print(var_dict)
                     hpl_properties.initialize_editor_vars(instance_ent, var_dict)
     
     def set_entity_type_on_collection():

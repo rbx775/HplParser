@@ -22,6 +22,8 @@ import random
 from mathutils import Vector, Matrix
 
 from . import hpl_config
+from . import hpm_config
+from . import hpm_class_extractor
 from . import hpl_property_io
 from . import hpl_importer
 from .hpm_exporter import (HPM_OT_EXPORTER)
@@ -69,6 +71,7 @@ def set_hpl_game_root_path(self, value):
         if check_for_game_exe(value):
             bpy.context.scene.hpl_parser.dae_file_count = ' '+str(len(hpl_importer.pre_scan_for_dae_files(value)))
             bpy.context.scene.hpl_parser.hpl_is_game_root_valid = True
+            hpm_class_extractor.hpm_properties.get_properties_from_hpm_file()
         else:
             bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
     return
@@ -305,7 +308,7 @@ def draw_panel_content(context, layout):
             box.label(text=f'\"{ent.name}\" is a level collection.', icon='HOME')
         elif code == 5:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is not stored in \"{hpl_config.hpl_map_collection_identifier}\", therefore ignored for export.', icon='INFO')
+            box.label(text=f'\"{ent.name}\" is not stored in a level collection, therefore ignored for export.', icon='INFO')
         elif code == 4:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is the root level collection. All levels go in here.', icon='HOME')
@@ -318,8 +321,9 @@ def draw_panel_content(context, layout):
         elif code == 1:
             box = col.box()
             if ent.bl_rna.identifier == 'Object':
-                instance_of = ent['hpl_parser_instance_of']
-                box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+                if any([var for var in ent.items() if 'hpl_parserinstance_of' in var[0]]):
+                    instance_of = ent['hpl_parserinstance_of']
+                    box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             else:
                 box.label(text=f'\"{ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
                 col = layout.column(align=True)
@@ -387,12 +391,10 @@ def scene_selection_listener(self, context):
         #Catch newly created instances (Alt+G)
         if ent.bl_rna.identifier == 'Object' and ent.is_instancer:
             if not any([var for var in ent.items() if 'hpl_parser_' in var[0]]):
-                print('HANDLER: ', ent)
                 hpl_property_io.hpl_properties.set_collection_properties_on_instance(ent)
         hpl_config.hpl_ui_var_dict = get_dict_from_entity_vars(ent)
     else:
         hpl_config.hpl_ui_var_dict = {}
-        
 
 def register():
     bpy.utils.register_class(HPL_PT_CREATE)

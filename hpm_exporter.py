@@ -40,15 +40,32 @@ def write_hpm():
     path = root+'\\mods\\'+root_collection+'\\maps\\'+export_collection.name+'\\'
     #file = f'{desktop}\\parser.hpm'
 '''
+
+def load_map_file(file_path):
+    #root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    #map_file_path = root + file_path
+
+    if os.path.isfile(file_path):
+        map_file = ""
+        with open(file_path, 'r') as _map_file:
+            map_file = _map_file.read()
+
+        #TODO: build xml handler that ignores quotation segments
+        #map_file = map_file.replace('&', '')
+        #map_file = map_file.replace(' < ', '')
+        #map_file = map_file.replace(' > ', '')
+        return map_file
+    return ''
+
 def write_hpm():
     #Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
     mod = bpy.context.scene.hpl_parser.hpl_project_root_col
 
-    print(root)
-    print(mod)
+    for container in hpm_config.hpm_file_containers:
 
+        load_map_file()
     '''
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
     def_file_path = root + hpl_config.hpl_properties['entities']
