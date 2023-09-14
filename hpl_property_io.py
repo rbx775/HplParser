@@ -243,7 +243,7 @@ class hpl_properties():
                     if 'Max' in var:
                         id_props.update(min=int(var['Min']),max=int(var['Max']))
                     if 'Description' in var:
-                        id_props.update(description=var['Description']+'|'+var_type)
+                        id_props.update(description=var['Description'])
                     ent.property_overridable_library_set(f'["{variable}"]', True)
 
                     var_list.append(variable)
@@ -255,7 +255,7 @@ class hpl_properties():
                 screen = window.screen
                 for area in screen.areas:
                     if area.type == 'OUTLINER':
-                        with bpy.context.temp_override(window=window, area=area):
+                        with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
                             if bpy.context.selected_ids:
                                 return bpy.context.selected_ids[0]
         return None

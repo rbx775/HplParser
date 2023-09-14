@@ -8,6 +8,7 @@ import hashlib
 import random
 import mathutils
 import re
+import socket
 
 from glob import glob
 from . import hpl_config
@@ -29,7 +30,7 @@ class HPL_OT_DAEEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        #write_hpm()
+        write_hpm()
         hpl_export_objects()
         
         return {'FINISHED'}
@@ -70,20 +71,99 @@ def write_static_objects(map_tree, map_col):
     #hpm_config.hpm_staticobjects_file_count
     #hpm_config.hpm_staticobjects_file_id
     #hpm_config.hpm_staticobjects_properties
-def traverse_config_dict():
-    pass
 
 def get_object_path(obj):
     return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name+'.ent'
 
-
-def write_hpm_entity(map_tree, map_col, _map_path):
+'''
+<HPLMap ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
+    <GlobalSettings>
+        <Fog Active="false" Culling="true" Color="1 1 1 1" Brightness="1" FadeStart="2" FadeEnd="25" FalloffExp="1" Underwater="false" Lighten="true" UseSkybox="true" NoiseStrength="0" NoiseSize="8" NoiseTurbulence="0.5 0.5 0.5" ApplyAfterFogAreas="true" HeightBased="false" Exponential="true" Density="0.06" HeightDensity="0.01" HeightHorizon="5" SecondaryActive="true" SecondaryColor="1 1 1 1" SecondaryFadeStart="0" SecondaryFadeEnd="10" SecondaryFalloffExp="1" SecondaryDensity="0.01" SecondaryHeightDensity="0.25" SecondaryHeightHorizon="5" />
+        <SkyBox Active="true" Color="0.736328 0.560875 0.560875 1" Texture="F:/SteamLibrary/steamapps/common/Amnesia The Bunker/textures/environment/bunker_sky.dds" Brightness="1.5" />
+        <DirLight Active="true" ShadowCasterDist="35" ShadowDistance="-1" DiffuseColor="1 1 1 1" Brightness="1 1 1 1" Gobo="" GoboAnimMode="None" GoboAnimStartTime="0" GoboAnimFrameTime="0" GoboScale="1 1" Direction="0.57735 -0.57735 0.57735" CastShadows="false" SkyCol="1 1 1 1" GroundCol="1 1 1 1" ShadowMapBiasMul="3" ShadowMapSlopeScaleBiasMul="2.5" AutoShadowSliceSettings="true" AutoShadowSliceLogTerm="0.9" />
+        <SSAO NormalMap="false" NumOfDirections="0" NumOfSteps="0" AngleBias="0" Power="4.4" Radius="2" BufferSizeDiv="2" />
+        <EnvParticles Active="true">
+            <EnvParticle Name="" Color="1 1 1 1" Brightness="1" BoxDistance="30" GravityVelocity="0 0 0" GravitySpeedRandomAmount="0" WindVelocity="0 0 0" WindSpeedRandomAmount="0" WindDirRandomAmount="0" RotateVelocity="0 0 0" RotateSpeedRandomAmount="0" RotateBothDirs="false" NumIterations="1" FadeInStart="0.2" FadeInEnd="1" FadeOutStart="10" FadeOutEnd="20" BoxSize="30" NumParticles="100" ParticleSize="1 1" SubDivUV="1 1" AffectedByLight="false" Texture="" Visible="false" />
+            <EnvParticle Name="New Env Particles 2" Color="1 1 1 1" Brightness="1" BoxDistance="2" GravityVelocity="0 0 0" GravitySpeedRandomAmount="0" WindVelocity="0 0 0" WindSpeedRandomAmount="0" WindDirRandomAmount="0" RotateVelocity="0 0 0" RotateSpeedRandomAmount="0" RotateBothDirs="false" NumIterations="1" FadeInStart="0.2" FadeInEnd="1" FadeOutStart="10" FadeOutEnd="20" BoxSize="30" NumParticles="100" ParticleSize="1 1" SubDivUV="1 1" AffectedByLight="true" Texture="particles/smoke/materials/fog_ambient_large.dds" Visible="true" />
+        </EnvParticles>
+        <PostEffects ToneMappingKey="0.4" ToneMappingExposure="-0.75" ToneMappingWhiteCut="5.5" ColorGradingTexture="textures/colorgrading/bunker_prototype_01.dds" />
+        <DistanceCulling Active="true" MinRange="0.000841553" ScreenSize="0.11" RandomSize="0.25" />
+    </GlobalSettings>
+    <RegisteredUsers>
+        <User ID="9347656469469383509" RegistrationTimestamp="0" />
+    </RegisteredUsers>
+</HPLMap>
+'''
+def write_hpm_main(map_col, _map_path):
 
     root_id = random.randint(100000000, 999999999)
-    stamp_id = random.randint(1000000000, 9999999999)
+    
+    root = xtree.Element('HPLMap', ID=str(hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()), MajorVersion='1', MinorVersion='1')
+    global_settings = xtree.SubElement(root, "GlobalSettings")
+    #
+    fog = xtree.SubElement(global_settings, 'Fog')
+    fog.set('Active', "false") 
+    fog.set('Culling', "true")
+    fog.set('Color', "1 1 1 1" )
+    fog.set('Brightness', "1")
+    fog.set('FadeStart', "2")
+    fog.set('FadeEnd', "25")
+    fog.set('FalloffExp', "1")
+    fog.set('Underwater', "false")
+    fog.set('Lighten', "true")
+
+    fog.set('UseSkybox', "true") 
+    fog.set('NoiseStrength', "0")
+    fog.set('NoiseSize', "8" )
+    fog.set('NoiseTurbulence', "0.5 0.5 0.5")
+    fog.set('ApplyAfterFogAreas', "true")
+    fog.set('HeightBased', "false")
+    fog.set('Exponential', "true")
+    fog.set('Density', "0.06")
+    fog.set('HeightDensity', "0.01")
+    fog.set('HeightHorizon', "5")
+
+    fog.set('SecondaryActive', "true") 
+    fog.set('SecondaryColor', "1 1 1 1")
+    fog.set('SecondaryFadeStart', "0" )
+    fog.set('SecondaryFadeEnd', "10")
+    fog.set('SecondaryFalloffExp', "1")
+    fog.set('SecondaryDensity', "0.01")
+    fog.set('SecondaryHeightDensity', "10")
+    fog.set('SecondaryHeightHorizon', "1")
+    fog.set('skybox', "0.01")
+    fog.set('dir_light', "0.25")
+    fog.set('ssao', "5")
+
+    #Active="false" Culling="true" Color="1 1 1 1" Brightness="1" FadeStart="2" FadeEnd="25" FalloffExp="1" 
+    #Underwater="false" Lighten="true" UseSkybox="true" NoiseStrength="0" NoiseSize="8" 
+    #NoiseTurbulence="0.5 0.5 0.5" ApplyAfterFogAreas="true" HeightBased="false" Exponential="true" 
+    #Density="0.06" HeightDensity="0.01" HeightHorizon="5" SecondaryActive="true" SecondaryColor="1 1 1 1" 
+    #SecondaryFadeStart="0" SecondaryFadeEnd="10" SecondaryFalloffExp="1" SecondaryDensity="0.01" 
+    #SecondaryHeightDensity="0.25" SecondaryHeightHorizon="5" />
+
+    environment_particles = xtree.SubElement(global_settings, 'EnvParticles')
+    environment_particle = xtree.SubElement(environment_particles, 'EnvParticle')
+    post_effects = xtree.SubElement(global_settings, 'PostEffects')
+    distance_culling = xtree.SubElement(global_settings, 'DistanceCulling')
+    registered_users = xtree.SubElement(root, 'RegisteredUsers')
+    
+    user = xtree.SubElement(registered_users, 'User')
+    user.set('ID', os.getlogin()+'@'+socket.gethostname())
+    user.set('RegistrationTimestamp', str(0))
+    _Id = 0
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path) 
+
+
+def write_hpm_entity(map_col, _map_path):
+
+    root_id = random.randint(100000000, 999999999)
     
     root = xtree.Element('HPLMapTrack_Entity', ID=str(hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
     file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(len(map_col.objects)))
     objects = xtree.SubElement(section, 'Objects')
     _Id = 0
@@ -97,8 +177,8 @@ def write_hpm_entity(map_tree, map_col, _map_path):
 
             entity.set('ID', str(root_id+_Id))
             entity.set('Name', str(obj.name))
-            entity.set('CreStamp', str(stamp_id))
-            entity.set('ModStamp', str(stamp_id))
+            entity.set('CreStamp', str(0))
+            entity.set('ModStamp', str(0))
             entity.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
             entity.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
             entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
@@ -122,7 +202,6 @@ def write_hpm_entity(map_tree, map_col, _map_path):
 def write_entity_files(obj_col, _ent_path):
     
     root_id = random.randint(100000000, 999999999)
-    stamp_id = random.randint(1000000000, 9999999999)
     
     entity = xtree.Element('Entity')
     model_data = xtree.SubElement(entity, "ModelData")
@@ -147,8 +226,8 @@ def write_entity_files(obj_col, _ent_path):
 
             sub_mesh.set('ID', str(root_id+_Id))
             sub_mesh.set('Name', str(obj.name))
-            sub_mesh.set('CreStamp', str(stamp_id))
-            sub_mesh.set('ModStamp', str(stamp_id))
+            sub_mesh.set('CreStamp', str(0))
+            sub_mesh.set('ModStamp', str(0))
             sub_mesh.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
             sub_mesh.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
             sub_mesh.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
@@ -188,17 +267,13 @@ def write_hpm():
             os.mkdir(map_path + map_col.name)
 
         for container in hpm_config.hpm_file_containers:
-
             _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
-
-            map_file = load_map_file(host_file_path + container)
-            map_tree = xtree.ElementTree(xtree.fromstring(map_file))
-
+            if container == '':
+                write_hpm_main(map_col, _map_path)
             #if container == '_StaticObject':
-            #    write_static_objects(map_tree, map_col)
-            
+            #    write_hpm_static_objects(map_col, _map_path)
             if container == '_Entity':
-                map_tree = write_hpm_entity(map_tree, map_col, _map_path)
+                write_hpm_entity(map_col, _map_path)
                 
 
 def hpl_export_objects():
@@ -209,8 +284,8 @@ def hpl_export_objects():
     act_obj = bpy.context.active_object
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
-
-    #Using context to loop through collections to get their state. (enabled/disabled)
+ 
+    #Using context to loop through collections to get their state. (enabled/ disabled)
     viewlayer_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children
     viewlayer_collections_list = [col.name for col in viewlayer_collections_list if not col.exclude and hpl_config.hpl_map_collection_identifier != col.name]
 
