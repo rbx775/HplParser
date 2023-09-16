@@ -36,9 +36,6 @@ class hpm_properties():
         #class_tree[tree.tag] = None
 
         for sub_tree in tree: 
-            #_temp_attrib = class_tree[sub_tree.tag]
-            #while isinstance(_temp_attrib, dict):
-            #    _temp_attrib = class_tree[_temp_attrib]
 
             counter = counter + 1
             #if class_tree[tree.tag] < counter:
@@ -70,27 +67,7 @@ class hpm_properties():
 
             map_file = hpm_properties.load_map_file(map_sampler_path)
             map_tree = xtree.fromstring(map_file)
-            '''
-            max_depth = 0
-            for classes in map_tree:
-                if max_depth < 1:
-                    max_depth = 1
-                for sub_classes in classes:
-                    if max_depth < 2:
-                        max_depth = 2
-                    for groups in sub_classes:
-                        if max_depth < 3:
-                            max_depth = 3
-                        for vars in groups:
-                            if max_depth < 4:
-                                max_depth = 4
-                            for var in vars:
-                                if max_depth < 5:
-                                    max_depth = 5
-                                for v in var:
-                                    if max_depth < 6:
-                                        max_depth = 6
-            '''
+
             class_tree, attrib_tree = hpm_properties.recursive_collect(map_tree, {}, {}, 0)
     
         

@@ -157,12 +157,8 @@ def hpl_import_assets(op):
                     bpy.context.scene.collection.objects.unlink(obj)
                     if obj.active_material:
                         obj.active_material.diffuse_color[3] = 1 #To avoid fully transparent viewport materials after dae import
-                        obj['hpl_test_property'] = 0
-                        obj.property_overridable_library_set('["hpl_test_property"]', True)
                 bpy.data.collections[asset].asset_mark()
                 bpy.data.collections[asset].asset_data.catalog_id = hpl_catalogue_io.get_catalogue_id(assetlib_path, asset_category)
-                bpy.data.collections[asset]['hpl_test_property'] = 0
-                bpy.data.collections[asset].property_overridable_library_set('["hpl_test_property"]', True)
 
             if bpy.context.scene.hpl_parser.hpl_create_preview:
                 for col in bpy.data.collections:

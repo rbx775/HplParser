@@ -60,10 +60,10 @@ def load_map_file(file_path):
 def write_static_objects(map_tree, map_col):
     for obj in map_col.objects:
         if obj.is_instancer:
-            vars = [item for item in obj.items() if 'hpl_parser_' in item[0]]
+            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
             for var in vars:
                 for hpm_var in hpm_config.hpm_staticobjects_properties['StaticObject']:
-                    if hpm_var == var[0].split('hpl_parser_')[-1]:
+                    if hpm_var == var[0].split('hpl_parser_var_')[-1]:
                         attrib = map_tree.find('StaticObject')
                         attrib.set(hpm_var, var[1])
     #count = map_tree.find(list(hpm_config.hpm_staticobjects_file_count.keys())[0])
@@ -184,9 +184,9 @@ def write_hpm_entity(map_col, _map_path):
             entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
             entity.set('FileIndex', str(_Id))
             
-            vars = [item for item in obj.items() if 'hpl_parser_' in item[0]]
+            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
             for var in vars:
-                var_name = var[0].split('hpl_parser_')[-1]
+                var_name = var[0].split('hpl_parser_var_')[-1]
                 if var_name in hpm_config.hpm_entities_properties['Entity']:
                     entity.set(var_name, str(var[1]))
                 else:
@@ -239,10 +239,10 @@ def write_entity_files(obj_col, _ent_path):
             sub_mesh.set('Material', str(obj.material_slots[0].name) if list(obj.material_slots) else '') #TODO: check if available first
 
     user_defined_variables = xtree.SubElement(entity, 'UserDefinedVariables')
-    user_defined_variables.set('EntityType', obj_col['hpl_parserenum_entity_type']) #TODO: check if available first
-    vars = [item for item in obj_col.items() if 'hpl_parser_' in item[0]]
+    user_defined_variables.set('EntityType', obj_col['hpl_enum_entity_type']) #TODO: check if available first
+    vars = [item for item in obj_col.items() if 'hpl_parser_var_' in item[0]]
     for var in vars:
-        var_name = var[0].split('hpl_parser_')[-1]
+        var_name = var[0].split('hpl_parser_var_')[-1]
         xml_var = xtree.SubElement(user_defined_variables,'Var')
         #xml_var.set('ObjectId', str(root_id+_Id))
         xml_var.set('Name', var_name)

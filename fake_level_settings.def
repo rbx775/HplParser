@@ -1,0 +1,121 @@
+
+<Classes>
+	<BaseClass />
+    <Class Name="LevelSettings">
+        <TypeVars>
+            <Group Name="SkyBox">
+                <Var Name="SkyBoxActive" Type="Bool" DefaultValue="false" Description="Toggle SkyBox on/off." />
+                <Var Name="SkyBoxColor" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="SkyBox color (RGBA)." />
+                <Var Name="SkyBoxTexture" Type="String" DefaultValue="" Description="SkyBox texture path." />
+                <Var Name="SkyBoxBrightness" Type="Float" DefaultValue="1.0" Min="0.0" Max="1.0" Description="SkyBox brightness." />
+            </Group>
+            <Group Name="Fog">
+                <Var Name="FogActive" Type="Bool" DefaultValue="false" Description="Toggle fog on/off." />
+                <Var Name="FogCulling" Type="Bool" DefaultValue="true" Description="Toggle fog culling on/off." />
+                <Var Name="FogUnderwater" Type="Bool" DefaultValue="false" Description="Toggle fog underwater on/off." />
+                <Var Name="FogLighten" Type="Bool" DefaultValue="true" Description="Toggle fog lightening on/off." />
+                <Var Name="FogExponential" Type="Bool" DefaultValue="true" Description="Toggle exponential fog on/off." />
+                <Var Name="FogHeightBased" Type="Bool" DefaultValue="false" Description="Toggle height-based fog on/off." />
+                <Var Name="FogUseSkybox" Type="Bool" DefaultValue="true" Description="Toggle fog use of skybox on/off." />
+                <Var Name="FogApplyAfterFogAreas" Type="Bool" DefaultValue="true" Description="Toggle fog application after fog areas on/off." />
+                <Var Name="FogFadeStart" Type="Float" DefaultValue="0.0" Min="0.0" Max="100.0" Description="Fog fade start distance." />
+                <Var Name="FogFadeEnd" Type="Float" DefaultValue="20.0" Min="0.0" Max="100.0" Description="Fog fade end distance." />
+                <Var Name="FogFalloffExp" Type="Float" DefaultValue="1.0" Min="0.0" Max="10.0" Description="Fog falloff exponent." />
+                <Var Name="FogDensity" Type="Float" DefaultValue="0.06" Min="0.0" Max="1.0" Description="Fog density." />
+                <Var Name="FogHeightDensity" Type="Float" DefaultValue="0.01" Min="0.0" Max="1.0" Description="Fog height density." />
+                <Var Name="FogHeightHorizon" Type="Float" DefaultValue="5.0" Min="0.0" Max="10.0" Description="Fog height horizon distance." />
+                <Var Name="FogColor" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Fog color (RGBA)." />
+                <Var Name="FogBrightness" Type="Float" DefaultValue="1.0" Description="Fog brightness." />
+                <Var Name="FogNoiseStrength" Type="Float" DefaultValue="0.0" Min="0.0" Max="1.0" Description="Underwater Fog noise strength." />
+                <Var Name="FogNoiseSize" Type="Float" DefaultValue="8.0" Min="0.0" Max="10.0" Description="Underwater Fog noise size." />
+                <Var Name="FogNoiseTurbulence" Type="Color" DefaultValue="0.5 0.5 0.5" Min="0.0" Max="1.0" Description="Underwater Fog noise turbulence (XYZ)." />
+            </Group>
+            <Group Name="SecondaryFog">
+                <Var Name="SecondaryFogSecondaryActive" Type="Bool" DefaultValue="false" Description="Toggle secondary fog on/off." />
+                <Var Name="SecondaryFogSecondaryFadeStart" Type="Float" DefaultValue="0.0" Min="0.0" Max="100.0" Description="Secondary fog fade start distance." />
+                <Var Name="SecondaryFogSecondaryFadeEnd" Type="Float" DefaultValue="20.0" Min="0.0" Max="100.0" Description="Secondary fog fade end distance." />
+                <Var Name="SecondaryFogSecondaryFalloffExp" Type="Float" DefaultValue="1.0" Min="0.0" Max="10.0" Description="Secondary fog falloff exponent." />
+                <Var Name="SecondaryFogSecondaryDensity" Type="Float" DefaultValue="0.01" Min="0.0" Max="1.0" Description="Secondary fog density." />
+                <Var Name="SecondaryFogSecondaryHeightDensity" Type="Float" DefaultValue="0.25" Min="0.0" Max="1.0" Description="Secondary fog height density." />
+                <Var Name="SecondaryFogSecondaryHeightHorizon" Type="Float" DefaultValue="5.0" Min="0.0" Max="10.0" Description="Secondary fog height horizon distance." />
+                <Var Name="SecondaryFogSecondaryColor" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Secondary fog color (RGBA)." />
+            </Group>
+            <Group Name="Decals">
+                <Var Name="GlobalMaxTrianglePerDecal" Type="Int" DefaultValue="300" Description="Number of triangles per decal." />
+            </Group>
+            <Group Name="DirectionalLight">
+                <Var Name="DirectionalLightActive" Type="Bool" DefaultValue="false" Description="Toggle directional light on/off." />
+                <Var Name="DirectionalLightDirection" Type="Vector3" DefaultValue="0.57735 -0.57735 0.57735" Min="0.0" Max="1.0" Description="Direction of the directional light (XYZ)." />
+                <Var Name="DirectionalLightDiffuseColor" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Diffuse color for the directional light (RGBA)." />
+                <Var Name="DirectionalLightSkyCol" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Sky color for the directional light (RGBA)." />
+                <Var Name="DirectionalLightGroundCol" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Ground color for the directional light (RGBA)." />
+                <Var Name="DirectionalLightBrightness" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Brightness for the directional light (RGBA)." />
+                <Var Name="DirectionalLightGobo" Type="String" DefaultValue="" Description="Gobo texture path for the directional light." />
+                <Var Name="DirectionalLightGoboAnimMode" Type="String" DefaultValue="None" Description="Gobo animation mode for the directional light." />
+                <Var Name="DirectionalLightGoboAnimStartTime" Type="Float" DefaultValue="0.0" Min="0.0" Max="100.0" Description="Gobo animation start time for the directional light." />
+                <Var Name="DirectionalLightGoboAnimFrameTime" Type="Float" DefaultValue="0.0" Min="0.0" Max="100.0" Description="Gobo animation frame time for the directional light." />
+                <Var Name="DirectionalLightGoboScale" Type="Vector2" DefaultValue="1.0 1.0" Min="0.0" Max="1.0" Description="Gobo scale for the directional light (XY)." />
+                <Var Name="DirectionalLightCastShadows" Type="Bool" DefaultValue="false" Description="Toggle shadow casting for the directional light on/off." />
+                <Var Name="DirectionalLightShadowMapBiasMul" Type="Float" DefaultValue="3.0" Min="0.0" Max="10.0" Description="Shadow map bias multiplier for the directional light." />
+                <Var Name="DirectionalLightShadowMapSlopeScaleBiasMul" Type="Float" DefaultValue="2.5" Min="0.0" Max="10.0" Description="Shadow map slope scale bias multiplier for the directional light." />
+                <Var Name="DirectionalLightShadowDistance" Type="Float" DefaultValue="-1.0" Min="-1.0" Max="100.0" Description="Shadow distance for the directional light." />
+                <Var Name="DirectionalLightShadowCasterDist" Type="Float" DefaultValue="35.0" Min="0.0" Max="100.0" Description="Shadow caster distance for the directional light." />
+                <Var Name="DirectionalLightAutoShadowSliceSettings" Type="Bool" DefaultValue="true" Description="Toggle auto shadow slice settings for the directional light on/off." />
+                <Var Name="DirectionalLightAutoShadowSliceLogTerm" Type="Float" DefaultValue="0.9" Min="0.0" Max="1.0" Description="Auto shadow slice log term for the directional light." />
+            </Group>
+            <Group Name="EnvironmentParticles">
+                <Var Name="EnvironmentParticlesActive" Type="Bool" DefaultValue="false" Description="Toggle environment particles on/off." />
+                <Var Name="EnvironmentParticlesName" Type="String" DefaultValue="New Env Particles 1" Description="Name of the environment particle." />
+                <Var Name="EnvironmentParticlesColor" Type="Color" DefaultValue="1.0 1.0 1.0 1.0" Description="Color of the environment particle (RGBA)." />
+                <Var Name="EnvironmentParticlesBrightness" Type="Float" DefaultValue="1.0" Min="0.0" Max="1.0" Description="Brightness of the environment particle." />
+                <Var Name="EnvironmentParticlesBoxDistance" Type="Float" DefaultValue="2.0" Min="0.0" Max="10.0" Description="Box distance of the environment particle." />
+                <Var Name="EnvironmentParticlesGravityVelocity" Type="Vector3" DefaultValue="0.0 0.0 0.0" Description="Gravity velocity of the environment particle (XYZ)." />
+                <Var Name="EnvironmentParticlesGravitySpeedRandomAmount" Type="Float" DefaultValue="0.0" Min="0.0" Max="1.0" Description="Gravity speed random amount of the environment particle." />
+                <Var Name="EnvironmentParticlesWindVelocity" Type="Vector3" DefaultValue="0.0 0.0 0.0" Description="Wind velocity of the environment particle (XYZ)." />
+                <Var Name="EnvironmentParticlesWindSpeedRandomAmount" Type="Float" DefaultValue="0.0" Min="0.0" Max="1.0" Description="Wind speed random amount of the environment particle." />
+                <Var Name="EnvironmentParticlesWindDirRandomAmount" Type="Float" DefaultValue="0.0" Min="0.0" Max="1.0" Description="Wind direction random amount of the environment particle." />
+                <Var Name="EnvironmentParticlesRotateVelocity" Type="Vector3" DefaultValue="0.0 0.0 0.0" Description="Rotate velocity of the environment particle (XYZ)." />
+                <Var Name="EnvironmentParticlesRotateSpeedRandomAmount" Type="Float" DefaultValue="0.0" Min="0.0" Max="1.0" Description="Rotate speed random amount of the environment particle." />
+                <Var Name="EnvironmentParticlesRotateBothDirs" Type="Bool" DefaultValue="false" Description="Toggle rotation in both directions on/off." />
+                <Var Name="EnvironmentParticlesNumIterations" Type="Int" DefaultValue="1" Min="1" Max="100" Description="Number of iterations for the environment particle." />
+                <Var Name="EnvironmentParticlesFadeInStart" Type="Float" DefaultValue="0.2" Min="0.0" Max="1.0" Description="Fade-in start time for the environment particle." />
+                <Var Name="EnvironmentParticlesFadeInEnd" Type="Float" DefaultValue="1.0" Min="0.0" Max="1.0" Description="Fade-in end time for the environment particle." />
+                <Var Name="EnvironmentParticlesFadeOutStart" Type="Float" DefaultValue="10.0" Min="0.0" Max="100.0" Description="Fade-out start time for the environment particle." />
+                <Var Name="EnvironmentParticlesFadeOutEnd" Type="Float" DefaultValue="20.0" Min="0.0" Max="100.0" Description="Fade-out end time for the environment particle." />
+                <Var Name="EnvironmentParticlesBoxSize" Type="Float" DefaultValue="30.0" Min="0.0" Max="100.0" Description="Box size of the environment particle." />
+                <Var Name="EnvironmentParticlesNumParticles" Type="Int" DefaultValue="100" Min="1" Max="1000" Description="Number of particles for the environment particle." />
+                <Var Name="EnvironmentParticlesParticleSize" Type="Vector2" DefaultValue="1.0 1.0" Description="Particle size of the environment particle (XY)." />
+                <Var Name="EnvironmentParticlesSubDivUV" Type="Vector2" DefaultValue="1.0 1.0" Description="Subdivision UV of the environment particle (XY)." />
+                <Var Name="EnvironmentParticlesAffectedByLight" Type="Bool" DefaultValue="false" Description="Toggle light effect on the environment particle on/off." />
+                <Var Name="EnvironmentParticlesTexture" Type="String" DefaultValue="particles/clouds/materials/clouds_midday.dds" Description="Texture path for the environment particle." />
+                <Var Name="EnvironmentParticlesVisible" Type="Bool" DefaultValue="true" Description="Toggle visibility of the environment particle on/off." />
+            </Group>
+            <Group Name="PostEffects">
+                <Var Name="PostEffectsToneMappingKey" Type="Float" DefaultValue="0.5" Min="0.0" Max="1.0" Description="Tone mapping key for post-effects." />
+                <Var Name="PostEffectsToneMappingExposure" Type="Float" DefaultValue="0.0" Description="Tone mapping exposure for post-effects." />
+                <Var Name="PostEffectsToneMappingWhiteCut" Type="Float" DefaultValue="3.5" Min="0.0" Max="10.0" Description="Tone mapping white cut for post-effects." />
+                <Var Name="PostEffectsColorGradingTexture" Type="String" DefaultValue="textures/colorgrading/bunker_prototype_01.dds" Description="Color grading texture path for post-effects." />
+                <Var Name="PostEffectsNormalMap" Type="Bool" DefaultValue="false" Description="Toggle SSAO normal map on/off." />
+                <Var Name="PostEffectsNumOfDirections" Type="Int" DefaultValue="0" Description="Number of SSAO directions." />
+                <Var Name="PostEffectsNumOfSteps" Type="Int" DefaultValue="0" Description="Number of SSAO steps." />
+                <Var Name="PostEffectsAngleBias" Type="Float" DefaultValue="0.0" Min="0.0" Max="1.0" Description="SSAO angle bias." />
+                <Var Name="PostEffectsPower" Type="Float" DefaultValue="4.4" Min="0.0" Max="10.0" Description="SSAO power." />
+                <Var Name="PostEffectsRadius" Type="Float" DefaultValue="2.0" Min="0.0" Max="10.0" Description="SSAO radius." />
+                <Var Name="PostEffectsBufferSizeDiv" Type="Int" DefaultValue="2" Min="1" Max="10" Description="SSAO buffer size divisor." />
+                <Var Name="PostEffectsAngleBias" Type="Float" DefaultValue="0.0" Description="SSAO angle bias." />
+                <Var Name="PostEffectsPower" Type="Float" DefaultValue="4.4" Description="SSAO power." />
+                <Var Name="PostEffectsRadius" Type="Float" DefaultValue="2.0" Description="SSAO sampling radius." />
+                <Var Name="PostEffectsBufferSizeDiv" Type="Int" DefaultValue="2" Description="SSAO buffer size divisor." />
+            </Group>
+            <Group Name="DetailMeshes">
+                <Var Name="DetailMeshesMaxRange" Type="Int" DefaultValue="4000" Min="0" Description="Number of triangles per decal." />
+            </Group>
+            <Group Name="DistanceCulling">
+                <Var Name="DistanceCullingActive" Type="Bool" DefaultValue="true" Description="Toggle distance culling on/off." />
+                <Var Name="DistanceCullingMinRange" Type="Float" DefaultValue="0.0" Min="0.0" Max="100.0" Description="Minimum range for distance culling." />
+                <Var Name="DistanceCullingScreenSize" Type="Float" DefaultValue="0.05" Min="0.0" Max="1.0" Description="Screen size for distance culling." />
+                <Var Name="DistanceCullingRandomSize" Type="Float" DefaultValue="0.25" Min="0.0" Max="1.0" Description="Random size for distance culling." />
+            </Group>
+        </TypeVars>
+    </Class>
+</Classes>

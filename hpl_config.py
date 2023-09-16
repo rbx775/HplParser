@@ -1,9 +1,7 @@
 #---HPM PARSER CONFIG
 
 hpl_map_collection_identifier = 'Maps'
-
 hpl_xml_typevars = 'TypeVars'
-
 hpl_xml_inherit_attribute = 'InheritsFrom'
 
 hpl_sub_folders = {'config' : 'config', 'entities' : 'entities', 'particles' : 'particles', \
@@ -30,9 +28,9 @@ hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariabl
 
 hpl_dae_containers = {'library_images':'library_images','image':'image','init_from':'init_from'}
 
-hpl_entity_classes_file_sub_path = '\\editor\\userclasses\\EntityClasses.def'
-hpl_globals_file_sub_path = '\\editor\\userclasses\\Globals.def'
-hpl_hpm_sub_path = '\\mods\\maps'
+hpl_entity_classes_file_sub_path = 'editor\\userclasses\\EntityClasses.def'
+hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
+hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str]
 
 hpl_level_editor_general_vars_list =    [{'Name':"Active", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Activate or Deactivate the Object"},
