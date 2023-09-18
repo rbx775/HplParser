@@ -1,4 +1,5 @@
 #---HPM PARSER CONFIG
+from enum import Enum
 
 hpl_map_collection_identifier = 'Maps'
 hpl_xml_typevars = 'TypeVars'
@@ -14,6 +15,17 @@ hpl_asset_material_files = {}
 hpl_asset_entity_files = {}
 hpl_asset_categories_dict = {}
 hpl_ui_var_dict = {}
+
+class hpl_selection(Enum):
+    ACTIVE_ENTITY_INSTANCE = 1
+    UNACTIVE_ENTITY_INSTANCE = 2
+    MOD = 3
+    MAPROOT = 4
+    MAP = 5
+    UNACTIVE_ENTITY = 6
+    ACTIVE_ENTITY = 7
+
+hpl_custom_properties_prefixes_dict = {'Var' : 'hpl_parser_var_'}
 
 hpl_properties = {'entities' : 'editor\\userclasses\\EntityClasses.def'}
 
@@ -50,3 +62,8 @@ hpl_leveleditor_general_identifier =    {'Identifier':'UserDefinedVariables', 'F
 hpl_leveleditor_entity_identifier =     {'Identifier':'InstanceVars'        , 'File':hpl_entity_classes_file_sub_path, 'Tag':'Group', 'Attribute':'Name'}       #Blender instanced collection
 
 hpl_ent_containers = {'Entity_File':hpl_entity_file_identifier, 'Entity_Class_File':hpl_entity_class_file_identifier, 'LevelEditor_General':hpl_leveleditor_general_identifier, 'LevelEditor_Entity':hpl_leveleditor_entity_identifier}
+
+hpl_detail_mesh_identifier = '_detailmesh'
+hpl_variable_identifier = 'hpl_parser_var'
+hpl_dropdown_identifier = 'hpl_parser_dropdown'
+hpl_entity_type_identifier = 'hpl_enum_entity_type'

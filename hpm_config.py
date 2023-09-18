@@ -14,6 +14,11 @@ hpm_staticobjects_file_id = {'File' : ['Id', 'Path']}
 hpm_staticobjects_properties = {'StaticObject' : ['ID', 'Name', 'CreStamp', 'ModStamp', 'WorldPos', 'Rotation', 
                                                     'Scale', 'FileIndex', 'Collides', 'CastShadows', 'IsOccluder', 
                                                     'ColorMul', 'CulledByDistance' 'CulledByFog', 'IllumColor', 'IllumBrightness', 'UID']}
+
+hpm_attribute_identifiers_dict = {'Fog':'Fog', 'SecondaryFog':'Fog', 'SkyBox':'SkyBox', 'DirectionalLight':'DirLight', 'SSAO':'PostEffects', 
+                                    'EnvironmentParticles':'EnvParticles', 'EnvironmentParticle':'EnvParticle', 'Decal': 'Decal',
+                                    'PostEffects':'PostEffects', 'DistanceCulling':'DistanceCulling', 'Decal':'Decal', 'DetailMeshes':'DetailMeshes'}
+
 '''
 __hpm_entities_file_index_tag = {'Objects': None}
 __hpm_entities_file_index_attributes = {'NumOfFiles' : 0, 'NumOfFiles2' : 1}

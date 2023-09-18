@@ -31,6 +31,19 @@ class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
         return
 
 class hpl_properties():
+
+    def get_dict_from_entity_vars(ent):
+        _temp_ui_var_dict = {}
+        group = None
+        for var in ent.items():
+            if hpl_config.hpl_dropdown_identifier + '_' in var[0]:
+                group = var[0]
+                _temp_ui_var_dict[group] = []
+            if group:
+                if hpl_config.hpl_variable_identifier + '_' in var[0]:
+                    _temp_ui_var_dict[group].append(var[0])
+        return _temp_ui_var_dict
+
     def traverse_tree_headers(xml_tree, key_tag):
         for tree in xml_tree:
             if key_tag in tree.tag:
@@ -184,15 +197,18 @@ class hpl_properties():
         
     def reset_editor_vars(ent):
         delete_vars = []
-        
+        print(len(ent.items()))
+        i = 0
         for var in ent.items():
+            i = i +1
             if 'hpl_parser_' in var[0]:
-                delete_vars.append(var[0])
 
+                delete_vars.append(var[0])
+        print(ent.name, i)
         for var in delete_vars:
             del ent[var]
         
-    def initialize_editor_vars(ent, var_dict):       
+    def initialize_editor_vars(ent, var_dict):
         hpl_properties.reset_editor_vars(ent)
 
         group_dict = {}
@@ -207,7 +223,7 @@ class hpl_properties():
                     var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
                     var_type = var['Type'].lower()
 
-                    variable = 'hpl_parser_var_'+var['Name']
+                    variable = hpl_config.hpl_variable_identifier+'_'+var['Name']
                     
                     #Variable Conversion
                     if var_type == 'color':
@@ -271,30 +287,29 @@ class hpl_properties():
         if ent:
             if ent.bl_rna.identifier == 'Collection':
                 if ent == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
-                    return 3, ent
+                    return hpl_config.hpl_selection.MOD, ent
                 if ent.name == hpl_config.hpl_map_collection_identifier:
-                    if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == ent]):
-                        return 7, ent
-                    return 4, ent
+                    return hpl_config.hpl_selection.MAPROOT, ent
                 if any([col for col in bpy.data.collections if col.name == hpl_config.hpl_map_collection_identifier]):
                     if any([col for col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children if col == ent]):
-                        return 6, ent
-                if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == ent]):
-                    return 2, ent
-                return 1, ent
+                        return hpl_config.hpl_selection.MAP, ent
+                if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == ent]):
+                    return hpl_config.hpl_selection.ACTIVE_ENTITY, ent
+                else:
+                    return hpl_config.hpl_selection.UNACTIVE_ENTITY, ent
             if ent.bl_rna.identifier == 'Object':
                 if ent.is_instancer:
                     if ent.users_collection[0] in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children_recursive:
-                        return 1, ent
-                    return 5, ent
+                        return hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE, ent
+                    return hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE, ent
         return 0, None
 
     def set_collection_properties_on_instance(instance_ent):
         collection_ent = hpl_properties.get_collection_instance_is_of(instance_ent)
         ent_type = 'None'
         for var in collection_ent.items():
-            if var[0] == 'hpl_enum_entity_type':
-                ent_type = collection_ent['hpl_enum_entity_type']
+            if var[0] == hpl_config.hpl_entity_type_identifier:
+                ent_type = collection_ent[hpl_config.hpl_entity_type_identifier]
                 var_dict = hpl_config.hpl_level_editor_general_vars_dict
                 var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
                 hpl_properties.initialize_editor_vars(instance_ent, var_dict)
@@ -302,13 +317,17 @@ class hpl_properties():
     
     
     def set_collection_properties_on_instances(ent):
+
+        #for obj in ent.objects:
+        #    hpl_properties.set_collection_properties_on_instance(obj)
+        #return
         for instance_ent in bpy.data.objects:
             if instance_ent.is_instancer:
                 if instance_ent.instance_collection == ent:
                     ent_type = 'None'
                     for var in ent.items():
-                        if var[0] == 'hpl_enum_entity_type':
-                            ent_type = ent['hpl_enum_entity_type']
+                        if var[0] == hpl_config.hpl_entity_type_identifier:
+                            ent_type = ent[hpl_config.hpl_entity_type_identifier]
                     var_dict = hpl_config.hpl_level_editor_general_vars_dict
                     var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
                     hpl_properties.initialize_editor_vars(instance_ent, var_dict)
@@ -322,9 +341,10 @@ class hpl_properties():
     
     def set_entity_type_on_collection():
         code, ent = hpl_properties.get_valid_selection()
+        print('ENT: ', ent)
         if ent:
             if ent.bl_rna.identifier == 'Collection':
-                ent['hpl_enum_entity_type'] = bpy.context.scene.hpl_parser.hpl_base_classes_enum
+                ent[hpl_config.hpl_entity_type_identifier] = bpy.context.scene.hpl_parser.hpl_base_classes_enum
                 var_dict = hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'TypeVars')
                 hpl_properties.initialize_editor_vars(ent, var_dict)
                 hpl_properties.set_collection_properties_on_instances(ent)

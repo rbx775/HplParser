@@ -174,7 +174,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     def update_hpl_base_classes_enum(self, context):
         if not hpl_property_io.hpl_properties.entity_baseclass_list:
             hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
-        data = [('None','None','')]
+        data = []
         for name in hpl_property_io.hpl_properties.entity_baseclass_list:
             fdata = (name,name,'')
             data.append(fdata)
@@ -188,7 +188,26 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_base_classes_enum, 
         set=set_hpl_base_classes_enum,
     )
-    
+    '''
+    def update_hpl_handler_selection(self, context):
+        if not hpl_property_io.hpl_properties.entity_baseclass_list:
+            hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
+        data = ['']
+        for name in hpl_property_io.hpl_properties.entity_baseclass_list:
+            fdata = (name,name,'')
+            data.append(fdata)
+        return data
+
+
+    hpl_handler_selection: bpy.props.EnumProperty(
+        name='Project Name',
+        options={'LIBRARY_EDITABLE'},
+        description='Should be the name of your Amnesia mod. All map collections go in here',
+        items=update_hpl_handler_selection,
+        get=get_hpl_project_root_col, 
+        set=set_hpl_project_root_col,
+    )
+    '''
     '''
     backgroundBlur: bpy.props.FloatProperty(name="Background blur", description='',
                                             default=0.025, min=0, max=1, step=0.0, precision=3, subtype = 'FACTOR',     
@@ -329,39 +348,41 @@ def draw_panel_content(context, layout):
 
         layout.use_property_split = True
         col = layout.column(align=True)
-        if code == 7:
-            box = col.box()
-            box.label(text=f'\"{ent.name}\" must be stored inside \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\".', icon='ERROR')    
-        elif code == 6:
+
+        if code == hpl_config.hpl_selection.MAP:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is a map.', icon='HOME')
             draw_custom_property_ui(props, layout, ent, True)
-        elif code == 5:
+
+        elif code == hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is not stored in a level collection, ignored for export.', icon='INFO')
-        elif code == 4:
+
+        elif code == hpl_config.hpl_selection.MAPROOT:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is the root map collection. All levels go in here.', icon='HOME')
-        elif code == 3:
+
+        elif code == hpl_config.hpl_selection.MOD:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is the root collection.', icon='WORLD')
-        elif code == 2:
+
+        elif code == hpl_config.hpl_selection.UNACTIVE_ENTITY:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
-        elif code == 1:
+
+        elif code == hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE:
             box = col.box()
-            if ent.bl_rna.identifier == 'Object':
-                if any([var for var in ent.items() if 'hpl_parser_instance_of' in var[0]]):
-                    instance_of = ent['hpl_parser_instance_of']
-                    box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            else:
-                box.label(text=f'\"{ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-                col = layout.column(align=True)
-                box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-                singleRowbtn = box.row(align=True)
-                singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "FILE_REFRESH")
-                singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
-            
+            if any([var for var in ent.items() if 'hpl_parser_instance_of' in var[0]]):
+                instance_of = ent['hpl_parser_instance_of']
+                box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        elif code == hpl_config.hpl_selection.ACTIVE_ENTITY:
+            box = col.box()
+            box.label(text=f'\"{ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            col = layout.column(align=True)
+            box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+            singleRowbtn = box.row(align=True)
+            singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "FILE_REFRESH")
+            singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
             draw_custom_property_ui(props, layout, ent)
 
 class HPL_PT_CREATE(bpy.types.Panel):
@@ -388,20 +409,9 @@ class HPL_PT_CREATE(bpy.types.Panel):
     
     #@persistent
 
-def get_dict_from_entity_vars(ent):
-    _temp_ui_var_dict = {}
-    group = None
-    for var in ent.items():
-        if 'hpl_parser_dropdown_' in var[0]:
-            group = var[0]
-            _temp_ui_var_dict[group] = []
-        if group:
-            if 'hpl_parser_var_' in var[0]:
-                _temp_ui_var_dict[group].append(var[0])
-    return _temp_ui_var_dict
-
 def scene_selection_listener(self, context):
     code, ent = hpl_property_io.hpl_properties.get_valid_selection()
+    print(code, ent)
 
     if not bpy.context.view_layer.active_layer_collection.collection.children:
         bpy.context.scene.hpl_parser.hpl_has_project_col = True
@@ -419,7 +429,7 @@ def scene_selection_listener(self, context):
         if code == 6:
             if not any([var for var in ent.items() if 'hpl_parser_var_' in var[0]]):
                 hpl_property_io.hpl_properties.set_level_settings_on_map_collection(ent)
-        hpl_config.hpl_ui_var_dict = get_dict_from_entity_vars(ent)
+        hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(ent)
     else:
         hpl_config.hpl_ui_var_dict = {}
 

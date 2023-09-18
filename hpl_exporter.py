@@ -57,132 +57,82 @@ def load_map_file(file_path):
         return map_file
     return ''
 
-def write_static_objects(map_tree, map_col):
-    for obj in map_col.objects:
-        if obj.is_instancer:
-            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
-            for var in vars:
-                for hpm_var in hpm_config.hpm_staticobjects_properties['StaticObject']:
-                    if hpm_var == var[0].split('hpl_parser_var_')[-1]:
-                        attrib = map_tree.find('StaticObject')
-                        attrib.set(hpm_var, var[1])
-    #count = map_tree.find(list(hpm_config.hpm_staticobjects_file_count.keys())[0])
-    #map_tree.find(hpm_config.hpm_staticobjects_file_count)
-    #hpm_config.hpm_staticobjects_file_count
-    #hpm_config.hpm_staticobjects_file_id
-    #hpm_config.hpm_staticobjects_properties
+def write_hpm_main(map_col, _map_path, _id):
 
-def get_object_path(obj):
-    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name+'.ent'
-
-'''
-<HPLMap ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
-    <GlobalSettings>
-        <Fog Active="false" Culling="true" Color="1 1 1 1" Brightness="1" FadeStart="2" FadeEnd="25" FalloffExp="1" Underwater="false" Lighten="true" UseSkybox="true" NoiseStrength="0" NoiseSize="8" NoiseTurbulence="0.5 0.5 0.5" ApplyAfterFogAreas="true" HeightBased="false" Exponential="true" Density="0.06" HeightDensity="0.01" HeightHorizon="5" SecondaryActive="true" SecondaryColor="1 1 1 1" SecondaryFadeStart="0" SecondaryFadeEnd="10" SecondaryFalloffExp="1" SecondaryDensity="0.01" SecondaryHeightDensity="0.25" SecondaryHeightHorizon="5" />
-        <SkyBox Active="true" Color="0.736328 0.560875 0.560875 1" Texture="F:/SteamLibrary/steamapps/common/Amnesia The Bunker/textures/environment/bunker_sky.dds" Brightness="1.5" />
-        <DirLight Active="true" ShadowCasterDist="35" ShadowDistance="-1" DiffuseColor="1 1 1 1" Brightness="1 1 1 1" Gobo="" GoboAnimMode="None" GoboAnimStartTime="0" GoboAnimFrameTime="0" GoboScale="1 1" Direction="0.57735 -0.57735 0.57735" CastShadows="false" SkyCol="1 1 1 1" GroundCol="1 1 1 1" ShadowMapBiasMul="3" ShadowMapSlopeScaleBiasMul="2.5" AutoShadowSliceSettings="true" AutoShadowSliceLogTerm="0.9" />
-        <SSAO NormalMap="false" NumOfDirections="0" NumOfSteps="0" AngleBias="0" Power="4.4" Radius="2" BufferSizeDiv="2" />
-        <EnvParticles Active="true">
-            <EnvParticle Name="" Color="1 1 1 1" Brightness="1" BoxDistance="30" GravityVelocity="0 0 0" GravitySpeedRandomAmount="0" WindVelocity="0 0 0" WindSpeedRandomAmount="0" WindDirRandomAmount="0" RotateVelocity="0 0 0" RotateSpeedRandomAmount="0" RotateBothDirs="false" NumIterations="1" FadeInStart="0.2" FadeInEnd="1" FadeOutStart="10" FadeOutEnd="20" BoxSize="30" NumParticles="100" ParticleSize="1 1" SubDivUV="1 1" AffectedByLight="false" Texture="" Visible="false" />
-            <EnvParticle Name="New Env Particles 2" Color="1 1 1 1" Brightness="1" BoxDistance="2" GravityVelocity="0 0 0" GravitySpeedRandomAmount="0" WindVelocity="0 0 0" WindSpeedRandomAmount="0" WindDirRandomAmount="0" RotateVelocity="0 0 0" RotateSpeedRandomAmount="0" RotateBothDirs="false" NumIterations="1" FadeInStart="0.2" FadeInEnd="1" FadeOutStart="10" FadeOutEnd="20" BoxSize="30" NumParticles="100" ParticleSize="1 1" SubDivUV="1 1" AffectedByLight="true" Texture="particles/smoke/materials/fog_ambient_large.dds" Visible="true" />
-        </EnvParticles>
-        <PostEffects ToneMappingKey="0.4" ToneMappingExposure="-0.75" ToneMappingWhiteCut="5.5" ColorGradingTexture="textures/colorgrading/bunker_prototype_01.dds" />
-        <DistanceCulling Active="true" MinRange="0.000841553" ScreenSize="0.11" RandomSize="0.25" />
-    </GlobalSettings>
-    <RegisteredUsers>
-        <User ID="9347656469469383509" RegistrationTimestamp="0" />
-    </RegisteredUsers>
-</HPLMap>
-'''
-def write_hpm_main(map_col, _map_path):
-
-    root_id = random.randint(100000000, 999999999)
-    
-    root = xtree.Element('HPLMap', ID=str(hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()), MajorVersion='1', MinorVersion='1')
+    sub_element = None
+    root = xtree.Element('HPLMap', ID=str(_id), MajorVersion='1', MinorVersion='1')
     global_settings = xtree.SubElement(root, "GlobalSettings")
-    #
-    fog = xtree.SubElement(global_settings, 'Fog')
-    fog.set('Active', "false") 
-    fog.set('Culling', "true")
-    fog.set('Color', "1 1 1 1" )
-    fog.set('Brightness', "1")
-    fog.set('FadeStart', "2")
-    fog.set('FadeEnd', "25")
-    fog.set('FalloffExp', "1")
-    fog.set('Underwater', "false")
-    fog.set('Lighten', "true")
 
-    fog.set('UseSkybox', "true") 
-    fog.set('NoiseStrength', "0")
-    fog.set('NoiseSize', "8" )
-    fog.set('NoiseTurbulence', "0.5 0.5 0.5")
-    fog.set('ApplyAfterFogAreas', "true")
-    fog.set('HeightBased', "false")
-    fog.set('Exponential', "true")
-    fog.set('Density', "0.06")
-    fog.set('HeightDensity', "0.01")
-    fog.set('HeightHorizon', "5")
+    var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(map_col)
 
-    fog.set('SecondaryActive', "true") 
-    fog.set('SecondaryColor', "1 1 1 1")
-    fog.set('SecondaryFadeStart', "0" )
-    fog.set('SecondaryFadeEnd', "10")
-    fog.set('SecondaryFalloffExp', "1")
-    fog.set('SecondaryDensity', "0.01")
-    fog.set('SecondaryHeightDensity', "10")
-    fog.set('SecondaryHeightHorizon', "1")
-    fog.set('skybox', "0.01")
-    fog.set('dir_light', "0.25")
-    fog.set('ssao', "5")
+    for group in var_dict:
+        attribute = group.rsplit('_')[-1]
+        if attribute == 'Decals':
+            continue
+        attribute_hpm = hpm_config.hpm_attribute_identifiers_dict[attribute]
+        
+        if not any([elem.tag for elem in root.iter() if attribute_hpm == elem.tag]):
+            sub_element = xtree.SubElement(global_settings, attribute_hpm)
 
-    #Active="false" Culling="true" Color="1 1 1 1" Brightness="1" FadeStart="2" FadeEnd="25" FalloffExp="1" 
-    #Underwater="false" Lighten="true" UseSkybox="true" NoiseStrength="0" NoiseSize="8" 
-    #NoiseTurbulence="0.5 0.5 0.5" ApplyAfterFogAreas="true" HeightBased="false" Exponential="true" 
-    #Density="0.06" HeightDensity="0.01" HeightHorizon="5" SecondaryActive="true" SecondaryColor="1 1 1 1" 
-    #SecondaryFadeStart="0" SecondaryFadeEnd="10" SecondaryFalloffExp="1" SecondaryDensity="0.01" 
-    #SecondaryHeightDensity="0.25" SecondaryHeightHorizon="5" />
+        for var in var_dict[group]:
+            
+            var_name = var[len(hpl_config.hpl_custom_properties_prefixes_dict['Var'])+len(attribute):]
+            if sub_element.tag == 'EnvParticles': 
+                if var_name == 'Active':
+                    sub_element.set(var_name, str(tuple(map_col[var])).translate(str.maketrans({'(': '', ')': ''})) if type(map_col[var]) not in hpl_config.hpl_common_variable_types else str(map_col[var]))
+                    sub_element = xtree.SubElement(sub_element, 'EnvParticle')
+            else:
+                sub_element.set(var_name, str(tuple(map_col[var])).translate(str.maketrans({'(': '', ')': ''})) if type(map_col[var]) not in hpl_config.hpl_common_variable_types else str(map_col[var]))
 
-    environment_particles = xtree.SubElement(global_settings, 'EnvParticles')
-    environment_particle = xtree.SubElement(environment_particles, 'EnvParticle')
-    post_effects = xtree.SubElement(global_settings, 'PostEffects')
-    distance_culling = xtree.SubElement(global_settings, 'DistanceCulling')
     registered_users = xtree.SubElement(root, 'RegisteredUsers')
     
     user = xtree.SubElement(registered_users, 'User')
     user.set('ID', os.getlogin()+'@'+socket.gethostname())
     user.set('RegistrationTimestamp', str(0))
-    _Id = 0
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path) 
 
-
-def write_hpm_entity(map_col, _map_path):
+def get_object_path(obj):
+    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name+'.ent'
+'''
+<HPLMapTrack_StaticObject ID="55240FA1214456333DC3BAC1ACA182308CB87007" MajorVersion="1" MinorVersion="1">
+    <Section Name="9347656469469383509">
+        <FileIndex_StaticObjects NumOfFiles="0">
+            <File Id="0" Path="static_objects/technical/block_out_tools/block_out_box.dae" />
+        <FileIndex_StaticObjects />
+        <Objects>
+            <StaticObject ID="268437172" Name="roman_roman_stairs_roman_stair_brick_straight_1" CreStamp="1666161604" ModStamp="1672235129" WorldPos="-7.25696 0 33.5064" Rotation="0 1.5708 0" Scale="0.5 0.5 0.562072" FileIndex="8" Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172" />
+        <Objects />
+    </Section>
+</HPLMapTrack_StaticObject>
+'''
+def write_static_objects(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
     
-    root = xtree.Element('HPLMapTrack_Entity', ID=str(hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()), MajorVersion='1', MinorVersion='1')
+    root = xtree.Element('HPLMapTrack_StaticObject', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
-    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(len(map_col.objects)))
+    file_index = xtree.SubElement(section, 'FileIndex_StaticObject', NumOfFiles=str(0)) #TODO: Get count
     objects = xtree.SubElement(section, 'Objects')
-    _Id = 0
+    _index = 0
     
     for obj in map_col.objects:
         if obj.is_instancer:
             
-            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_Id))
+            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
             user_variables = xtree.SubElement(entity, 'UserVariables')
-            xtree.SubElement(file_index, 'File', Id=str(_Id), Path=get_object_path(obj))
+            xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj))
 
-            entity.set('ID', str(root_id+_Id))
+            entity.set('ID', str(root_id+_index))
             entity.set('Name', str(obj.name))
             entity.set('CreStamp', str(0))
             entity.set('ModStamp', str(0))
             entity.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
             entity.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
             entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
-            entity.set('FileIndex', str(_Id))
+            entity.set('FileIndex', str(_index))
             
             vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
             for var in vars:
@@ -191,15 +141,132 @@ def write_hpm_entity(map_col, _map_path):
                     entity.set(var_name, str(var[1]))
                 else:
                     xml_var = xtree.SubElement(user_variables,'Var')
-                    xml_var.set('ObjectId', str(root_id+_Id))
+                    xml_var.set('ObjectId', str(root_id+_index))
                     xml_var.set('Name', var_name)
                     xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-            _Id = _Id + 1
+            _index = _index + 1
                         
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
+def write_hpm_entity(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
+    
+    root = xtree.Element('HPLMapTrack_Entity', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    section = xtree.SubElement(root, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
+    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(len(map_col.objects)))
+    objects = xtree.SubElement(section, 'Objects')
+    _index = 0
+    
+    for obj in map_col.objects:
+        if obj.is_instancer:
+            
+            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
+            user_variables = xtree.SubElement(entity, 'UserVariables')
+            xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj))
+
+            entity.set('ID', str(root_id+_index))
+            entity.set('Name', str(obj.name))
+            entity.set('CreStamp', str(0))
+            entity.set('ModStamp', str(0))
+            entity.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('FileIndex', str(_index))
+            
+            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+            for var in vars:
+                var_name = var[0].split('hpl_parser_var_')[-1]
+                if var_name in hpm_config.hpm_entities_properties['Entity']:
+                    entity.set(var_name, str(var[1]))
+                else:
+                    xml_var = xtree.SubElement(user_variables,'Var')
+                    xml_var.set('ObjectId', str(root_id+_index))
+                    xml_var.set('Name', var_name)
+                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+            _index = _index + 1
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
+def write_hpm_detail_meshes(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
+    mod_stamp = random.randint(100000000, 999999999)
+
+    root = xtree.Element('HPLMapTrack_Decal', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    detail_meshes = xtree.SubElement(root, "DetailMeshes")
+    if any([var[0] for var in map_col.items() if 'hpl_parser_var_DetailMeshesMaxRange' == var[0]]):
+        detail_meshes.set('MaxRange', str(map_col["hpl_parser_var_DetailMeshesMaxRange"]))
+    
+    sections = xtree.SubElement(detail_meshes, "Sections")
+    section = xtree.SubElement(sections, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
+
+    filtered_detail_meshes = [obj for obj in map_col.objects if hpl_config.hpl_detail_mesh_identifier in obj.name.lower() and obj.is_instancer]
+
+    detail_meshes_objects_categories = {}
+    for obj in filtered_detail_meshes:
+        category = obj.name.rsplit('_detailmesh')[0]
+        if category in detail_meshes_objects_categories:
+            detail_meshes_objects_categories[category].append(obj)
+        else:
+            detail_meshes_objects_categories[category] = [obj]
+
+    for category in detail_meshes_objects_categories:
+
+        _index = 0
+        ids_list_str = ''
+        positions_list_str = ''
+        rotations_list_str = ''
+        radii_list_str = ''
+        colors_list_str = ''
+        mod_stamps_list_str = ''
+
+        detail_mesh = xtree.SubElement(section, 'DetailMesh', File=get_object_path(detail_meshes_objects_categories[category][0]) ,NumOfFiles=str(len(detail_meshes_objects_categories[category])))
+        detail_meshes_ids = xtree.SubElement(detail_mesh,'DetailMeshEntityIDs')
+        detail_meshes_positions = xtree.SubElement(detail_mesh,'DetailMeshEntityPositions')
+        detail_meshes_rotations = xtree.SubElement(detail_mesh,'DetailMeshEntityRotations')
+        detail_meshes_radii = xtree.SubElement(detail_mesh,'DetailMeshEntityRadii')
+        detail_meshes_colors = xtree.SubElement(detail_mesh,'DetailMeshEntityColors')
+        detail_meshes_mod_stamps = xtree.SubElement(detail_mesh,'DetailMeshEntityModStamps')
+
+        for obj in detail_meshes_objects_categories[category]:
+            _index = _index + 1
+            ids_list_str = ids_list_str + str(root_id + _index) + ' '
+            positions_list_str = positions_list_str + str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': '', ',':''})) + ' '
+            rotations_list_str = rotations_list_str + str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': '', ',':''})) + ' '
+            radii_list_str = radii_list_str + str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': '', ',':''})) + ' ' #TODO: FINISH RADII
+            colors_list_str = colors_list_str + '1 1 1 '
+            mod_stamps_list_str = mod_stamps_list_str + str(mod_stamp + _index) + ' '
+
+        ids_list_str = ids_list_str[:len(ids_list_str)-1]
+        positions_list_str = positions_list_str[:len(positions_list_str)-1]
+        rotations_list_str = rotations_list_str[:len(rotations_list_str)-1]
+        radii_list_str = radii_list_str[:len(radii_list_str)-1]
+        colors_list_str = colors_list_str[:len(colors_list_str)-1]
+        mod_stamps_list_str = mod_stamps_list_str[:len(mod_stamps_list_str)-1]
+
+        detail_meshes_ids.text = ids_list_str
+        detail_meshes_positions.text = positions_list_str
+        detail_meshes_rotations.text = rotations_list_str
+        detail_meshes_radii.text = radii_list_str
+        detail_meshes_colors.text = colors_list_str
+        detail_meshes_mod_stamps.text = mod_stamps_list_str
+
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path) 
     
+### Write all *.ent files ###
 def write_entity_files(obj_col, _ent_path):
+
+    if hpl_config.hpl_detail_mesh_identifier in obj_col.name:
+        return
+    
+    if not any([item for item in obj_col.items() if hpl_config.hpl_entity_type_identifier in item[0]]):
+        return
     
     root_id = random.randint(100000000, 999999999)
     
@@ -239,7 +306,7 @@ def write_entity_files(obj_col, _ent_path):
             sub_mesh.set('Material', str(obj.material_slots[0].name) if list(obj.material_slots) else '') #TODO: check if available first
 
     user_defined_variables = xtree.SubElement(entity, 'UserDefinedVariables')
-    user_defined_variables.set('EntityType', obj_col['hpl_enum_entity_type']) #TODO: check if available first
+    user_defined_variables.set('EntityType', obj_col[hpl_config.hpl_entity_type_identifier]) #TODO: check if available first
     vars = [item for item in obj_col.items() if 'hpl_parser_var_' in item[0]]
     for var in vars:
         var_name = var[0].split('hpl_parser_var_')[-1]
@@ -263,17 +330,21 @@ def write_hpm():
 
     for map_col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children:
 
+        id = hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()
+
         if not os.path.exists(map_path + map_col.name):
             os.mkdir(map_path + map_col.name)
 
         for container in hpm_config.hpm_file_containers:
             _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
             if container == '':
-                write_hpm_main(map_col, _map_path)
+                write_hpm_main(map_col, _map_path, id)
             #if container == '_StaticObject':
             #    write_hpm_static_objects(map_col, _map_path)
             if container == '_Entity':
-                write_hpm_entity(map_col, _map_path)
+                write_hpm_entity(map_col, _map_path, id)
+            if container == '_DetailMeshes':
+                write_hpm_detail_meshes(map_col, _map_path, id)
                 
 
 def hpl_export_objects():
@@ -290,10 +361,9 @@ def hpl_export_objects():
     viewlayer_collections_list = [col.name for col in viewlayer_collections_list if not col.exclude and hpl_config.hpl_map_collection_identifier != col.name]
 
     for col_name in viewlayer_collections_list:
-        ent = bpy.data.collections[col_name]
         bpy.context.view_layer.objects.active = None
-        export_collection = ent
-        export_objects = ent.objects
+        export_collection = bpy.data.collections[col_name]
+        export_objects = export_collection.objects
 
         for obj in export_objects:
             #Dae exporters triangulate doesnt account for custom normals.
@@ -307,21 +377,22 @@ def hpl_export_objects():
             obj.rotation_euler[0] = obj.rotation_euler[0] + math.radians(90)
             obj.location[0] = -obj.location[0]
 
-
         path = root+'\\mods\\'+root_collection+'\\entities\\'#+export_collection.name+'\\'
-        #if not os.path.isfile(path):
-        #    os.mkdir(path)
+
+        if not os.path.exists(path):
+            os.mkdir(path)
+
         #Delete HPL *.msh file. This will be recreated when Level Editor or game is launched.
-        if os.path.isfile(path+export_collection.name[:3]+'msh'):
-            os.remove(path+export_collection.name[:3]+'msh')
+        if os.path.isfile(path+col_name[:3]+'msh'):
+            os.remove(path+col_name[:3]+'msh')
         
-        bpy.ops.wm.collada_export(filepath=path+export_collection.name, check_existing=False, use_texture_copies = True,\
+        bpy.ops.wm.collada_export(filepath=path+col_name, check_existing=False, use_texture_copies = True,\
                                 selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                 export_global_forward_selection = 'Z', export_global_up_selection = 'Y', \
                                 apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                 triangulate = False) #-Y, Z
         
-        write_entity_files(ent, path)
+        write_entity_files(export_collection, path)
 
         for obj in export_objects:
             obj.modifiers.remove(obj.modifiers.get("_Triangulate"))
