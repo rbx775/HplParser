@@ -330,6 +330,7 @@ class hpl_properties():
             if ent.bl_rna.identifier == 'Collection':
                 ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
                 ent[hpl_config.hpl_entity_type_identifier] = ent_type
+                ent[hpl_config.hpl_entity_type_value] = bpy.context.scene.hpl_parser['hpl_base_classes_enum']
                 var_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
                 hpl_properties.initialize_editor_vars(ent, var_dict)
                 hpl_properties.set_collection_properties_on_instances(ent, ent_type)

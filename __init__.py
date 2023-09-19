@@ -47,46 +47,47 @@ bl_info = {
 	"category": "Object"
 }
 
-def get_hpl_selected_collection(self): 
-    return self['hpl_selected_collection']
-
-def set_hpl_selected_collection(self, value):
-    self['hpl_selected_collection'] = value
-
-
-def get_hpl_game_root_path(self): 
-    return self.get("hpl_game_root_path", '')
-    
-def set_hpl_game_root_path(self, value):
-    if '.exe' in value:
-        value = os.path.dirname(value)+"\\"
-    self['hpl_game_root_path'] = value
-
-    if value:
-        if check_for_game_exe(value):
-            bpy.context.scene.hpl_parser.dae_file_count = ' '+str(len(hpl_importer.pre_scan_for_dae_files(value)))
-            bpy.context.scene.hpl_parser.hpl_is_game_root_valid = True
-            hpm_class_extractor.hpm_properties.get_properties_from_hpm_file()
-        else:
-            bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
-
-def get_hpl_base_classes_enum(self):
-    return self.get("hpl_base_classes_enum", 0)
-
-def set_hpl_base_classes_enum(self, value):
-    self['hpl_base_classes_enum'] = value
-    hpl_property_io.hpl_properties.set_entity_type_on_collection()
-
-def get_hpl_project_root_col(self):
-    return self.get("hpl_project_root_col", 0)
-
-def set_hpl_project_root_col(self, value):
-    self['hpl_project_root_col'] = value    
-    if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps']):
-        bpy.ops.collection.create(name='Maps')
-        bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections['Maps'])
-
 class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
+
+    def get_hpl_selected_collection(self): 
+        return self['hpl_selected_collection']
+
+    def set_hpl_selected_collection(self, value):
+        self['hpl_selected_collection'] = value
+
+
+    def get_hpl_game_root_path(self): 
+        return self.get("hpl_game_root_path", '')
+        
+    def set_hpl_game_root_path(self, value):
+        if '.exe' in value:
+            value = os.path.dirname(value)+"\\"
+        self['hpl_game_root_path'] = value
+
+        if value:
+            if check_for_game_exe(value):
+                bpy.context.scene.hpl_parser.dae_file_count = ' '+str(len(hpl_importer.pre_scan_for_dae_files(value)))
+                bpy.context.scene.hpl_parser.hpl_is_game_root_valid = True
+                hpm_class_extractor.hpm_properties.get_properties_from_hpm_file()
+            else:
+                bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
+
+    def get_hpl_base_classes_enum(self):
+        return self.get("hpl_base_classes_enum", 0)
+
+    def set_hpl_base_classes_enum(self, value):
+        if value != self['hpl_base_classes_enum']:
+            self['hpl_base_classes_enum'] = value
+            hpl_property_io.hpl_properties.set_entity_type_on_collection()
+
+    def get_hpl_project_root_col(self):
+        return self.get("hpl_project_root_col", 0)
+
+    def set_hpl_project_root_col(self, value):
+        self['hpl_project_root_col'] = value    
+        if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps']):
+            bpy.ops.collection.create(name='Maps')
+            bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections['Maps'])
 
     def get_hpl_map_root_col(self):
         try:
@@ -429,7 +430,11 @@ def scene_selection_listener(self, context):
         if code == hpl_config.hpl_selection.MAP:
             if not any([var for var in ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
                 hpl_property_io.hpl_properties.set_level_settings_on_map_collection(ent)
+        
         hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(ent)
+        if code == hpl_config.hpl_selection.ACTIVE_ENTITY:
+            if any([var for var in ent.items() if hpl_config.hpl_entity_type_value in var[0]]):
+                bpy.context.scene.hpl_parser['hpl_base_classes_enum'] = ent[hpl_config.hpl_entity_type_value]
     else:
         hpl_config.hpl_ui_var_dict = {}
 
