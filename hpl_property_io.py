@@ -43,13 +43,6 @@ class hpl_properties():
                 if hpl_config.hpl_variable_identifier + '_' in var[0]:
                     _temp_ui_var_dict[group].append(var[0])
         return _temp_ui_var_dict
-
-    def traverse_tree_headers(xml_tree, key_tag):
-        for tree in xml_tree:
-            if key_tag in tree.tag:
-                for i in tree:
-                    if 'Prop' != i.attrib['Name']:
-                        hpl_properties.entity_baseclass_list.append(i.attrib['Name'])
     
     def get_material_vars(mat_file):
         if mat_file:
@@ -151,7 +144,7 @@ class hpl_properties():
             for sub_classes in classes:
                 if sub_classes.tag == variable_type:
                     for groups in sub_classes:
-                        var_dict[groups.get('Name')] = list(v.attrib for v in groups.iter("Var"))
+                        var_dict[groups.get('Name')] = list(var.attrib for var in groups.iter("Var"))
                     return var_dict
             return {}
 
@@ -185,7 +178,9 @@ class hpl_properties():
 
         if def_file:
             xml_root = xtree.fromstring(def_file)
-            hpl_properties.traverse_tree_headers(xml_root, 'Class')
+            classes = xml_root.findall(f'.//Class')
+            for cls in classes:
+                hpl_properties.entity_baseclass_list.append(cls.attrib['Name'])
             return hpl_properties.entity_baseclass_list
         else:
             return None
@@ -197,35 +192,35 @@ class hpl_properties():
         
     def reset_editor_vars(ent):
         delete_vars = []
-        print(len(ent.items()))
-        i = 0
         for var in ent.items():
-            i = i +1
             if 'hpl_parser_' in var[0]:
 
                 delete_vars.append(var[0])
-        print(ent.name, i)
         for var in delete_vars:
             del ent[var]
         
     def initialize_editor_vars(ent, var_dict):
         hpl_properties.reset_editor_vars(ent)
-
+        
         group_dict = {}
         if var_dict:
-            for group in var_dict:
-                
-                ent['hpl_parser_dropdown_'+group] = False
+            for group in var_dict:                
+                ent[hpl_config.hpl_dropdown_identifier+'_'+group] = False
                 var_list = []
                 for var in var_dict[group]:
 
                     is_color = False
                     var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
-                    var_type = var['Type'].lower()
-
+                    #check for oddities in EntityClasses.def
+                    var_type = var['type'].lower() if 'type' in var else var['Type'].lower()
                     variable = hpl_config.hpl_variable_identifier+'_'+var['Name']
                     
                     #Variable Conversion
+                    if var_type == 'float':
+                        #check for oddities in EntityClasses.def
+                        if 'f' in var_value:
+                            var_value = var_value[:-1]
+
                     if var_type == 'color':
                         is_color = True
 
@@ -310,26 +305,16 @@ class hpl_properties():
         for var in collection_ent.items():
             if var[0] == hpl_config.hpl_entity_type_identifier:
                 ent_type = collection_ent[hpl_config.hpl_entity_type_identifier]
-                var_dict = hpl_config.hpl_level_editor_general_vars_dict
-                var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
+                var_dict = {**hpl_config.hpl_level_editor_general_vars_dict, **hpl_properties.get_properties(ent_type, 'InstanceVars')}
                 hpl_properties.initialize_editor_vars(instance_ent, var_dict)
                 instance_ent['hpl_parser_instance_of'] = collection_ent.name
     
     
-    def set_collection_properties_on_instances(ent):
-
-        #for obj in ent.objects:
-        #    hpl_properties.set_collection_properties_on_instance(obj)
-        #return
+    def set_collection_properties_on_instances(ent, ent_type):
         for instance_ent in bpy.data.objects:
-            if instance_ent.is_instancer:
+            if instance_ent.is_instancer: #TODO: is this check needed ?
                 if instance_ent.instance_collection == ent:
-                    ent_type = 'None'
-                    for var in ent.items():
-                        if var[0] == hpl_config.hpl_entity_type_identifier:
-                            ent_type = ent[hpl_config.hpl_entity_type_identifier]
-                    var_dict = hpl_config.hpl_level_editor_general_vars_dict
-                    var_dict.update(hpl_properties.get_properties(ent_type, 'InstanceVars'))
+                    var_dict = {**hpl_config.hpl_level_editor_general_vars_dict, **hpl_properties.get_properties(ent_type, 'InstanceVars')}
                     hpl_properties.initialize_editor_vars(instance_ent, var_dict)
                     instance_ent['hpl_parser_instance_of'] = hpl_properties.get_collection_instance_is_of(instance_ent).name
 
@@ -341,10 +326,10 @@ class hpl_properties():
     
     def set_entity_type_on_collection():
         code, ent = hpl_properties.get_valid_selection()
-        print('ENT: ', ent)
         if ent:
             if ent.bl_rna.identifier == 'Collection':
-                ent[hpl_config.hpl_entity_type_identifier] = bpy.context.scene.hpl_parser.hpl_base_classes_enum
-                var_dict = hpl_properties.get_properties(bpy.context.scene.hpl_parser.hpl_base_classes_enum, 'TypeVars')
+                ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
+                ent[hpl_config.hpl_entity_type_identifier] = ent_type
+                var_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
                 hpl_properties.initialize_editor_vars(ent, var_dict)
-                hpl_properties.set_collection_properties_on_instances(ent)
+                hpl_properties.set_collection_properties_on_instances(ent, ent_type)

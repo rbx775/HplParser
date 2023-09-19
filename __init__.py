@@ -375,6 +375,7 @@ def draw_panel_content(context, layout):
             if any([var for var in ent.items() if 'hpl_parser_instance_of' in var[0]]):
                 instance_of = ent['hpl_parser_instance_of']
                 box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            draw_custom_property_ui(props, layout, ent)
         elif code == hpl_config.hpl_selection.ACTIVE_ENTITY:
             box = col.box()
             box.label(text=f'\"{ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
@@ -411,7 +412,6 @@ class HPL_PT_CREATE(bpy.types.Panel):
 
 def scene_selection_listener(self, context):
     code, ent = hpl_property_io.hpl_properties.get_valid_selection()
-    print(code, ent)
 
     if not bpy.context.view_layer.active_layer_collection.collection.children:
         bpy.context.scene.hpl_parser.hpl_has_project_col = True
@@ -424,10 +424,10 @@ def scene_selection_listener(self, context):
         #Catch newly created instances (Alt+G)
         if ent.bl_rna.identifier == 'Object':
             if ent.is_instancer:
-                if not any([var for var in ent.items() if 'hpl_parser_var_' in var[0]]):
+                if not any([var for var in ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
                     hpl_property_io.hpl_properties.set_collection_properties_on_instance(ent)
-        if code == 6:
-            if not any([var for var in ent.items() if 'hpl_parser_var_' in var[0]]):
+        if code == hpl_config.hpl_selection.MAP:
+            if not any([var for var in ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
                 hpl_property_io.hpl_properties.set_level_settings_on_map_collection(ent)
         hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(ent)
     else:
