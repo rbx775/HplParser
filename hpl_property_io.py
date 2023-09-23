@@ -266,6 +266,8 @@ class hpl_properties():
                 group_dict[group] = var_list
             
     def get_outliner_selection():
+        outliner_ent = None
+        viewport_ent = None
         if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
             for window in bpy.context.window_manager.windows:
                 screen = window.screen
@@ -273,31 +275,50 @@ class hpl_properties():
                     if area.type == 'OUTLINER':
                         with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
                             if bpy.context.selected_ids:
-                                return bpy.context.selected_ids[0]
-        return None
+                                outliner_ent = bpy.context.selected_ids[0]
+                    if area.type == 'VIEW_3D':
+                        with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
+                            if bpy.context.selected_ids:
+                                viewport_ent = bpy.context.selected_ids[0]
+        return outliner_ent, viewport_ent
 
     def get_valid_selection():
-        ent = hpl_properties.get_outliner_selection()
-
-        if ent:
-            if ent.bl_rna.identifier == 'Collection':
-                if ent == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
-                    return hpl_config.hpl_selection.MOD, ent
-                if ent.name == hpl_config.hpl_map_collection_identifier:
-                    return hpl_config.hpl_selection.MAPROOT, ent
+        outliner_ent, viewport_ent = hpl_properties.get_outliner_selection()
+        if outliner_ent:
+            if outliner_ent.bl_rna.identifier == 'Collection':
+                if outliner_ent == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
+                    return hpl_config.hpl_selection.MOD, outliner_ent, viewport_ent
+                if outliner_ent.name == hpl_config.hpl_map_collection_identifier:
+                    return hpl_config.hpl_selection.MAPROOT, outliner_ent, viewport_ent
                 if any([col for col in bpy.data.collections if col.name == hpl_config.hpl_map_collection_identifier]):
-                    if any([col for col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children if col == ent]):
-                        return hpl_config.hpl_selection.MAP, ent
-                if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == ent]):
-                    return hpl_config.hpl_selection.ACTIVE_ENTITY, ent
+                    if any([col for col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children if col == outliner_ent]):
+                        return hpl_config.hpl_selection.MAP, outliner_ent, viewport_ent
+                if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == outliner_ent]):
+                    return hpl_config.hpl_selection.ACTIVE_ENTITY, outliner_ent, viewport_ent
                 else:
-                    return hpl_config.hpl_selection.UNACTIVE_ENTITY, ent
-            if ent.bl_rna.identifier == 'Object':
-                if ent.is_instancer:
-                    if ent.users_collection[0] in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children_recursive:
-                        return hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE, ent
-                    return hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE, ent
-        return 0, None
+                    return hpl_config.hpl_selection.UNACTIVE_ENTITY, outliner_ent, viewport_ent
+            if outliner_ent.bl_rna.identifier == 'Object':
+                if outliner_ent.is_instancer:
+                    if outliner_ent.users_collection[0] in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children_recursive:
+                        return hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
+                    return hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
+                else:
+                    if outliner_ent.type == 'EMPTY':
+                        if outliner_ent.name.startswith(hpl_config.hpl_body_identifier):
+                            return hpl_config.hpl_selection.ACTIVE_BODY, outliner_ent, viewport_ent
+                        if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
+                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Ball'):            
+                                return hpl_config.hpl_selection.ACTIVE_BALL_JOINT, outliner_ent, viewport_ent
+                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Hinge'):
+                                return hpl_config.hpl_selection.ACTIVE_HINGE_JOINT, outliner_ent, viewport_ent
+                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Slider'):
+                                return hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT, outliner_ent, viewport_ent
+                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Screw'):
+                                return hpl_config.hpl_selection.ACTIVE_SCREW_JOINT, outliner_ent, viewport_ent
+                    else:
+                        if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
+                            return hpl_config.hpl_selection.ACTIVE_SHAPE, outliner_ent, viewport_ent
+        return None, None, None
 
     def set_collection_properties_on_instance(instance_ent):
         collection_ent = hpl_properties.get_collection_instance_is_of(instance_ent)
@@ -325,12 +346,12 @@ class hpl_properties():
                 hpl_properties.initialize_editor_vars(ent, var_dict)
     
     def set_entity_type_on_collection():
-        code, ent = hpl_properties.get_valid_selection()
-        if ent:
-            if ent.bl_rna.identifier == 'Collection':
+        code, outliner_ent, viewport_ent = hpl_properties.get_valid_selection()
+        if outliner_ent:
+            if outliner_ent.bl_rna.identifier == 'Collection':
                 ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
-                ent[hpl_config.hpl_entity_type_identifier] = ent_type
-                ent[hpl_config.hpl_entity_type_value] = bpy.context.scene.hpl_parser['hpl_base_classes_enum']
+                outliner_ent[hpl_config.hpl_entity_type_identifier] = ent_type
+                outliner_ent[hpl_config.hpl_entity_type_value] = bpy.context.scene.hpl_parser['hpl_base_classes_enum']
                 var_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
-                hpl_properties.initialize_editor_vars(ent, var_dict)
-                hpl_properties.set_collection_properties_on_instances(ent, ent_type)
+                hpl_properties.initialize_editor_vars(outliner_ent, var_dict)
+                hpl_properties.set_collection_properties_on_instances(outliner_ent, ent_type)

@@ -21,18 +21,31 @@ import re
 import random
 from mathutils import Vector, Matrix
 from bpy.types import (
+    Operator,
     Panel,
     UIList,
 )
 
+#from bpy.props import FloatVectorProperty
+from bpy_extras.object_utils import AddObjectHelper, object_data_add
+
 from . import hpl_config
-from . import hpm_config
-from . import hpm_class_extractor
 from . import hpl_property_io
 from . import hpl_importer
+from . import hpl_object
 from .hpm_exporter import (HPM_OT_EXPORTER)
 from .hpl_exporter import (HPL_OT_DAEEXPORTER)
-from .hpl_importer import (HPL_OT_ASSETIMPORTER)
+from .hpl_importer import (HPL_OT_ASSETIMPORTER) 
+from .hpl_object import (OBJECT_OT_add_box_shape, 
+                        OBJECT_OT_add_sphere_shape, 
+                        OBJECT_OT_add_cylinder_shape, 
+                        OBJECT_OT_add_capsule_shape,
+                        OBJECT_OT_add_screw_joint,
+                        OBJECT_OT_add_slider_joint,
+                        OBJECT_OT_add_ball_joint,
+                        OBJECT_OT_add_hinge_joint,
+                        OBJECT_MT_ADD_HPL_SHAPE,
+                        OBJECT_MT_ADD_HPL_JOINT)
 from .hpl_property_io import (HPL_OT_RESETPROPERTIES)
 
 bl_info = {
@@ -68,7 +81,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
             if check_for_game_exe(value):
                 bpy.context.scene.hpl_parser.dae_file_count = ' '+str(len(hpl_importer.pre_scan_for_dae_files(value)))
                 bpy.context.scene.hpl_parser.hpl_is_game_root_valid = True
-                hpm_class_extractor.hpm_properties.get_properties_from_hpm_file()
+                #hpm_class_extractor.hpm_properties.get_properties_from_hpm_file()
             else:
                 bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
 
@@ -345,47 +358,60 @@ def draw_panel_content(context, layout):
         singleRow.prop(props, 'hpl_export_meshes', expand=False)
         singleRow.prop(props, 'hpl_export_maps', expand=False)
         
-        code, ent = hpl_property_io.hpl_properties.get_valid_selection()
+        code, outliner_ent, viewport_outliner = hpl_property_io.hpl_properties.get_valid_selection()
 
         layout.use_property_split = True
         col = layout.column(align=True)
 
         if code == hpl_config.hpl_selection.MAP:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is a map.', icon='HOME')
-            draw_custom_property_ui(props, layout, ent, True)
+            box.label(text=f'\"{outliner_ent.name}\" is a map.', icon='HOME')
+            draw_custom_property_ui(props, layout, outliner_ent, True)
 
         elif code == hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is not stored in a level collection, ignored for export.', icon='INFO')
+            box.label(text=f'\"{outliner_ent.name}\" is not stored in a level collection, ignored for export.', icon='INFO')
 
         elif code == hpl_config.hpl_selection.MAPROOT:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is the root map collection. All levels go in here.', icon='HOME')
+            box.label(text=f'\"{outliner_ent.name}\" is the root map collection. All levels go in here.', icon='HOME')
 
         elif code == hpl_config.hpl_selection.MOD:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is the root collection.', icon='WORLD')
+            box.label(text=f'\"{outliner_ent.name}\" is the root collection.', icon='WORLD')
 
         elif code == hpl_config.hpl_selection.UNACTIVE_ENTITY:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
+            box.label(text=f'\"{outliner_ent.name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
 
         elif code == hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE:
             box = col.box()
-            if any([var for var in ent.items() if 'hpl_parser_instance_of' in var[0]]):
-                instance_of = ent['hpl_parser_instance_of']
-                box.label(text=f'\"{ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            draw_custom_property_ui(props, layout, ent)
+            if any([var for var in outliner_ent.items() if 'hpl_parser_instance_of' in var[0]]):
+                instance_of = outliner_ent['hpl_parser_instance_of']
+                box.label(text=f'\"{outliner_ent.name}\" is an entity instance of \"{instance_of}\".', icon='GHOST_ENABLED') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            draw_custom_property_ui(props, layout, outliner_ent)
         elif code == hpl_config.hpl_selection.ACTIVE_ENTITY:
             box = col.box()
-            box.label(text=f'\"{ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            box.label(text=f'\"{outliner_ent.name}\" is an entity.', icon='OUTLINER_COLLECTION') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             col = layout.column(align=True)
             box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
             singleRowbtn = box.row(align=True)
             singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "FILE_REFRESH")
             singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
-            draw_custom_property_ui(props, layout, ent)
+            draw_custom_property_ui(props, layout, outliner_ent)
+        elif code == hpl_config.hpl_selection.ACTIVE_BODY:
+            box = col.box()
+            box.label(text=f'\"{outliner_ent.name}\" is a physical body.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            draw_custom_property_ui(props, layout, outliner_ent)
+        elif code == hpl_config.hpl_selection.ACTIVE_HINGE_JOINT or code == hpl_config.hpl_selection.ACTIVE_BALL_JOINT or code == hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT or code == hpl_config.hpl_selection.ACTIVE_SCREW_JOINT:
+            box = col.box()
+            box.label(text=f'\"{outliner_ent.name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            draw_custom_property_ui(props, layout, outliner_ent)
+        elif code == hpl_config.hpl_selection.ACTIVE_SHAPE:
+            box = col.box()
+            box.label(text=f'\"{outliner_ent.name}\" is a collision entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            draw_custom_property_ui(props, layout, outliner_ent)
+
 
 class HPL_PT_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
@@ -412,8 +438,9 @@ class HPL_PT_CREATE(bpy.types.Panel):
     #@persistent
 
 def scene_selection_listener(self, context):
-    code, ent = hpl_property_io.hpl_properties.get_valid_selection()
-
+    code, outliner_ent, viewport_ent = hpl_property_io.hpl_properties.get_valid_selection()
+    print(code)
+    
     if not bpy.context.view_layer.active_layer_collection.collection.children:
         bpy.context.scene.hpl_parser.hpl_has_project_col = True
 
@@ -421,22 +448,45 @@ def scene_selection_listener(self, context):
         if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps']):
             bpy.context.scene.hpl_parser.hpl_has_maps_col = True
 
-    if ent:
+    if viewport_ent:
+        if viewport_ent not in hpl_config.hpl_current_scene_collection:
+            return
+
+    if outliner_ent:
         #Catch newly created instances (Alt+G)
-        if ent.bl_rna.identifier == 'Object':
-            if ent.is_instancer:
-                if not any([var for var in ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
-                    hpl_property_io.hpl_properties.set_collection_properties_on_instance(ent)
+        if outliner_ent.bl_rna.identifier == 'Object':
+            if outliner_ent.is_instancer:
+                if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                    hpl_property_io.hpl_properties.set_collection_properties_on_instance(outliner_ent)
         if code == hpl_config.hpl_selection.MAP:
-            if not any([var for var in ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
-                hpl_property_io.hpl_properties.set_level_settings_on_map_collection(ent)
-        
-        hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(ent)
+            if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                hpl_property_io.hpl_properties.set_level_settings_on_map_collection(outliner_ent)
+        if code == hpl_config.hpl_selection.ACTIVE_BODY:
+            if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                hpl_property_io.hpl_properties.initialize_editor_vars(outliner_ent, hpl_config.hpl_body_properties_vars_dict)
+        if code == hpl_config.hpl_selection.ACTIVE_BALL_JOINT:
+            if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                hpl_property_io.hpl_properties.initialize_editor_vars(outliner_ent, {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict})
+        if code == hpl_config.hpl_selection.ACTIVE_HINGE_JOINT:
+            if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                hpl_property_io.hpl_properties.initialize_editor_vars(outliner_ent, {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict})
+        if code == hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT:
+            if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                hpl_property_io.hpl_properties.initialize_editor_vars(outliner_ent, {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict})
+        if code == hpl_config.hpl_selection.ACTIVE_SCREW_JOINT:
+            if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+                hpl_property_io.hpl_properties.initialize_editor_vars(outliner_ent, {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict})
+        #if code == hpl_config.hpl_selection.ACTIVE_SHAPE:
+        #    if not any([var for var in outliner_ent.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+        #        hpl_property_io.hpl_properties.initialize_editor_vars(outliner_ent, {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict})
         if code == hpl_config.hpl_selection.ACTIVE_ENTITY:
-            if any([var for var in ent.items() if hpl_config.hpl_entity_type_value in var[0]]):
-                bpy.context.scene.hpl_parser['hpl_base_classes_enum'] = ent[hpl_config.hpl_entity_type_value]
+            if any([var for var in outliner_ent.items() if hpl_config.hpl_entity_type_value in var[0]]):
+                bpy.context.scene.hpl_parser['hpl_base_classes_enum'] = outliner_ent[hpl_config.hpl_entity_type_value]
+        hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(outliner_ent)
     else:
         hpl_config.hpl_ui_var_dict = {}
+    
+    hpl_config.hpl_current_scene_collection = [obj for obj in bpy.context.scene.objects]
 
 def register():
     bpy.utils.register_class(HPL_PT_CREATE)
@@ -444,7 +494,24 @@ def register():
     bpy.utils.register_class(HPL_OT_DAEEXPORTER)
     bpy.utils.register_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.register_class(HPL_OT_RESETPROPERTIES)
+    bpy.utils.register_class(OBJECT_OT_add_box_shape)
+    bpy.utils.register_class(OBJECT_OT_add_sphere_shape)
+    bpy.utils.register_class(OBJECT_OT_add_cylinder_shape)
+    bpy.utils.register_class(OBJECT_OT_add_capsule_shape)
+    bpy.utils.register_class(OBJECT_OT_add_screw_joint)
+    bpy.utils.register_class(OBJECT_OT_add_slider_joint)
+    bpy.utils.register_class(OBJECT_OT_add_ball_joint)
+    bpy.utils.register_class(OBJECT_OT_add_hinge_joint)
+    bpy.utils.register_class(OBJECT_MT_ADD_HPL_SHAPE)
+    bpy.utils.register_class(OBJECT_MT_ADD_HPL_JOINT)
+    bpy.utils.register_manual_map(hpl_object.add_shape_manual_map)
+    #bpy.types.VIEW3D_MT_add.append(hpl_object.add_shape_buttons)
+    #bpy.types.VIEW3D_MT_add.append(hpl_object.OBJECT_OT_add_box_shape.draw_item)
+    bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_shape)
+    bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_joint)
+    #bpy.types.VIEW3D_MT_add.append(hpl_object.OBJECT_PT_CREATE_ADD_PANEL.draw_item)
     bpy.utils.register_class(HPLSettingsPropertyGroup)
+    
     bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPLSettingsPropertyGroup)
     bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener)
 
@@ -454,6 +521,22 @@ def unregister():
     bpy.utils.unregister_class(HPL_OT_DAEEXPORTER)
     bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.unregister_class(HPL_OT_RESETPROPERTIES)
+    bpy.utils.unregister_class(OBJECT_OT_add_box_shape)
+    bpy.utils.unregister_class(OBJECT_OT_add_sphere_shape)
+    bpy.utils.unregister_class(OBJECT_OT_add_cylinder_shape)
+    bpy.utils.unregister_class(OBJECT_OT_add_capsule_shape)
+    bpy.utils.unregister_class(OBJECT_OT_add_screw_joint)
+    bpy.utils.unregister_class(OBJECT_OT_add_slider_joint)
+    bpy.utils.unregister_class(OBJECT_OT_add_ball_joint)
+    bpy.utils.unregister_class(OBJECT_OT_add_hinge_joint)
+    bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_SHAPE)
+    bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_JOINT)
+    bpy.utils.unregister_manual_map(hpl_object.add_shape_manual_map)
+    #bpy.types.VIEW3D_MT_add.remove(hpl_object.add_shape_buttons)
+    #bpy.types.VIEW3D_MT_add.remove(hpl_object.OBJECT_OT_add_box_shape.draw_item)
+    bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_shape)
+    bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_joint)
+    #bpy.types.VIEW3D_MT_add.remove(hpl_object.OBJECT_PT_CREATE_ADD_PANEL.draw_item)
     bpy.utils.unregister_class(HPLSettingsPropertyGroup)
     del bpy.types.Scene.hpl_parser
     bpy.app.handlers.depsgraph_update_post.clear()

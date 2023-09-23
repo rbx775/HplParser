@@ -107,7 +107,7 @@ def get_object_path(obj):
     </Section>
 </HPLMapTrack_StaticObject>
 '''
-def write_static_objects(map_col, _map_path, _id):
+def write_hpm_static_objects(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
     
@@ -121,20 +121,31 @@ def write_static_objects(map_col, _map_path, _id):
     for obj in map_col.objects:
         if obj.is_instancer:
             
-            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
-            user_variables = xtree.SubElement(entity, 'UserVariables')
+            static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
+            #user_variables = xtree.SubElement(entity, 'UserVariables')
             xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj))
 
-            entity.set('ID', str(root_id+_index))
-            entity.set('Name', str(obj.name))
-            entity.set('CreStamp', str(0))
-            entity.set('ModStamp', str(0))
-            entity.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
-            entity.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
-            entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
-            entity.set('FileIndex', str(_index))
-            
+            static_object.set('ID', str(root_id+_index))
+            static_object.set('Name', str(obj.name))
+            static_object.set('CreStamp', str(0))
+            static_object.set('ModStamp', str(0))
+            static_object.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
+            static_object.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
+            static_object.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+            static_object.set('FileIndex', str(_index))
+            static_object.set('Collides', )
+            static_object.set('CastShadows', )
+            static_object.set('IsOccluder', )
+            static_object.set('ColorMul', )
+            static_object.set('CulledByDistance', )
+            static_object.set('CulledByFog', )
+            static_object.set('IllumColor', )
+            static_object.set('IllumBrightness', )
+            static_object.set('UID', )
+            #Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172"
+            '''
             vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+
             for var in vars:
                 var_name = var[0].split('hpl_parser_var_')[-1]
                 if var_name in hpm_config.hpm_entities_properties['Entity']:
@@ -144,6 +155,7 @@ def write_static_objects(map_col, _map_path, _id):
                     xml_var.set('ObjectId', str(root_id+_index))
                     xml_var.set('Name', var_name)
                     xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+            '''
             _index = _index + 1
                         
     xtree.indent(root, space="    ", level=0)
@@ -311,7 +323,6 @@ def write_entity_files(obj_col, _ent_path):
     for var in vars:
         var_name = var[0].split('hpl_parser_var_')[-1]
         xml_var = xtree.SubElement(user_defined_variables,'Var')
-        #xml_var.set('ObjectId', str(root_id+_Id))
         xml_var.set('Name', var_name)
         xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
     _Id = _Id + 1
@@ -320,7 +331,7 @@ def write_entity_files(obj_col, _ent_path):
     xtree.ElementTree(entity).write(_ent_path+obj_col.name+'.ent')
 
 def write_hpm():
-    #Eventhough we are working with context overrides \
+    # Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
     mod = bpy.context.scene.hpl_parser.hpl_project_root_col
@@ -339,8 +350,8 @@ def write_hpm():
             _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
             if container == '':
                 write_hpm_main(map_col, _map_path, id)
-            #if container == '_StaticObject':
-            #    write_hpm_static_objects(map_col, _map_path)
+            if container == '_StaticObject':
+                write_hpm_static_objects(map_col, _map_path, id)
             if container == '_Entity':
                 write_hpm_entity(map_col, _map_path, id)
             if container == '_DetailMeshes':
@@ -356,7 +367,7 @@ def hpl_export_objects():
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
  
-    #Using context to loop through collections to get their state. (enabled/ disabled)
+    # Using context to loop through collections to get their state. (enabled/ disabled)
     viewlayer_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children
     viewlayer_collections_list = [col.name for col in viewlayer_collections_list if not col.exclude and hpl_config.hpl_map_collection_identifier != col.name]
 
@@ -366,7 +377,7 @@ def hpl_export_objects():
         export_objects = export_collection.objects
 
         for obj in export_objects:
-            #Dae exporters triangulate doesnt account for custom normals.
+            # Dae exporters triangulate doesnt account for custom normals.
             tri_mod = obj.modifiers.new("_Triangulate", 'TRIANGULATE')
             tri_mod.keep_custom_normals = True
 
@@ -382,7 +393,7 @@ def hpl_export_objects():
         if not os.path.exists(path):
             os.mkdir(path)
 
-        #Delete HPL *.msh file. This will be recreated when Level Editor or game is launched.
+        # Delete HPL *.msh file. This will be recreated when Level Editor or game is launched.
         if os.path.isfile(path+col_name[:3]+'msh'):
             os.remove(path+col_name[:3]+'msh')
         
@@ -400,7 +411,7 @@ def hpl_export_objects():
             obj.location[0] = -obj.location[0]
 
         bpy.ops.object.select_all(action='DESELECT')
-        #Eventhough we are working with context overrides \
+        # Eventhough we are working with context overrides
         # we need to select our objects for the DAE Exporter at the end.
         for obj in sel_objs:
             obj.select_set(True)
