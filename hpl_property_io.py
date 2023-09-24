@@ -64,8 +64,8 @@ class hpl_properties():
         def check_for_mat_tags(dae_file):    
             with open(dae_file, 'r', encoding='ascii') as fobj:
                 fl = False
-                #TODO: proper xml parser ?
-                #io reading the file for a few lines is somehow more reliable than ElementTree. Or I suck at ElementTree
+                #TODO: proper xml
+                
                 for i in range(0,49):
                     xml_line = fobj.readline()
                     if '<image id=' in xml_line:
@@ -283,6 +283,7 @@ class hpl_properties():
         return outliner_ent, viewport_ent
 
     def get_valid_selection():
+        #separate for area.type ?
         outliner_ent, viewport_ent = hpl_properties.get_outliner_selection()
         if outliner_ent:
             if outliner_ent.bl_rna.identifier == 'Collection':
@@ -304,16 +305,16 @@ class hpl_properties():
                     return hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
                 else:
                     if outliner_ent.type == 'EMPTY':
-                        if outliner_ent.name.startswith(hpl_config.hpl_body_identifier):
-                            return hpl_config.hpl_selection.ACTIVE_BODY, outliner_ent, viewport_ent
                         if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
-                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Ball'):            
+                            if outliner_ent[hpl_config.hpl_internal_type_identifier].startswith(hpl_config.hpl_body_identifier):
+                                return hpl_config.hpl_selection.ACTIVE_BODY, outliner_ent, viewport_ent
+                            elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Ball'):            
                                 return hpl_config.hpl_selection.ACTIVE_BALL_JOINT, outliner_ent, viewport_ent
-                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Hinge'):
+                            elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Hinge'):
                                 return hpl_config.hpl_selection.ACTIVE_HINGE_JOINT, outliner_ent, viewport_ent
-                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Slider'):
+                            elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Slider'):
                                 return hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT, outliner_ent, viewport_ent
-                            if outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Screw'):
+                            elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Screw'):
                                 return hpl_config.hpl_selection.ACTIVE_SCREW_JOINT, outliner_ent, viewport_ent
                     else:
                         if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):

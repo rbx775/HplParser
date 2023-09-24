@@ -98,35 +98,35 @@ hpl_joint_base_properties_vars_list = [
     {'Name':'Breakable',                    'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
     {'Name':'BreakForce',                   'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
     ]
-hpl_joint_base_properties_vars_dict = {'Joint - Base' : hpl_joint_base_properties_vars_list}
+hpl_joint_base_properties_vars_dict = {'JointBase' : hpl_joint_base_properties_vars_list}
 
 ###BALL
 hpl_joint_ball_properties_vars_list = [
     {'Name':'MaxConeAngle',                 'Type':"Int",       'DefaultValue':"0",             'Description':""},
     {'Name':'MaxTwistAngle',                'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
     ]
-hpl_joint_ball_properties_vars_dict = {'Ball Params' : hpl_joint_ball_properties_vars_list}
+hpl_joint_ball_properties_vars_dict = {'BallParams' : hpl_joint_ball_properties_vars_list}
 
 ###HINGE
 hpl_joint_hinge_properties_vars_list = [
     {'Name':'MinAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""},
     {'Name':'MaxAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
     ]
-hpl_joint_hinge_properties_vars_dict = {'Hinge Params' : hpl_joint_hinge_properties_vars_list}
+hpl_joint_hinge_properties_vars_dict = {'HingeParams' : hpl_joint_hinge_properties_vars_list}
 
 ###SLIDE
 hpl_joint_slider_properties_vars_list = [
     {'Name':'MinDistance',                  'Type':"Int",       'DefaultValue':"0",             'Description':""},
     {'Name':'MaxDistance',                  'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
     ]
-hpl_joint_slider_properties_vars_dict = {'Slide Params' : hpl_joint_slider_properties_vars_list}
+hpl_joint_slider_properties_vars_dict = {'SlideParams' : hpl_joint_slider_properties_vars_list}
 
 ###SCREW
 hpl_joint_screw_properties_vars_list = [
     {'Name':'MinAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""},
     {'Name':'MaxAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
     ]
-hpl_joint_screw_properties_vars_dict = {'Screw Params' : hpl_joint_screw_properties_vars_list}
+hpl_joint_screw_properties_vars_dict = {'ScrewParams' : hpl_joint_screw_properties_vars_list}
 
 ###SOUND
 hpl_joint_sound_properties_vars_list = [
@@ -150,7 +150,7 @@ hpl_joint_sound_properties_vars_list = [
     {'Name':'MaxLimitMinSpeed',         'Type':"Float",     'DefaultValue':"0",         'Description':""}, 
     {'Name':'MaxLimitMaxSpeed',         'Type':"Float",     'DefaultValue':"0",         'Description':""}, 
     ]
-hpl_joint_sound_properties_vars_dict = {'Joint Sounds' : hpl_joint_sound_properties_vars_list}
+hpl_joint_sound_properties_vars_dict = {'JointSounds' : hpl_joint_sound_properties_vars_list}
 
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
@@ -171,4 +171,4 @@ hpl_internal_type_identifier = 'hpl_internal_type'
 
 hpl_shape_identifier = 'Shape_'
 hpl_joint_identifier = 'Joint_'
-hpl_body_identifier = 'Body_'
+hpl_body_identifier = 'Body'
