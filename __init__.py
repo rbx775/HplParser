@@ -33,8 +33,8 @@ from . import hpl_config
 from . import hpl_property_io
 from . import hpl_importer
 from . import hpl_object
-from .hpm_exporter import (HPM_OT_EXPORTER)
-from .hpl_exporter import (HPL_OT_DAEEXPORTER)
+from .hpl_entity_exporter import (HPL_OT_ENTITYEXPORTER)
+from .hpm_exporter import (HPM_OT_HPMEXPORTER)
 from .hpl_importer import (HPL_OT_ASSETIMPORTER) 
 from .hpl_object import (OBJECT_OT_add_box_shape, 
                         OBJECT_OT_add_sphere_shape, 
@@ -142,14 +142,18 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
                                         set=set_hpl_game_root_path,
                                         update=update_hpl_game_root_path)
     
+    hpl_external_script_hook: bpy.props.StringProperty(name="Python Hook",
+                                        description='Python command to run before exporting.\ni.e.: \'bpy.ops.text.run_script()\'',
+                                        )
+    
     hpl_create_preview: bpy.props.BoolProperty(name="Create Asset Thumbnails",
                                         description="Renders preview Images for every asset, very slow. Can take up to two hours",
                                         default=False)
     
     hpl_export_textures : bpy.props.BoolProperty(default=True, name="Textures",
                                         description="Convert and export all referenced textures to HPL")
-    hpl_export_meshes : bpy.props.BoolProperty(default=True, name="Meshes",
-                                        description="Export all meshes")
+    hpl_export_entities : bpy.props.BoolProperty(default=True, name="Entities",
+                                        description="Export all entities")
     hpl_export_maps : bpy.props.BoolProperty(default=True, name="Maps",
                                         description="write out *.hpm files")
     
@@ -251,7 +255,7 @@ def check_for_game_exe(root):
     return False
 
 def draw_custom_property_ui(props, layout, ent, is_level=False):
-    print(hpl_config.hpl_ui_var_dict)
+
     for group in hpl_config.hpl_ui_var_dict:
         active = [var for var in hpl_config.hpl_ui_var_dict[group] if 'Active' in var]
 
@@ -270,12 +274,10 @@ def draw_custom_property_ui(props, layout, ent, is_level=False):
         else:
             row.label(text=group.rsplit('_')[-1])
 
-        layout.use_property_split = True
-        layout.use_property_decorate = False
+        box.use_property_split = True
+        box.use_property_decorate = False
         
         if ent[group]:
-            box = layout.box()
-            row = box.row(align=False)
             for var in hpl_config.hpl_ui_var_dict[group]:
                 if 'Active' in var and is_level:
                     continue
@@ -311,25 +313,19 @@ def draw_panel_content(context, layout):
     layout.use_property_split = True
     layout.use_property_decorate = False
     
-    row = layout.row()
     col = layout.column(align=True)
     box = col.box()
     box.label(text='Game Settings')
     box.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
 
     if bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
-        row = layout.row()
-        #row.scale_y = 2
         col = layout.column(align=True)
         box = col.box()
-        #box.enabled = is_valid_game_root
         box.label(text='Project Resources')
-        op = box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
-        #op.dae_file_counter = bpy.context.scene.hpl_parser.dae_file_count
+        box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
         box.prop(props, 'hpl_create_preview')
         col = layout.column(align=True)
         box = col.box()
-        #pbox.enabled = is_valid_game_root
         box.label(text='Project Settings')
 
         singleRow = box.row(align=True)
@@ -344,19 +340,26 @@ def draw_panel_content(context, layout):
             else:
                 box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
         
+        box.prop(props, 'hpl_external_script_hook', icon = "WORDWRAP_OFF") #'CONSOLE'
         singleRow = box.row(align=True)
-
-        singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col
+        singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
         singleRow.scale_y = 2
-        singleRow.operator(HPL_OT_DAEEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
+        singleRow.operator(HPL_OT_ENTITYEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
+        singleRow.operator(HPM_OT_HPMEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
 
         layout.use_property_split = False
         col = layout.column(align=False)
         singleRow = box.row(align=True)
         singleRow.use_property_split = False
+        singleRow.prop(props, 'hpl_export_entities', expand=False)
         singleRow.prop(props, 'hpl_export_textures', expand=False)
-        singleRow.prop(props, 'hpl_export_meshes', expand=False)
         singleRow.prop(props, 'hpl_export_maps', expand=False)
+
+        box = col.box()
+        box.use_property_split = True
+        box.use_property_decorate = False
+        box.label(text='Tool Settings') #icon='MODIFIER'
+        box.prop(bpy.context.scene.tool_settings, "use_transform_skip_children", text="Dont transform children")
         
         code, outliner_ent, viewport_ent = hpl_property_io.hpl_properties.get_valid_selection()
 
@@ -368,7 +371,7 @@ def draw_panel_content(context, layout):
             box.label(text=f'\"{outliner_ent.name}\" is a map.', icon='HOME')
             draw_custom_property_ui(props, layout, outliner_ent, True)
 
-        elif code == hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE:
+        elif code == hpl_config.hpl_selection.INACTIVE_ENTITY_INSTANCE:
             box = col.box()
             box.label(text=f'\"{outliner_ent.name}\" is not stored in a level collection, ignored for export.', icon='INFO')
 
@@ -379,8 +382,11 @@ def draw_panel_content(context, layout):
         elif code == hpl_config.hpl_selection.MOD:
             box = col.box()
             box.label(text=f'\"{outliner_ent.name}\" is the root collection.', icon='WORLD')
+            #box.separator()
+            #box.label(text=f'Mod Folder:')
+            box.label(text=f'{bpy.context.scene.hpl_parser.hpl_game_root_path+bpy.context.scene.hpl_parser.hpl_project_root_col}')
 
-        elif code == hpl_config.hpl_selection.UNACTIVE_ENTITY:
+        elif code == hpl_config.hpl_selection.INACTIVE_ENTITY:
             box = col.box()
             box.label(text=f'\"{outliner_ent.name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
 
@@ -402,16 +408,18 @@ def draw_panel_content(context, layout):
         elif code == hpl_config.hpl_selection.ACTIVE_BODY:
             box = col.box()
             box.label(text=f'\"{viewport_ent.name}\" is a physical body.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            box.prop(viewport_ent, "show_name", text="Show Name")
             draw_custom_property_ui(props, layout, viewport_ent)
         elif code == hpl_config.hpl_selection.ACTIVE_HINGE_JOINT or code == hpl_config.hpl_selection.ACTIVE_BALL_JOINT or code == hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT or code == hpl_config.hpl_selection.ACTIVE_SCREW_JOINT:
             box = col.box()
             box.label(text=f'\"{viewport_ent.name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            box.prop(viewport_ent, "show_name", text="Show Name")
             draw_custom_property_ui(props, layout, viewport_ent)
         elif code == hpl_config.hpl_selection.ACTIVE_SHAPE:
             box = col.box()
             box.label(text=f'\"{viewport_ent.name}\" is a collision entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            draw_custom_property_ui(props, layout, viewport_ent)
-
+            box.prop(viewport_ent, "display_type", text="Display As")
+            box.prop(viewport_ent, "show_name", text="Show Name")
 
 class HPL_PT_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
@@ -495,8 +503,8 @@ def scene_selection_listener(self, context):
 
 def register():
     bpy.utils.register_class(HPL_PT_CREATE)
-    bpy.utils.register_class(HPM_OT_EXPORTER)
-    bpy.utils.register_class(HPL_OT_DAEEXPORTER)
+    bpy.utils.register_class(HPL_OT_ENTITYEXPORTER)
+    bpy.utils.register_class(HPM_OT_HPMEXPORTER)
     bpy.utils.register_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.register_class(HPL_OT_RESETPROPERTIES)
     bpy.utils.register_class(OBJECT_OT_add_box_shape)
@@ -524,8 +532,8 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(HPL_PT_CREATE)
-    bpy.utils.unregister_class(HPM_OT_EXPORTER)
-    bpy.utils.unregister_class(HPL_OT_DAEEXPORTER)
+    bpy.utils.unregister_class(HPL_OT_ENTITYEXPORTER)
+    bpy.utils.unregister_class(HPM_OT_HPMEXPORTER)
     bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.unregister_class(HPL_OT_RESETPROPERTIES)
     bpy.utils.unregister_class(OBJECT_OT_add_box_shape)

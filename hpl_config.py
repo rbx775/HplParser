@@ -21,17 +21,17 @@ hpl_shape_types = ['box','cylinder','capsule','sphere']
 
 class hpl_selection(Enum):
     ACTIVE_ENTITY_INSTANCE = 1
-    UNACTIVE_ENTITY_INSTANCE = 2
+    INACTIVE_ENTITY_INSTANCE = 2
     MOD = 3
     MAPROOT = 4
     MAP = 5
-    UNACTIVE_ENTITY = 6
+    INACTIVE_ENTITY = 6
     ACTIVE_ENTITY = 7
     ACTIVE_BODY = 8
-    UNACTIVE_BODY = 9
-    UNACTIVE_JOINT = 10
+    INACTIVE_BODY = 9
+    INACTIVE_JOINT = 10
     ACTIVE_SHAPE = 11
-    UNACTIVE_SHAPE = 12
+    INACTIVE_SHAPE = 12
     ACTIVE_HINGE_JOINT = 13
     ACTIVE_BALL_JOINT = 14
     ACTIVE_SLIDER_JOINT = 15
@@ -169,6 +169,7 @@ hpl_entity_type_identifier = 'hpl_enum_entity_type'
 hpl_entity_type_value = 'hpl_enum_entity_type_value'
 hpl_internal_type_identifier = 'hpl_internal_type'
 
-hpl_shape_identifier = 'Shape_'
-hpl_joint_identifier = 'Joint_'
+hpl_shape_identifier = 'Shape'
+hpl_joint_identifier = 'Joint'
 hpl_body_identifier = 'Body'
+

@@ -26,7 +26,7 @@ def add_body(self, context):
 
     body_empty = bpy.data.objects.new( "empty", None )
     body_empty.empty_display_size = 1
-    body_empty.empty_display_type = 'CUBE'
+    body_empty.empty_display_type = 'PLAIN_AXES'
     body_empty.name = 'Body'
 
     body_empty.location = bpy.context.scene.cursor.location
@@ -46,7 +46,7 @@ def add_joint_screw(self, context):
     screw_empty = bpy.data.objects.new( "empty", None )
     screw_empty.empty_display_size = 1
     screw_empty.empty_display_type = 'SINGLE_ARROW'
-    screw_empty.name = 'Screw_Joint'
+    screw_empty.name = 'JointScrew'
 
     screw_empty.location = bpy.context.scene.cursor.location
 
@@ -66,7 +66,7 @@ def add_joint_slider(self, context):
     arrow_empty = bpy.data.objects.new( "empty", None )
     arrow_empty.empty_display_size = 1
     arrow_empty.empty_display_type = 'SINGLE_ARROW'
-    arrow_empty.name = 'Slider_Joint'
+    arrow_empty.name = 'JointSlider'
 
     arrow_empty.location = bpy.context.scene.cursor.location
 
@@ -87,7 +87,7 @@ def add_joint_ball(self, context):
     sphere_empty = bpy.data.objects.new( "empty", None )
     sphere_empty.empty_display_size = 1
     sphere_empty.empty_display_type = 'SPHERE'
-    sphere_empty.name = 'Ball_Joint'
+    sphere_empty.name = 'JointBall'
 
     sphere_empty.location = bpy.context.scene.cursor.location
 
@@ -108,7 +108,7 @@ def add_joint_hinge(self, context):
     circle_empty = bpy.data.objects.new( "empty", None )
     circle_empty.empty_display_size = 1
     circle_empty.empty_display_type = 'CIRCLE'
-    circle_empty.name = 'Hinge_Joint'
+    circle_empty.name = 'JointHinge'
 
     '''
     arrow_empty = bpy.data.objects.new( "empty", None )
@@ -138,9 +138,9 @@ def add_joint_hinge(self, context):
     
 def add_shape_box(self, context):
     # Create an empty mesh and the object.
-    mesh = bpy.data.meshes.new('Shape_Box')
-    box_shape = bpy.data.objects.new("Shape_Box", mesh)
-    box_shape['hpl_internal_type'] = 'Shape_Box'
+    mesh = bpy.data.meshes.new('ShapeBox')
+    box_shape = bpy.data.objects.new("ShapeBox", mesh)
+    box_shape['hpl_internal_type'] = 'ShapeBox'
 
     # Link the object into the scene.
     bpy.context.collection.objects.link(box_shape)
@@ -158,9 +158,9 @@ def add_shape_box(self, context):
 
 def add_shape_sphere(self, context):
     # Create an empty mesh and the object.
-    mesh = bpy.data.meshes.new('Shape_Sphere')
-    sphere_shape = bpy.data.objects.new("Shape_Sphere", mesh)
-    sphere_shape['hpl_internal_type'] = 'Shape_Sphere'
+    mesh = bpy.data.meshes.new('ShapeSphere')
+    sphere_shape = bpy.data.objects.new("ShapeSphere", mesh)
+    sphere_shape['hpl_internal_type'] = 'ShapeSphere'
 
     # Add the object into the scene.
     bpy.context.collection.objects.link(sphere_shape)
@@ -178,9 +178,9 @@ def add_shape_sphere(self, context):
 
 def add_shape_cylinder(self, context):
     # Create an empty mesh and the object.
-    mesh = bpy.data.meshes.new('Shape_Cylinder')
-    cylinder_shape = bpy.data.objects.new("Shape_Cylinder", mesh)
-    cylinder_shape['hpl_internal_type'] = 'Shape_Cylinder'
+    mesh = bpy.data.meshes.new('ShapeCylinder')
+    cylinder_shape = bpy.data.objects.new("ShapeCylinder", mesh)
+    cylinder_shape['hpl_internal_type'] = 'ShapeCylinder'
 
     # Link the object into the scene.
     bpy.context.collection.objects.link(cylinder_shape)
@@ -209,13 +209,13 @@ def add_shape_capsule(self, context):
     faces = []
 
     # Create an empty mesh and the object.
-    mesh = bpy.data.meshes.new(name="Shape_Capsule")
+    mesh = bpy.data.meshes.new(name="ShapeCapsule")
 
     # Apply custom mesh data to the mesh container.
     mesh.from_pydata(verts, edges, faces)
 
-    capsule_shape = bpy.data.objects.new("Shape_Capsule", mesh)
-    capsule_shape['hpl_internal_type'] = 'Shape_Capsule'
+    capsule_shape = bpy.data.objects.new("ShapeCapsule", mesh)
+    capsule_shape['hpl_internal_type'] = 'ShapeCapsule'
 
     # Link the object into the scene.
     bpy.context.collection.objects.link(capsule_shape)

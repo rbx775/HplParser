@@ -21,7 +21,7 @@ class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        hpl_properties.set_entity_type()
+        #hpl_properties.set_entity_type() #TODO: Rewrite Reset
         return {'FINISHED'}
 
     def register():
@@ -283,7 +283,7 @@ class hpl_properties():
         return outliner_ent, viewport_ent
 
     def get_valid_selection():
-        #separate for area.type ?
+        #TODO: separate for area.type
         outliner_ent, viewport_ent = hpl_properties.get_outliner_selection()
         if outliner_ent:
             if outliner_ent.bl_rna.identifier == 'Collection':
@@ -297,12 +297,12 @@ class hpl_properties():
                 if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == outliner_ent]):
                     return hpl_config.hpl_selection.ACTIVE_ENTITY, outliner_ent, viewport_ent
                 else:
-                    return hpl_config.hpl_selection.UNACTIVE_ENTITY, outliner_ent, viewport_ent
+                    return hpl_config.hpl_selection.INACTIVE_ENTITY, outliner_ent, viewport_ent
             if outliner_ent.bl_rna.identifier == 'Object':
                 if outliner_ent.is_instancer:
                     if outliner_ent.users_collection[0] in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children_recursive:
                         return hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
-                    return hpl_config.hpl_selection.UNACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
+                    return hpl_config.hpl_selection.INACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
                 else:
                     if outliner_ent.type == 'EMPTY':
                         if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
