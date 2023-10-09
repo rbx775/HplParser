@@ -31,17 +31,23 @@ class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
         return
 
 class hpl_properties():
-
+    '''
+    def get_var_from_object(obj, identifier, name):
+        if any([var for var in obj.items() if var[0] == identifier+name]):
+            return obj[identifier+name]
+        return None
+    '''
     def get_dict_from_entity_vars(ent):
         _temp_ui_var_dict = {}
         group = None
         for var in ent.items():
-            if hpl_config.hpl_dropdown_identifier + '_' in var[0]:
+            if hpl_config.hpl_dropdown_identifier in var[0]:
                 group = var[0]
                 _temp_ui_var_dict[group] = []
             if group:
-                if hpl_config.hpl_variable_identifier + '_' in var[0]:
+                if hpl_config.hpl_variable_identifier in var[0]:
                     _temp_ui_var_dict[group].append(var[0])
+        #print(_temp_ui_var_dict)
         return _temp_ui_var_dict
     
     def get_material_vars(mat_file):
@@ -144,7 +150,14 @@ class hpl_properties():
             for sub_classes in classes:
                 if sub_classes.tag == variable_type:
                     for groups in sub_classes:
-                        var_dict[groups.get('Name')] = list(var.attrib for var in groups.iter("Var"))
+                        var_dict[groups.get('Name')] = []
+                        for vars in groups:
+                            temp_vars_dict = vars.attrib
+                            if vars.attrib['Type'] == 'Enum':
+                                temp_vars_dict = {**temp_vars_dict, **{'EnumValue' : list(var.attrib['Name'] for var in vars.iter("EnumValue"))}}
+                                #print(temp_vars_dict)
+                            var_dict[groups.get('Name')].append(temp_vars_dict)
+                        var_dict[groups.get('Name')]
                     return var_dict
             return {}
 
@@ -171,6 +184,7 @@ class hpl_properties():
                 var_dict.update(get_vars(component_classes[0], variable_type))
         
         var_dict.update(sub_prop_dict)
+        #print(var_dict)
         return var_dict
 
     def get_base_classes_from_entity_classes():
@@ -199,71 +213,77 @@ class hpl_properties():
         for var in delete_vars:
             del ent[var]
         
-    def initialize_editor_vars(ent, var_dict):
+    def initialize_editor_vars(ent):
         hpl_properties.reset_editor_vars(ent)
         
         group_dict = {}
-        if var_dict:
-            for group in var_dict:                
-                ent[hpl_config.hpl_dropdown_identifier+'_'+group] = False
-                var_list = []
-                for var in var_dict[group]:
+        for group in hpl_config.hpl_var_dict:                
+            ent[hpl_config.hpl_dropdown_identifier+'_'+group] = False
+            var_list = []
+            for var in hpl_config.hpl_var_dict[group]:
 
-                    is_color = False
-                    var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
-                    #check for oddities in EntityClasses.def
-                    var_type = var['type'].lower() if 'type' in var else var['Type'].lower()
+                is_color = False
+                var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
+                #check for oddities in EntityClasses.def
+                var_type = var['type'].lower() if 'type' in var else var['Type'].lower()
+                variable = ''
+                if var_type == 'enum':
+                    variable = hpl_config.hpl_enum_variable_identifier+'_'+var['Name']
+                elif var_type == 'file':
+                    variable = hpl_config.hpl_file_variable_identifier+'_'+var['Name']
+                else:
                     variable = hpl_config.hpl_variable_identifier+'_'+var['Name']
+                
+                #Variable Conversion
+                if var_type == 'float':
+                    #check for oddities in EntityClasses.def
+                    if 'f' in var_value:
+                        var_value = var_value[:-1]
+
+                if var_type == 'color':
+                    is_color = True
+
+                if var_type == 'bool':
+                    if var_value == 'false':
+                        var_value = None
+                
+                # Variable Assignment, some types needs to be evaluated differently \ 
+                # since there are no direct counterparts in blender.
+                # Because variables are created at runtime - we can not use bpy.types.
+                if var_type == 'string':
+                    ent[variable] = var_value
+                elif is_color:
+                    color = (float(i) for i in var['DefaultValue'].split(' '))
+                    ent[variable] = mathutils.Vector(color)
+                elif var_type == 'function':
+                    ent[variable] = 'hpl_function'
+                elif 'vec' in var_type:
+                    vec = (float(i) for i in var['DefaultValue'].split(' '))
+                    ent[variable] = mathutils.Vector(vec)
+                elif var_type == 'file':
+                    ent[variable] = 'hpl_file'
+                elif var_type == 'enum':
+                    #print(variable)
+                    ent[variable] = var['DefaultValue']
+                else:
+                    ent[variable] = eval(var_type)(var_value)
                     
-                    #Variable Conversion
+                id_props = ent.id_properties_ui(variable)
+                
+                #Some variable properties can only be set after creation
+                if is_color:
+                    id_props.update(subtype='COLOR', min=0, max=1)
+                if 'Max' in var:
+                    if var_type == 'int':
+                        id_props.update(min=int(var['Min']),max=int(var['Max']))
                     if var_type == 'float':
-                        #check for oddities in EntityClasses.def
-                        if 'f' in var_value:
-                            var_value = var_value[:-1]
+                        id_props.update(min=float(var['Min']),max=float(var['Max']))
+                if 'Description' in var:
+                    id_props.update(description=var['Description'])
+                #ent.property_overridable_library_set(f'["{variable}"]', True)
 
-                    if var_type == 'color':
-                        is_color = True
-
-                    if var_type == 'bool':
-                        if var_value == 'false':
-                            var_value = None
-                    
-                    #Variable Assignment, some types needs to be evaluated differently \ 
-                    #since there are no direct counterparts in blender.
-                    #Because variables are created at runtime - we can not use bpy.types.
-                    if var_type == 'string':
-                        ent[variable] = var_value
-                    elif is_color:
-                        color = (float(i) for i in var['DefaultValue'].split(' '))
-                        ent[variable] = mathutils.Vector(color)
-                    elif var_type == 'function':
-                        ent[variable] = 'hpl_function'
-                    elif 'vec' in var_type:
-                        vec = (float(i) for i in var['DefaultValue'].split(' '))
-                        ent[variable] = mathutils.Vector(vec)
-                    elif var_type == 'enum':
-                        ent[variable] = 'hpl_enum'
-                    elif var_type == 'file':
-                        ent[variable] = 'hpl_file'
-                    else:
-                        ent[variable] = eval(var_type)(var_value)
-                        
-                    id_props = ent.id_properties_ui(variable)
-                    
-                    #Some variable properties can only be set after creation
-                    if is_color:
-                        id_props.update(subtype='COLOR', min=0, max=1)
-                    if 'Max' in var:
-                        if var_type == 'int':
-                            id_props.update(min=int(var['Min']),max=int(var['Max']))
-                        if var_type == 'float':
-                            id_props.update(min=float(var['Min']),max=float(var['Max']))
-                    if 'Description' in var:
-                        id_props.update(description=var['Description'])
-                    ent.property_overridable_library_set(f'["{variable}"]', True)
-
-                    var_list.append(variable)
-                group_dict[group] = var_list
+                var_list.append(variable)
+            group_dict[group] = var_list
             
     def get_outliner_selection():
         outliner_ent = None
@@ -281,6 +301,30 @@ class hpl_properties():
                             if bpy.context.selected_ids:
                                 viewport_ent = bpy.context.selected_ids[0]
         return outliner_ent, viewport_ent
+    
+    def get_relative_body_hierarchy(joint):
+        parent = None
+        child = None
+
+        def search_for_parents(j):
+            if j.parent:
+                print([var for var in j.parent.items() if var[0] == hpl_config.hpl_internal_type_identifier])
+                if any([var for var in j.parent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
+                    if j.parent[hpl_config.hpl_internal_type_identifier] == 'Body':
+                        return j.parent
+                search_for_parents(j.parent)
+
+        def search_for_children(j):
+            for c in j.children_recursive: 
+                if any([var for var in c.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
+                    if  c[hpl_config.hpl_internal_type_identifier] == 'Body':
+                        return c
+                            
+        parent = search_for_parents(joint)
+        if parent:
+            child = search_for_children(parent)
+
+        return parent, child
 
     def get_valid_selection():
         #TODO: separate for area.type
@@ -304,11 +348,25 @@ class hpl_properties():
                         return hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
                     return hpl_config.hpl_selection.INACTIVE_ENTITY_INSTANCE, outliner_ent, viewport_ent
                 else:
-                    if outliner_ent.type == 'EMPTY':
+                    if outliner_ent.type == 'MESH':
+
+                        #return hpl_config.hpl_selection.ACTIVE_SUBMESH, outliner_ent, viewport_ent
+                        if not outliner_ent.hide_render:
+                            if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
+                                if outliner_ent[hpl_config.hpl_internal_type_identifier].startswith(hpl_config.hpl_submesh_identifier):
+                                    return hpl_config.hpl_selection.ACTIVE_SUBMESH, outliner_ent, viewport_ent
+                            else:
+                                return hpl_config.hpl_selection.BLANK_SUBMESH, outliner_ent, viewport_ent
+                        else:
+                            return hpl_config.hpl_selection.INACTIVE_SUBMESH, outliner_ent, viewport_ent
+                            
+                    elif outliner_ent.type == 'EMPTY':
                         if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
                             if outliner_ent[hpl_config.hpl_internal_type_identifier].startswith(hpl_config.hpl_body_identifier):
                                 return hpl_config.hpl_selection.ACTIVE_BODY, outliner_ent, viewport_ent
-                            elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Ball'):            
+                            elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Ball'):
+                                #bpy.context.scene.hpl_parser.hpl_joint_set_child, bpy.context.scene.hpl_parser.hpl_joint_set_parent = 
+                                print(hpl_properties.get_relative_body_hierarchy(outliner_ent))
                                 return hpl_config.hpl_selection.ACTIVE_BALL_JOINT, outliner_ent, viewport_ent
                             elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Hinge'):
                                 return hpl_config.hpl_selection.ACTIVE_HINGE_JOINT, outliner_ent, viewport_ent
@@ -327,8 +385,8 @@ class hpl_properties():
         for var in collection_ent.items():
             if var[0] == hpl_config.hpl_entity_type_identifier:
                 ent_type = collection_ent[hpl_config.hpl_entity_type_identifier]
-                var_dict = {**hpl_config.hpl_level_editor_general_vars_dict, **hpl_properties.get_properties(ent_type, 'InstanceVars')}
-                hpl_properties.initialize_editor_vars(instance_ent, var_dict)
+                hpl_config.hpl_var_dict = {**hpl_config.hpl_level_editor_general_vars_dict, **hpl_properties.get_properties(ent_type, 'InstanceVars')}
+                hpl_properties.initialize_editor_vars(instance_ent)
                 instance_ent['hpl_parser_instance_of'] = collection_ent.name
     
     
@@ -336,15 +394,15 @@ class hpl_properties():
         for instance_ent in bpy.data.objects:
             if instance_ent.is_instancer: #TODO: is this check needed ?
                 if instance_ent.instance_collection == ent:
-                    var_dict = {**hpl_config.hpl_level_editor_general_vars_dict, **hpl_properties.get_properties(ent_type, 'InstanceVars')}
-                    hpl_properties.initialize_editor_vars(instance_ent, var_dict)
+                    hpl_config.hpl_var_dict = {**hpl_config.hpl_level_editor_general_vars_dict, **hpl_properties.get_properties(ent_type, 'InstanceVars')}
+                    hpl_properties.initialize_editor_vars(instance_ent)
                     instance_ent['hpl_parser_instance_of'] = hpl_properties.get_collection_instance_is_of(instance_ent).name
 
     def set_level_settings_on_map_collection(ent):
         if ent:
             if ent.bl_rna.identifier == 'Collection':
-                var_dict = hpl_properties.get_properties('LevelSettings', 'TypeVars')
-                hpl_properties.initialize_editor_vars(ent, var_dict)
+                hpl_config.hpl_var_dict = hpl_properties.get_properties('LevelSettings', 'TypeVars')
+                hpl_properties.initialize_editor_vars(ent)
     
     def set_entity_type_on_collection():
         code, outliner_ent, viewport_ent = hpl_properties.get_valid_selection()
@@ -353,6 +411,11 @@ class hpl_properties():
                 ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
                 outliner_ent[hpl_config.hpl_entity_type_identifier] = ent_type
                 outliner_ent[hpl_config.hpl_entity_type_value] = bpy.context.scene.hpl_parser['hpl_base_classes_enum']
-                var_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
-                hpl_properties.initialize_editor_vars(outliner_ent, var_dict)
+                hpl_config.hpl_var_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
+                hpl_properties.initialize_editor_vars(outliner_ent)
                 hpl_properties.set_collection_properties_on_instances(outliner_ent, ent_type)
+
+    def set_entity_type_on_mesh(submesh):
+        submesh[hpl_config.hpl_internal_type_identifier] = 'SubMesh'
+        hpl_config.hpl_var_dict = {**hpl_config.hpl_submesh_properties_vars_dict}
+        hpl_properties.initialize_editor_vars(submesh)

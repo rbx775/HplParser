@@ -15,6 +15,7 @@ from . import hpl_config
 from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
+from . import hpl_entity_exporter
 
 class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     
@@ -23,7 +24,7 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     bl_description = "This will write all assets to disk, to be read by the HPL3 engine"
     bl_options = {'REGISTER', 'UNDO'}
 
-    root : bpy.props.StringProperty()
+    #root : bpy.props.StringProperty()
 
     @classmethod
     def poll(self, context):
@@ -32,6 +33,7 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     def execute(self, context):
         run_python_hook()
         write_hpm()
+        hpl_entity_exporter.hpl_export_objects()
         return {'FINISHED'}
 
     def register():

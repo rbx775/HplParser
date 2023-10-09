@@ -15,9 +15,15 @@ hpl_asset_material_files = {}
 hpl_asset_entity_files = {}
 hpl_asset_categories_dict = {}
 hpl_ui_var_dict = {}
+hpl_var_dict = {}
+hpl_enum_iterator = 0
+hpl_ui_enum_dict = {}
 
 hpl_current_scene_collection = []
 hpl_shape_types = ['box','cylinder','capsule','sphere']
+
+hpl_outliner_selection = None
+hpl_viewport_selection = None
 
 class hpl_selection(Enum):
     ACTIVE_ENTITY_INSTANCE = 1
@@ -36,6 +42,11 @@ class hpl_selection(Enum):
     ACTIVE_BALL_JOINT = 14
     ACTIVE_SLIDER_JOINT = 15
     ACTIVE_SCREW_JOINT = 16
+    BLANK_SUBMESH = 17
+    ACTIVE_SUBMESH = 18
+    INACTIVE_SUBMESH = 19
+
+hpl_selection_type = None
 
 hpl_custom_properties_prefixes_dict = {'Var' : 'hpl_parser_var_'}
 
@@ -130,7 +141,7 @@ hpl_joint_screw_properties_vars_dict = {'ScrewParams' : hpl_joint_screw_properti
 
 ###SOUND
 hpl_joint_sound_properties_vars_list = [
-    {'Name':'MoveType',                 'Type':"Enum",      'DefaultValue':"Linear",    'Description':""},
+    {'Name':'MoveType',                 'Type':"bb",      'DefaultValue':"Linear",    'Description':""},
     {'Name':'MoveSound',                'Type':"File",      'DefaultValue':"",          'Description':""}, 
     {'Name':'MinMoveSpeed',             'Type':"Float",     'DefaultValue':"0.1",       'Description':""}, 
     {'Name':'MinMoveFreq',              'Type':"Float",     'DefaultValue':"0.95",      'Description':""}, 
@@ -152,6 +163,28 @@ hpl_joint_sound_properties_vars_list = [
     ]
 hpl_joint_sound_properties_vars_dict = {'JointSounds' : hpl_joint_sound_properties_vars_list}
 
+###SUBMESH
+hpl_submesh_properties_vars_list = [
+    {'Name':'Static',                   'Type':"Bool",      'DefaultValue':"True",      'Description':""},
+    ]
+hpl_submesh_properties_vars_dict = {'General' : hpl_submesh_properties_vars_list}
+
+###COLLIDER
+hpl_collider_properties_vars_list = [
+    {'Name':'ConnectedParentBodyID',    'Type':"String",      'DefaultValue':"",      'Description':""},
+    {'Name':'ConnectedChildBodyID',     'Type':"String",      'DefaultValue':"",      'Description':""},
+    ]
+hpl_collider_properties_vars_dict = {'General' : hpl_collider_properties_vars_list}
+
+'''
+###COLLIDER
+hpl_collider_properties_vars_list = [
+    {'Name':'ConnectedParentBodyID',    'Type':"String",      'DefaultValue':"",      'Description':""},
+    {'Name':'ConnectedChildBodyID',     'Type':"String",      'DefaultValue':"",      'Description':""},
+    ]
+hpl_collider_properties_vars_dict = {'General' : hpl_collider_properties_vars_list}
+'''
+
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
                                         #first stop                                                    #search inside container
@@ -164,11 +197,14 @@ hpl_ent_containers = {'Entity_File':hpl_entity_file_identifier, 'Entity_Class_Fi
 
 hpl_detail_mesh_identifier = '_detailmesh'
 hpl_variable_identifier = 'hpl_parser_var'
+hpl_enum_variable_identifier = 'hpl_parser_var_enum'
+hpl_file_variable_identifier = 'hpl_parser_var_file'
 hpl_dropdown_identifier = 'hpl_parser_dropdown'
 hpl_entity_type_identifier = 'hpl_enum_entity_type'
 hpl_entity_type_value = 'hpl_enum_entity_type_value'
 hpl_internal_type_identifier = 'hpl_internal_type'
 
+hpl_submesh_identifier = 'SubMesh'
 hpl_shape_identifier = 'Shape'
 hpl_joint_identifier = 'Joint'
 hpl_body_identifier = 'Body'
