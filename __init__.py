@@ -159,11 +159,22 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     
                 
     def get_hpl_enum_prop0(self):
-        return self.get("hpl_enum_prop0", 0)
+        var = hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[0]]
+
+        enum_index = 0
+        for i, val in enumerate(list(hpl_config.hpl_ui_enum_dict.values())[0]):
+            if val == var:
+                enum_index = i
+        #return self.get("hpl_enum_prop0", enum_index)
+        return enum_index
 
     def set_hpl_enum_prop0(self, value):
-        #self['set_hpl_enum_prop0'] = value
-        return
+        print('VALUE: ',value)
+        print('SET: ',hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[0])
+        self['hpl_enum_prop0'] = value
+
+        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[0]] = list(hpl_config.hpl_ui_enum_dict.values())[0][value]
+        #return
         
     def update_hpl_enum_prop0(self, context):
         data = []
@@ -177,15 +188,15 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         description='Should be the name of your Amnesia mod. All map collections go in here',
         items=update_hpl_enum_prop0,
-        #get=get_hpl_enum_prop0,
-        #set=set_hpl_enum_prop0,
+        get=get_hpl_enum_prop0,
+        set=set_hpl_enum_prop0,
     )
     
     def get_hpl_enum_prop1(self):
         return self.get("hpl_enum_prop1", 0)
 
     def set_hpl_enum_prop1(self, value):
-        #self['set_hpl_enum_prop1'] = value
+        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[1]] = list(hpl_config.hpl_ui_enum_dict.values())[1]
         return
         
     def update_hpl_enum_prop1(self, context):
@@ -209,7 +220,8 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return self.get("hpl_enum_prop2", 0)
 
     def set_hpl_enum_prop2(self, value):
-        #self['set_hpl_enum_prop2'] = value
+        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[2]] = list(hpl_config.hpl_ui_enum_dict.values())[2]
+        hpl_config.hpl_ui_enum_dict
         return
         
     def update_hpl_enum_prop2(self, context):
@@ -241,7 +253,6 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         data = []
 
         #ent_collection = hpl_config.hpl_outliner_selection if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Collection' else 
-        #print(hpl_config.hpl_outliner_selection.users_collection[0].all_objects)
         for obj in [obj for obj in hpl_config.hpl_outliner_selection.users_collection[0].all_objects]:
             fdata = (obj.name,obj.name,'')
             data.append(fdata)
@@ -405,19 +416,20 @@ def draw_custom_property_ui(props, layout, ent, is_level=False, is_joint=False):
         
         if ent[group]: 
             if group == hpl_config.hpl_dropdown_identifier+'_'+'JointBase':
-                    #print(group)
                     #singleRow.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
                 box.prop(props, "hpl_joint_set_parent", text='Set Joint Parent', expand=False)
                 box.prop(props, "hpl_joint_set_child", text='Set Joint Child', expand=False)
 
             for var in hpl_config.hpl_ui_var_dict[group]:
-                #print(var)
                 singleRow = box.row(align=False)
                 var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[15:].replace('_',' '))
                 if 'Active' in var:# and is_level:
                         continue
                 if hpl_config.hpl_enum_variable_identifier in var:
-                    singleRow.prop(props, 'hpl_enum_prop' + str(list(hpl_config.hpl_ui_enum_dict.keys()).index(var[20:])), text=var_ui_name[5:])
+                    try:
+                        singleRow.prop(props, 'hpl_enum_prop' + str(list(hpl_config.hpl_ui_enum_dict.keys()).index(var[20:])), text=var_ui_name[5:])
+                    except:
+
                 elif hpl_config.hpl_file_variable_identifier in var:
                     pass
                 else:
@@ -591,7 +603,7 @@ class HPL_PT_CREATE(bpy.types.Panel):
     #@persistent
 
 def scene_selection_listener(self, context):
-    hpl_config.hpl_selection_type, hpl_config.hpl_outliner_selection,  hpl_config.hpl_viewport_selection = hpl_property_io.hpl_properties.get_valid_selection()
+     hpl_config.hpl_selection_type, hpl_config.hpl_outliner_selection, hpl_config.hpl_viewport_selection = hpl_property_io.hpl_properties.get_valid_selection()
     
     if not bpy.context.view_layer.active_layer_collection.collection.children:
         bpy.context.scene.hpl_parser.hpl_has_project_col = True
@@ -645,24 +657,18 @@ def scene_selection_listener(self, context):
             if any([var for var in hpl_config.hpl_outliner_selection.items() if hpl_config.hpl_entity_type_value in var[0]]):
                 bpy.context.scene.hpl_parser['hpl_base_classes_enum'] = hpl_config.hpl_outliner_selection[hpl_config.hpl_entity_type_value]
         hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(hpl_config.hpl_outliner_selection)
+        
+
 
         def get_ui_enums():
             enums = {}
             for group in hpl_config.hpl_var_dict.values():
                 if group:
-                    #print('group: ',group)
                     for attrib in group:
-                        #print('attrib: ',attrib)
                         if attrib['Type'] == 'Enum':
                             enums[attrib['Name']] = (attrib['EnumValue'])
             return enums
-        
         hpl_config.hpl_ui_enum_dict = get_ui_enums()
-                    
-        #hpl_config.hpl_enum_iterator = hpl_config.hpl_enum_iterator + 1
-        #singleRow.prop(props, 'hpl_enum_prop1', text=var_ui_name[5:])
-    #else:
-    #    hpl_config.hpl_ui_var_dict = {}
     
     hpl_config.hpl_current_scene_collection = [obj for obj in bpy.context.scene.objects]
 

@@ -216,7 +216,6 @@ def hpl_export_objects():
         bpy.context.view_layer.objects.active = None
         export_collection = bpy.data.collections[col_name]
         export_objects = get_export_meshes(export_collection)
-        print(export_objects)
 
         for obj in export_objects:
             # Dae exporters triangulate doesnt account for custom normals.
@@ -250,7 +249,7 @@ def hpl_export_objects():
         #TODO: Better way to get xml namespace
         namespace = next(iter(dae_file)).tag.rsplit('}')[0][1:]
         vs = dae_file.find(".//{%s}visual_scene" % namespace)
-        print(vs)
+        
         vs.set('id',col_name)
         vs.set('name',col_name)
         for obj in export_objects:

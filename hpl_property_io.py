@@ -37,6 +37,7 @@ class hpl_properties():
             return obj[identifier+name]
         return None
     '''
+
     def get_dict_from_entity_vars(ent):
         _temp_ui_var_dict = {}
         group = None
@@ -47,7 +48,6 @@ class hpl_properties():
             if group:
                 if hpl_config.hpl_variable_identifier in var[0]:
                     _temp_ui_var_dict[group].append(var[0])
-        #print(_temp_ui_var_dict)
         return _temp_ui_var_dict
     
     def get_material_vars(mat_file):
@@ -155,7 +155,6 @@ class hpl_properties():
                             temp_vars_dict = vars.attrib
                             if vars.attrib['Type'] == 'Enum':
                                 temp_vars_dict = {**temp_vars_dict, **{'EnumValue' : list(var.attrib['Name'] for var in vars.iter("EnumValue"))}}
-                                #print(temp_vars_dict)
                             var_dict[groups.get('Name')].append(temp_vars_dict)
                         var_dict[groups.get('Name')]
                     return var_dict
@@ -184,7 +183,6 @@ class hpl_properties():
                 var_dict.update(get_vars(component_classes[0], variable_type))
         
         var_dict.update(sub_prop_dict)
-        #print(var_dict)
         return var_dict
 
     def get_base_classes_from_entity_classes():
@@ -263,7 +261,6 @@ class hpl_properties():
                 elif var_type == 'file':
                     ent[variable] = 'hpl_file'
                 elif var_type == 'enum':
-                    #print(variable)
                     ent[variable] = var['DefaultValue']
                 else:
                     ent[variable] = eval(var_type)(var_value)
@@ -308,7 +305,6 @@ class hpl_properties():
 
         def search_for_parents(j):
             if j.parent:
-                print([var for var in j.parent.items() if var[0] == hpl_config.hpl_internal_type_identifier])
                 if any([var for var in j.parent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
                     if j.parent[hpl_config.hpl_internal_type_identifier] == 'Body':
                         return j.parent
@@ -366,7 +362,6 @@ class hpl_properties():
                                 return hpl_config.hpl_selection.ACTIVE_BODY, outliner_ent, viewport_ent
                             elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Ball'):
                                 #bpy.context.scene.hpl_parser.hpl_joint_set_child, bpy.context.scene.hpl_parser.hpl_joint_set_parent = 
-                                print(hpl_properties.get_relative_body_hierarchy(outliner_ent))
                                 return hpl_config.hpl_selection.ACTIVE_BALL_JOINT, outliner_ent, viewport_ent
                             elif outliner_ent[hpl_config.hpl_internal_type_identifier].endswith('_Hinge'):
                                 return hpl_config.hpl_selection.ACTIVE_HINGE_JOINT, outliner_ent, viewport_ent
@@ -377,6 +372,8 @@ class hpl_properties():
                     else:
                         if any([var for var in outliner_ent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
                             return hpl_config.hpl_selection.ACTIVE_SHAPE, outliner_ent, viewport_ent
+                        
+            #hpl_config.hpl_selection_type, hpl_config.hpl_outliner_selection, hpl_config.hpl_viewport_selection
         return None, None, None
 
     def set_collection_properties_on_instance(instance_ent):
