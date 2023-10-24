@@ -53,10 +53,81 @@ def check_children(obj, shapes, bodies, joints):
         check_children(children)
 
 def get_object_path(obj):
-    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.name+'.ent'
+    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.name
+
+### Write material files ###
+'''
+<Material>
+    <Main DepthTest="True" PhysicsMaterial="Default" Type="SolidDiffuse" />
+    <TextureUnits>
+        <Diffuse AnimFrameTime="" AnimMode="" File="toy_football.dds" Mipmaps="true" Type="2D" Wrap="Repeat" />
+        <NMap AnimFrameTime="" AnimMode="" File="toy_football_nrm.dds" Mipmaps="true" Type="2D" Wrap="Repeat" />
+        <Specular AnimFrameTime="" AnimMode="" File="toy_football_spec.dds" Mipmaps="true" Type="2D" Wrap="Repeat" />
+    </TextureUnits>
+    <SpecificVariables>
+        <Var Name="HeightMapScale" Value="0.05" />
+        <Var Name="HeightMapBias" Value="0" />
+        <Var Name="IlluminationBrightness" Value="1" />
+        <Var Name="FrenselBias" Value="0.2" />
+        <Var Name="FrenselPow" Value="8" />
+        <Var Name="AlphaDissolveFilter" Value="false" />
+        <Var Name="DetailUvMul" Value="4 4" />
+        <Var Name="DetailWeight_Diffuse" Value="1" />
+        <Var Name="DetailWeight_Specular" Value="1" />
+        <Var Name="DetailWeight_Normal" Value="1" />
+        <Var Name="DetailFadeStart" Value="5" />
+        <Var Name="DetailFadeEnd" Value="10" />
+        <Var Name="SwayActive" Value="false" />
+        <Var Name="SwayForceFieldAffected" Value="true" />
+        <Var Name="SwayFreq" Value="1" />
+        <Var Name="SwayAmplitude" Value="0.1" />
+        <Var Name="SwaySpeed" Value="1" />
+        <Var Name="SwayOctaveMuls" Value="0.125 0.25 1" />
+        <Var Name="SwayForceFieldMul" Value="0.3" />
+        <Var Name="SwayForceFieldMax" Value="0.6" />
+        <Var Name="SwayYFreqMul" Value="0" />
+        <Var Name="SwaySingleDir" Value="false" />
+        <Var Name="SwaySingleDirVector" Value="0 0 1" />
+        <Var Name="SwaySingleSampleVector" Value="1 0 0" />
+        <Var Name="LiquidTrickleColor" Value="0 0 0 1" />
+        <Var Name="LiquidTrickleSpecular" Value="0 0 0 0" />
+        <Var Name="LiquidTrickleLoopFade" Value="false" />
+        <Var Name="LiquidTrickleFadeSpeed" Value="0.5 0.5" />
+        <Var Name="LiquidTrickleEdgeSize" Value="0.5" />
+        <Var Name="LiquidTrickleDryness" Value="0.5" />
+        <Var Name="LiquidTrickleBlendMode" Value="Alpha" />
+    </SpecificVariables>
+</Material>
+'''
+def write_material_file(mat, root, relative_path):
+
+    diffuse_tex = 'toy_football.dds'#hpl_material.get_texture_path_from_mat(mat, 'Diffuse')
+    normal_tex = 'toy_football_nrm.dds'#hpl_material.get_texture_path_from_mat(mat, 'NormalMap')
+    specular_tex = 'toy_football_spec.dds'#hpl_material.get_texture_path_from_mat(mat, 'Specular')
+
+    material = xtree.Element('Material')
+    main = xtree.SubElement(material, "Main", DepthTest='True', PhysicsMaterial='Default', Type='SolidDiffuse')
+    texture_untis = xtree.SubElement(material, 'TextureUnits')
+    specific_variables = xtree.SubElement(material, 'SpecificVariables')
+    diffuse = xtree.SubElement(texture_untis, 'Diffuse', AnimFrameTime='', AnimMode='', File=diffuse_tex, Mipmaps='true', Type='2D', Wrap='Repeat')
+    normalmap = xtree.SubElement(texture_untis, 'NMap', AnimFrameTime='', AnimMode='', File=normal_tex, Mipmaps='true', Type='2D', Wrap='Repeat')
+    specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=specular_tex, Mipmaps='true', Type='2D', Wrap='Repeat')
+
+    vars = [var for var in mat.items() if hpl_config.hpl_variable_identifier in var[0]]
+    for var in vars:
+        var_name = var[0].split(hpl_config.hpl_variable_identifier+'_')[-1]
+        mat_var = xtree.SubElement(specific_variables,'Var')
+        mat_var.set('Name', var_name)
+        variable = str(var[0])
+        mat_var.set('Value', str(tuple(mat[variable])).translate(str.maketrans({'(': '', ')': ''})) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else str(mat[variable]))
+        #sub_element.set(var_name, )
+
+
+    xtree.indent(material, space="    ", level=0)
+    xtree.ElementTree(material).write(root + relative_path + mat.name+'.mat')
 
 ### Write all *.ent files ###
-def write_entity_file(obj_col, _ent_path):
+def write_entity_file(obj_col, root, relative_path):
     if hpl_config.hpl_detail_mesh_identifier in obj_col.name:
         return
     
@@ -68,7 +139,7 @@ def write_entity_file(obj_col, _ent_path):
     entity = xtree.Element('Entity')
     model_data = xtree.SubElement(entity, "ModelData")
     entities = xtree.SubElement(model_data, 'Entities')
-    mesh = xtree.SubElement(model_data, 'Mesh', FileName=str(get_object_path(obj_col)))
+    mesh = xtree.SubElement(model_data, 'Mesh', Filename=str(get_object_path(obj_col)+'.dae'))
     bones = xtree.SubElement(model_data, 'Bones')
     shapes = xtree.SubElement(model_data, 'Shapes')
     bodies = xtree.SubElement(model_data, 'Bodies')
@@ -81,20 +152,23 @@ def write_entity_file(obj_col, _ent_path):
 
     def general_properties(spatial_general, obj):
 
+        def swizzle(_t):
+            return (_t[0],_t[2],_t[1])
+
         #xtree.SubElement(file_index, 'File', Id=str(_Id), Path=get_object_path(obj))
         spatial_general.set('ID', str(id_dict[obj]['ID']))
         spatial_general.set('Name', str(obj.name))
         spatial_general.set('CreStamp', str(0))
         spatial_general.set('ModStamp', str(0))
-        spatial_general.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
-        spatial_general.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
-        spatial_general.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+        spatial_general.set('WorldPos', str(swizzle(tuple(obj.location))).translate(str.maketrans({'(': '', ')': ''})))
+        spatial_general.set('Rotation', str(swizzle(tuple(obj.rotation_euler))).translate(str.maketrans({'(': '', ')': ''})))
+        spatial_general.set('Scale', str(swizzle(tuple(obj.scale))).translate(str.maketrans({'(': '', ')': ''})))
 
     for o, obj in enumerate(obj_col.all_objects):
 
         if obj.is_instancer:
             continue
-        
+
         id_dict[obj] = {'ID':o, 'Parent':obj.parent, 'Children':obj.children}
         
     for obj in list(id_dict):
@@ -111,13 +185,13 @@ def write_entity_file(obj_col, _ent_path):
             general_properties(sub_mesh, obj)
             mesh_data = obj.data
             mesh_data.calc_loop_triangles()
-            tri_count = len(mesh_data.loop_triangles)
+            tri_count = len(mesh_data.loop_triangles)-1
             sub_mesh.set('TriCount', str(tri_count))
-            sub_mesh.set('Material', str(obj.material_slots[0].name) if list(obj.material_slots) else '') #TODO: check if available first
+            sub_mesh.set('Material', str(relative_path + obj.material_slots[0].name) if list(obj.material_slots) else '') #TODO: check if available first
 
-            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+            vars = [item for item in obj.items() if hpl_config.hpl_variable_identifier in item[0]]
             for var in vars:
-                var_name = var[0].split('hpl_parser_var_')[-1]                    
+                var_name = var[0].split(hpl_config.hpl_variable_identifier+'_')[-1]                    
                 sub_mesh.set(var_name, str(var[1]))
             
         elif 'Shape' in entity_type:
@@ -131,16 +205,16 @@ def write_entity_file(obj_col, _ent_path):
             shape.set('RelativeTranslation', str(relative_translation).translate(str.maketrans({'(': '', ')': ''})))
             shape.set('RelativeRotation', str(relative_rotation).translate(str.maketrans({'(': '', ')': ''})))
             shape.set('RelativeScale', str(relative_scale).translate(str.maketrans({'(': '', ')': ''})))
-            shape.set('ShapeType', str(obj[hpl_config.hpl_internal_type_identifier].rsplit('Shape_')[-1]))
+            shape.set('ShapeType', str(obj[hpl_config.hpl_internal_type_identifier].rsplit('Shape')[-1]))
 
         elif 'Body' in entity_type:
 
             body = xtree.SubElement(bodies, 'Body')
             general_properties(body, obj)
 
-            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+            vars = [item for item in obj.items() if hpl_config.hpl_variable_identifier in item[0]]
             for var in vars:
-                var_name = var[0].split('hpl_parser_var_')[-1]                    
+                var_name = var[0].split(hpl_config.hpl_variable_identifier+'_')[-1]                    
                 body.set(var_name, str(var[1]))
             
             children = xtree.SubElement(body, 'Children') #TODO: Check if there are children
@@ -159,19 +233,19 @@ def write_entity_file(obj_col, _ent_path):
             joint = xtree.SubElement(joints, obj[hpl_config.hpl_internal_type_identifier].replace('_',''))
             general_properties(joint, obj)
 
-            vars = [var for var in obj.items() if 'hpl_parser_var_' in var[0]]
+            vars = [var for var in obj.items() if hpl_config.hpl_variable_identifier in var[0]]
             for var in vars:
-                var_name = var[0].split('hpl_parser_var_')[-1]                    
-                joint.set(var_name, str(var[1]))
-
-            joint.set('ConnectedParentBodyID', str(id_dict[id_dict[obj]['Parent']]['ID']))
-            joint.set('ConnectedChildBodyID', str(bpy.context.scene.hpl_parser.hpl_set_joint_child))
+                var_name = var[0].split(hpl_config.hpl_variable_identifier+'_')[-1]
+                if (var_name == 'ConnectedChildBodyID') or (var_name == 'ConnectedParentBodyID'):
+                    joint.set(var_name,str(id_dict[obj[hpl_config.hpl_variable_identifier+'_'+var_name]]['ID']))
+                else:
+                    joint.set(var_name, str(var[1]))
 
     user_defined_variables = xtree.SubElement(entity, 'UserDefinedVariables')
     user_defined_variables.set('EntityType', obj_col[hpl_config.hpl_entity_type_identifier]) #TODO: check if available first
-    vars = [var for var in obj_col.items() if 'hpl_parser_var_' in var[0]]
+    vars = [var for var in obj_col.items() if hpl_config.hpl_variable_identifier in var[0]]
     for var in vars:
-        var_name = var[0].split('hpl_parser_var_')[-1]
+        var_name = var[0].split(hpl_config.hpl_variable_identifier+'_')[-1]
         xml_var = xtree.SubElement(user_defined_variables,'Var')
         xml_var.set('ObjectId', str(root_id))
         xml_var.set('Name', var_name)
@@ -179,7 +253,7 @@ def write_entity_file(obj_col, _ent_path):
     _Id = _Id + 1
                         
     xtree.indent(entity, space="    ", level=0)
-    xtree.ElementTree(entity).write(_ent_path+obj_col.name+'.ent')
+    xtree.ElementTree(entity).write(root + relative_path + obj_col.name+'.ent')
 
 def get_export_meshes(export_collection):
 
@@ -229,23 +303,24 @@ def hpl_export_objects():
             obj.rotation_euler[0] = obj.rotation_euler[0] + math.radians(90)
             obj.location[0] = -obj.location[0]
 
-        path = root+'\\mods\\'+root_collection+'\\entities\\'#+export_collection.name+'\\'
+        relative_path = '\\mods\\'+root_collection+'\\entities\\'#+export_collection.name+'\\'
 
-        if not os.path.exists(path):
-            os.mkdir(path)
+        if not os.path.exists(root + relative_path):
+            os.mkdir(root + relative_path)
 
-        # Delete HPL *.msh file. This will be recreated when Level Editor or game is launched.
-        if os.path.isfile(path+col_name[:3]+'msh'):
-            os.remove(path+col_name[:3]+'msh')
+        # Delete HPL *.msh file. This will be recreated once the Level Editor or game is launched.
+        if os.path.isfile(relative_path+col_name[:3]+'msh'):
+            os.remove(relative_path+col_name[:3]+'msh')
         
-        bpy.ops.wm.collada_export(filepath=path+col_name, check_existing=False, use_texture_copies = True,\
+        bpy.ops.wm.collada_export(filepath=root + relative_path + col_name, check_existing=False, use_texture_copies = True,\
                                 selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                 export_global_forward_selection = 'Z', export_global_up_selection = 'Y', \
                                 apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                 triangulate = False) #-Y, Z
         
-        
-        dae_file = xtree.fromstring(load_xml_file(path+col_name+'.dae'))
+        '''        
+        # Inject necessary custom variables into the *.dae file
+        dae_file = xtree.fromstring(load_xml_file(root + relative_path + col_name+'.dae'))
         #TODO: Better way to get xml namespace
         namespace = next(iter(dae_file)).tag.rsplit('}')[0][1:]
         vs = dae_file.find(".//{%s}visual_scene" % namespace)
@@ -259,9 +334,9 @@ def hpl_export_objects():
             node.set('ids',obj.name)
         
         xtree.indent(dae_file, space="    ", level=0)
-        xtree.ElementTree(dae_file).write(path+col_name+'.dae')
-
-        write_entity_file(export_collection, path)
+        xtree.ElementTree(dae_file).write(root + relative_path + col_name+'.dae')
+        '''
+        write_entity_file(export_collection, root, relative_path)
 
         for obj in export_objects:
             obj.modifiers.remove(obj.modifiers.get("_Triangulate"))
@@ -275,6 +350,17 @@ def hpl_export_objects():
             obj.select_set(True)
         
     bpy.context.view_layer.objects.active = act_obj
+
+def hpl_export_materials():
+    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
+    root = bpy.context.scene.hpl_parser.hpl_game_root_path
+    relative_path = '\\mods\\'+root_collection+'\\entities\\'#+export_collection.name+'\\'
+
+    for mat in bpy.data.materials:
+        print(mat)
+        if mat.users > 0 and any([var for var in mat.items() if hpl_config.hpl_variable_identifier in var[0]]):
+            print('EXPPORT: ',mat)
+            write_material_file(mat, root, relative_path)
 
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()

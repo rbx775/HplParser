@@ -15,14 +15,12 @@ class HPL_MATERIAL():
 
     def hpl_load_images(image_info): #TODO: Better function
         
+        def check_for_image():
+            for img in bpy.data.images:
+                return image_name == img.name
+            
         for i in image_info:
             image_name = image_info[i].split('.')[0].split('\\')[-1]
-
-            def check_for_image():
-                for img in bpy.data.images: #TODO: List comprehension
-                    if image_name == img.name:
-                        return True
-                return False
             
             if check_for_image():
                 if os.path.isfile(image_info[i]):

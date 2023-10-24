@@ -34,6 +34,7 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         run_python_hook()
         write_hpm()
         hpl_entity_exporter.hpl_export_objects()
+        hpl_entity_exporter.hpl_export_materials()
         return {'FINISHED'}
 
     def register():

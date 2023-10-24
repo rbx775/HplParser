@@ -15,15 +15,20 @@ hpl_asset_material_files = {}
 hpl_asset_entity_files = {}
 hpl_asset_categories_dict = {}
 hpl_ui_var_dict = {}
+hpl_mat_ui_var_dict = {}
 hpl_var_dict = {}
 hpl_enum_iterator = 0
 hpl_ui_enum_dict = {}
+hpl_joint_set_current_dict = {}
+hpl_joint_set_warning = False
+
 
 hpl_current_scene_collection = []
 hpl_shape_types = ['box','cylinder','capsule','sphere']
 
 hpl_outliner_selection = None
 hpl_viewport_selection = None
+hpl_active_material = None
 
 class hpl_selection(Enum):
     ACTIVE_ENTITY_INSTANCE = 1
@@ -95,7 +100,7 @@ hpl_body_properties_vars_list = [
     {'Name':'Volatile',                     'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
     {'Name':'UseSurfaceEffects',            'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
     {'Name':'HasGravity',                   'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'BlocksLight',                  'Type':"Bool",      'DefaultValue':"true",          'Description':""}
+    {'Name':'BlocksLight',                  'Type':"Bool",      'DefaultValue':"true",          'Description':""},
     ]
 hpl_body_properties_vars_dict = {'Body' : hpl_body_properties_vars_list}
 
@@ -141,7 +146,7 @@ hpl_joint_screw_properties_vars_dict = {'ScrewParams' : hpl_joint_screw_properti
 
 ###SOUND
 hpl_joint_sound_properties_vars_list = [
-    {'Name':'MoveType',                 'Type':"bb",      'DefaultValue':"Linear",    'Description':""},
+    {'Name':'MoveType',                 'Type':"bb",        'DefaultValue':"Linear",    'Description':""},
     {'Name':'MoveSound',                'Type':"File",      'DefaultValue':"",          'Description':""}, 
     {'Name':'MinMoveSpeed',             'Type':"Float",     'DefaultValue':"0.1",       'Description':""}, 
     {'Name':'MinMoveFreq',              'Type':"Float",     'DefaultValue':"0.95",      'Description':""}, 
@@ -176,14 +181,47 @@ hpl_collider_properties_vars_list = [
     ]
 hpl_collider_properties_vars_dict = {'General' : hpl_collider_properties_vars_list}
 
-'''
-###COLLIDER
-hpl_collider_properties_vars_list = [
-    {'Name':'ConnectedParentBodyID',    'Type':"String",      'DefaultValue':"",      'Description':""},
-    {'Name':'ConnectedChildBodyID',     'Type':"String",      'DefaultValue':"",      'Description':""},
-    ]
-hpl_collider_properties_vars_dict = {'General' : hpl_collider_properties_vars_list}
-'''
+hpl_material_properties_vars_list = [
+    {'Name': 'HeightMapScale',              'Type': 'Float',    'DefaultValue': '0.05', 'Description': ''},
+    {'Name': 'HeightMapBias',               'Type': 'Float',    'DefaultValue': '0', 'Description': ''},
+    {'Name': 'IlluminationBrightness',      'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
+    {'Name': 'FrenselBias',                 'Type': 'Float',    'DefaultValue': '0.2', 'Description': ''},
+    {'Name': 'FrenselPow',                  'Type': 'Float',    'DefaultValue': '8', 'Description': ''},
+    {'Name': 'AlphaDissolveFilter',         'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
+    {'Name': 'DetailUvMul',                 'Type': 'Vector2',  'DefaultValue': '4 4', 'Description': ''},
+    {'Name': 'DetailWeight_Diffuse',        'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
+    {'Name': 'DetailWeight_Specular',       'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
+    {'Name': 'DetailWeight_Normal',         'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
+    {'Name': 'DetailFadeStart',             'Type': 'Float',    'DefaultValue': '5', 'Description': ''},
+    {'Name': 'DetailFadeEnd',               'Type': 'Float',    'DefaultValue': '10', 'Description': ''},
+    {'Name': 'SwayActive',                  'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
+    {'Name': 'SwayForceFieldAffected',      'Type': 'Bool',     'DefaultValue': 'true', 'Description': ''},
+    {'Name': 'SwayFreq',                    'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
+    {'Name': 'SwayAmplitude',               'Type': 'Float',    'DefaultValue': '0.1', 'Description': ''},
+    {'Name': 'SwaySpeed',                   'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
+    {'Name': 'SwayOctaveMuls',              'Type': 'Vector3',  'DefaultValue': '0.125 0.25 1', 'Description': ''},
+    {'Name': 'SwayForceFieldMul',           'Type': 'Float',    'DefaultValue': '0.3', 'Description': ''},
+    {'Name': 'SwayForceFieldMax',           'Type': 'Float',    'DefaultValue': '0.6', 'Description': ''},
+    {'Name': 'SwayYFreqMul',                'Type': 'Float',    'DefaultValue': '0', 'Description': ''},
+    {'Name': 'SwaySingleDir',               'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
+    {'Name': 'SwaySingleDirVector',         'Type': 'Vector3',  'DefaultValue': '0 0 1', 'Description': ''},
+    {'Name': 'SwaySingleSampleVector',      'Type': 'Vector3',  'DefaultValue': '1 0 0', 'Description': ''},
+    {'Name': 'LiquidTrickleColor',          'Type': 'Color',    'DefaultValue': '0 0 0 1', 'Description': ''},
+    {'Name': 'LiquidTrickleSpecular',       'Type': 'Color',    'DefaultValue': '0 0 0 0', 'Description': ''},
+    {'Name': 'LiquidTrickleLoopFade',       'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
+    {'Name': 'LiquidTrickleFadeSpeed',      'Type': 'Vector2',  'DefaultValue': '0.5 0.5', 'Description': ''},
+    {'Name': 'LiquidTrickleEdgeSize',       'Type': 'Float',    'DefaultValue': '0.5', 'Description': ''},
+    {'Name': 'LiquidTrickleDryness',        'Type': 'Float',    'DefaultValue': '0.5', 'Description': ''},
+    {'Name': 'LiquidTrickleBlendMode',      'Type': 'String',   'DefaultValue': 'Alpha', 'Description': ''}
+]
+
+hpl_material_shader_properties_vars_list = [
+    {'Name': 'DepthTest',                   'Type': 'Bool',     'DefaultValue': 'true', 'Description': ''},
+    {'Name': 'PhysicsMaterial',             'Type': 'String',   'DefaultValue': 'Default', 'Description': ''},
+    {'Name': 'SolidDiffuse',                'Type': 'String',   'DefaultValue': 'SolidDiffuse', 'Description': ''},
+]
+hpl_material_shader_properties_vars_dict = {'Main' : hpl_material_shader_properties_vars_list}
+hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict, **{'SolidDiffuse' : hpl_material_properties_vars_list}}
 
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
@@ -208,4 +246,3 @@ hpl_submesh_identifier = 'SubMesh'
 hpl_shape_identifier = 'Shape'
 hpl_joint_identifier = 'Joint'
 hpl_body_identifier = 'Body'
-

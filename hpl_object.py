@@ -55,7 +55,7 @@ def add_joint_screw(self, context):
     bpy.context.collection.objects.link(screw_empty)
     bpy.ops.object.select_all(action='DESELECT')
     screw_empty['hpl_internal_type'] = 'Joint_Screw'
-    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict}
+    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     hpl_property_io.hpl_properties.initialize_editor_vars(screw_empty)
     hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(screw_empty)
     bpy.context.view_layer.depsgraph.update()
@@ -77,7 +77,7 @@ def add_joint_slider(self, context):
 
     bpy.ops.object.select_all(action='DESELECT')
     arrow_empty['hpl_internal_type'] = 'Joint_Slider'
-    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict}
+    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     hpl_property_io.hpl_properties.initialize_editor_vars(arrow_empty)
     hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(arrow_empty)
     bpy.context.view_layer.depsgraph.update()
@@ -99,7 +99,7 @@ def add_joint_ball(self, context):
     
     bpy.ops.object.select_all(action='DESELECT')
     sphere_empty['hpl_internal_type'] = 'Joint_Ball'
-    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict}
+    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
     hpl_property_io.hpl_properties.initialize_editor_vars(sphere_empty)
     hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(sphere_empty)
     bpy.context.view_layer.depsgraph.update()
@@ -133,7 +133,7 @@ def add_joint_hinge(self, context):
     bpy.ops.object.select_all(action='DESELECT')
 
     circle_empty['hpl_internal_type'] = 'Joint_Hinge'
-    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict}
+    hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     hpl_property_io.hpl_properties.initialize_editor_vars(circle_empty)
     hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(circle_empty)
     bpy.context.view_layer.depsgraph.update()
@@ -195,7 +195,7 @@ def add_shape_cylinder(self, context):
 
     # Construct the bmesh and assign it to the blender mesh.
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=18, radius1=1, radius2=1, depth=2)
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=18, radius1=1, radius2=1, depth=1)
     bm.to_mesh(mesh)
     bm.free()
     cylinder_shape.location = bpy.context.scene.cursor.location
