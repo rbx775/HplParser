@@ -85,12 +85,13 @@ hpl_level_editor_general_vars_dict = {'General' : hpl_level_editor_general_vars_
 ###BODY
 hpl_body_properties_vars_list = [
     {'Name':'Material',                     'Type':"String",    'DefaultValue':"Default",       'Description':""},
-    {'Name':'Mass',                         'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
+    {'Name':'Mass',                         'Type':"Float",     'DefaultValue':"0",             'Description':""}, 
     {'Name':'LinearDamping',                'Type':"Float",     'DefaultValue':"0.1",           'Description':""}, 
     {'Name':'AngularDamping',               'Type':"Float",     'DefaultValue':"0.1",           'Description':""}, 
     {'Name':'MaxAngularSpeed',              'Type':"Int",       'DefaultValue':"20",            'Description':""}, 
     {'Name':'MaxLinearSpeed',               'Type':"Int",       'DefaultValue':"20",            'Description':""}, 
     {'Name':'BuoyancyDensityMul',           'Type':"Int",       'DefaultValue':"1",             'Description':""}, 
+    {'Name':'BlocksLight',                  'Type':"Bool",      'DefaultValue':"true",          'Description':""},
     {'Name':'BlocksSound',                  'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
     {'Name':'ContinuousCollision',          'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
     {'Name':'CanAttachCharacter',           'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
@@ -100,7 +101,6 @@ hpl_body_properties_vars_list = [
     {'Name':'Volatile',                     'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
     {'Name':'UseSurfaceEffects',            'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
     {'Name':'HasGravity',                   'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'BlocksLight',                  'Type':"Bool",      'DefaultValue':"true",          'Description':""},
     ]
 hpl_body_properties_vars_dict = {'Body' : hpl_body_properties_vars_list}
 
@@ -246,3 +246,13 @@ hpl_submesh_identifier = 'SubMesh'
 hpl_shape_identifier = 'Shape'
 hpl_joint_identifier = 'Joint'
 hpl_body_identifier = 'Body'
+
+hpl_export_warnings = {}
+main_window = None
+
+texconv_subpath = "\\tools\\texconv.exe"
+texconv_download_path = 'https://github.com/Microsoft/DirectXTex/releases/latest/download/texconv.exe'
+is_texconv_available = False
+
+texture_dict = {'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
+texture_default_dict = {'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}

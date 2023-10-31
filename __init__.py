@@ -33,6 +33,7 @@ from . import hpl_config
 from . import hpl_property_io
 from . import hpl_importer
 from . import hpl_object
+from . import hpl_preferences
 from .hpm_exporter import (HPM_OT_HPMEXPORTER)
 from .hpl_importer import (HPL_OT_ASSETIMPORTER) 
 from .hpl_object import (OBJECT_OT_add_box_shape, 
@@ -695,9 +696,7 @@ def draw_panel_mat_content(context, layout):
     box.label(text='Material Settings')
     
     if hpl_config.hpl_active_material:
-
         for group in hpl_config.hpl_mat_ui_var_dict:
-            #active = [var for var in hpl_config.hpl_ui_var_dict[group] if 'Active' in var]
 
             layout.use_property_split = False
             layout.use_property_decorate = True
@@ -761,7 +760,10 @@ class HPL_PT_MAT_CREATE(bpy.types.Panel):
     #@persistent
 
 def scene_selection_listener(self, context):
+    hpl_config.main_window = bpy.context.window
     hpl_property_io.hpl_properties.update_selection()
+
+    hpl_config.is_texconv_available = os.path.isfile(os.path.dirname(os.path.realpath(__file__))+hpl_config.texconv_subpath)
     
     if not bpy.context.view_layer.active_layer_collection.collection.children:
         bpy.context.scene.hpl_parser.hpl_has_project_col = True
@@ -834,9 +836,6 @@ def register():
     bpy.utils.register_class(OBJECT_MT_ADD_HPL_JOINT)
     bpy.utils.register_class(OBJECT_OT_add_body)
 
-    #bpy.types.Material.custom = bpy.props.CollectionProperty(type=CUSTOM_objectCollection)
-    #bpy.types.Material.custom_index = bpy.props.IntProperty()
-
     bpy.utils.register_manual_map(hpl_object.add_shape_manual_map)
     bpy.types.VIEW3D_MT_add.append(hpl_object.add_body_button)
     bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_shape)
@@ -845,6 +844,9 @@ def register():
     
     bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPLSettingsPropertyGroup)
     bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener)
+    hpl_preferences.register()
+
+    hpl_config.is_texconv_available = os.path.isfile(os.path.dirname(os.path.realpath(__file__))+hpl_config.texconv_subpath)
 
 def unregister():
     bpy.utils.unregister_class(HPL_PT_3D_CREATE)
@@ -865,16 +867,11 @@ def unregister():
     bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_JOINT)
     bpy.utils.unregister_class(OBJECT_OT_add_body)
 
-    #del bpy.types.Material.custom
-    #del bpy.types.Material.custom_index
-
     bpy.utils.unregister_manual_map(hpl_object.add_shape_manual_map)
-    #bpy.types.VIEW3D_MT_add.remove(hpl_object.add_shape_buttons)
-    #bpy.types.VIEW3D_MT_add.remove(hpl_object.OBJECT_OT_add_box_shape.draw_item)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.add_body_button)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_shape)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_joint)
-    #bpy.types.VIEW3D_MT_add.remove(hpl_object.OBJECT_PT_CREATE_ADD_PANEL.draw_item)
     bpy.utils.unregister_class(HPLSettingsPropertyGroup)
     del bpy.types.Scene.hpl_parser
+    hpl_preferences.unregister()
     bpy.app.handlers.depsgraph_update_post.clear()

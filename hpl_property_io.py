@@ -217,7 +217,9 @@ class hpl_properties():
             del ent[var]
         
     def initialize_editor_vars(ent = hpl_config.hpl_outliner_selection, vars = hpl_config.hpl_var_dict):
-        hpl_properties.reset_editor_vars(ent)
+        ent = hpl_config.hpl_outliner_selection
+        vars = hpl_config.hpl_var_dict
+        hpl_properties.reset_editor_vars(hpl_config.hpl_outliner_selection)
         #ent = hpl_config.hpl_outliner_selection
         group_dict = {}
         for group in vars:                
@@ -259,12 +261,12 @@ class hpl_properties():
                     color = (float(i) for i in var['DefaultValue'].split(' '))
                     ent[variable] = mathutils.Vector(color)
                 elif var_type == 'function':
-                    ent[variable] = 'hpl_function'
+                    ent[variable] = ''
                 elif 'vec' in var_type:
                     vec = (float(i) for i in var['DefaultValue'].split(' '))
                     ent[variable] = mathutils.Vector(vec)
                 elif var_type == 'file':
-                    ent[variable] = 'hpl_file'
+                    ent[variable] = var['DefaultValue']
                 elif var_type == 'enum':
                     ent[variable] = var['DefaultValue']
                 else:
@@ -300,20 +302,20 @@ class hpl_properties():
     def get_outliner_selection():
         if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
             for window in bpy.context.window_manager.windows:
-                screen = window.screen
-                for area in screen.areas:
-                    if area.type == 'OUTLINER':
-                        with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
-                            if bpy.context.selected_ids:
-                                hpl_config.hpl_outliner_selection = bpy.context.selected_ids[0]
-                    if area.type == 'VIEW_3D':
-                        with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
-                            if bpy.context.selected_ids:
-                                hpl_config.hpl_viewport_selection = bpy.context.selected_ids[0]
-                    if area.type == 'NODE_EDITOR':
-                        with bpy.context.temp_override(window=window, area=area):
-                            if bpy.context.material:
-                                hpl_config.hpl_active_material = bpy.context.material
+                if window == hpl_config.main_window:
+                    for area in window.screen.areas:
+                        if area.type == 'OUTLINER':
+                            with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
+                                if bpy.context.selected_ids:
+                                    hpl_config.hpl_outliner_selection = bpy.context.selected_ids[0]
+                        if area.type == 'VIEW_3D':
+                            with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
+                                if bpy.context.selected_ids:
+                                    hpl_config.hpl_viewport_selection = bpy.context.selected_ids[0]
+                        if area.type == 'NODE_EDITOR':
+                            with bpy.context.temp_override(window=window, area=area):
+                                if bpy.context.material:
+                                    hpl_config.hpl_active_material = bpy.context.material
 
     def get_relative_body_hierarchy(joint):
         parent = None

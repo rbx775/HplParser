@@ -1,7 +1,0 @@
-<HPLMapTrack_Primitive ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
-    <Section Name="9347656469469383509">
-        <Objects>
-            <Plane ID="268435468" Name="Plane" CreStamp="1694098669" ModStamp="1694098669" WorldPos="2.5 0 -4" Rotation="0 0 0" Scale="1 1 1" Material="detail_meshes/bunker_rocks/bunker_rocks.mat" StartCorner="0 0 0" EndCorner="2.25 0 2.75" CastShadows="false" Collides="true" DiffuseColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" TileAmount="1 1 1" TileOffset="0 0 0" TextureAngle="0" AlignToWorldCoords="false" UID="16 5 268435468" Corner1UV="0 2.75" Corner2UV="0 0" Corner3UV="2.25 0" Corner4UV="2.25 2.75" />
-        </Objects>
-    </Section>
-</HPLMapTrack_Primitive>

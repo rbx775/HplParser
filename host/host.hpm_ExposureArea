@@ -1,7 +1,0 @@
-<HPLMapTrack_ExposureArea ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
-    <Section Name="9347656469469383509">
-        <Objects>
-            <ExposureArea ID="268435477" Name="ExposureArea1_1" CreStamp="1694098756" ModStamp="1694098756" WorldPos="1.75 1.125 1.25" Rotation="0 0 0" Scale="1.5 2.25 1.5" Exposure="0" WhiteCut="0" TransitionTime="0" UID="16 30 268435477" />
-        </Objects>
-    </Section>
-</HPLMapTrack_ExposureArea>

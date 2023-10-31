@@ -16,6 +16,7 @@ from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
 from . import hpl_entity_exporter
+from . import hpl_texture
 
 class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     
@@ -33,8 +34,8 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     def execute(self, context):
         run_python_hook()
         write_hpm()
-        hpl_entity_exporter.hpl_export_objects()
-        hpl_entity_exporter.hpl_export_materials()
+        hpl_entity_exporter.hpl_export_objects(self)
+        hpl_entity_exporter.hpl_export_materials(self)
         return {'FINISHED'}
 
     def register():

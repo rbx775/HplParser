@@ -1,7 +1,0 @@
-<HPLMapTrack_ParticleSystem ID="EFBCA87CDCC750806CB6F17728E739FC20D60142" MajorVersion="1" MinorVersion="1">
-    <Section Name="9347656469469383509">
-        <Objects>
-            <ParticleSystem ID="268435465" Name="ps1_1" CreStamp="1694098550" ModStamp="1694098550" WorldPos="3.25 0 0.25" Rotation="0 0 0" Scale="1 1 1" File="F:/SteamLibrary/steamapps/common/Amnesia The Bunker/particles/bombing_effect.ps" Color="1 1 1 1" Brightness="1" FadeAtDistance="true" MinFadeDistanceStart="2" MaxFadeDistanceStart="100" MinFadeDistanceEnd="1" MaxFadeDistanceEnd="110" Static="false" CulledByDistance="true" CulledByFog="true" ConnectLight="" UID="16 7 268435465" />
-        </Objects>
-    </Section>
-</HPLMapTrack_ParticleSystem>

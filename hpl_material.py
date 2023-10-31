@@ -4,6 +4,27 @@ from . import hpl_property_io
 
 class HPL_MATERIAL():
 
+    
+    def find_textures(node, tex_node):
+        if node.type == 'TEX_IMAGE':
+            hpl_config.texture_dict[tex_node] = node.image.filepath
+        
+        if node.name == 'Principled BSDF':
+            for t in hpl_config.texture_dict:
+                if node.inputs[t].links:
+                    HPL_MATERIAL.find_textures(node.inputs[t].links[0].from_node, t)
+            return
+        
+        for input in node.inputs:
+            if input.links:
+                HPL_MATERIAL.find_textures(input.links[0].from_node, tex_node)
+
+    def get_textures_from_material(mat):
+        for node in mat.node_tree.nodes:
+            if node.name == 'Material Output':
+                HPL_MATERIAL.find_textures(node, None)
+        return hpl_config.texture_dict
+
     def hpl_purge_materials():
         for bpy_data_iter in (
             bpy.data.materials,
