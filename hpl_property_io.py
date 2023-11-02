@@ -136,7 +136,7 @@ class hpl_properties():
 
     def get_properties(sub_prop, variable_type):
 
-        if sub_prop == 'None':
+        if sub_prop == 'None' or sub_prop == 'Static_Object':
             return {}
         
         var_dict = {}
@@ -192,13 +192,15 @@ class hpl_properties():
 
     def get_base_classes_from_entity_classes():
         def_file = hpl_properties.load_def_file(bpy.context.scene.hpl_parser.hpl_game_root_path + hpl_config.hpl_entity_classes_file_sub_path)
+        entity_baseclass_list = []
 
         if def_file:
             xml_root = xtree.fromstring(def_file)
             classes = xml_root.findall(f'.//Class')
             for cls in classes:
-                hpl_properties.entity_baseclass_list.append(cls.attrib['Name'])
-            return hpl_properties.entity_baseclass_list
+                entity_baseclass_list.append(cls.attrib['Name'])
+
+            return [*hpl_config.hpl_static_object_class, *entity_baseclass_list]
         else:
             return None
         
@@ -217,10 +219,11 @@ class hpl_properties():
             del ent[var]
         
     def initialize_editor_vars(ent = hpl_config.hpl_outliner_selection, vars = hpl_config.hpl_var_dict):
+        
         ent = hpl_config.hpl_outliner_selection
         vars = hpl_config.hpl_var_dict
+        #print('INIT: ',ent)
         hpl_properties.reset_editor_vars(hpl_config.hpl_outliner_selection)
-        #ent = hpl_config.hpl_outliner_selection
         group_dict = {}
         for group in vars:                
             ent[hpl_config.hpl_dropdown_identifier+'_'+group] = False
@@ -428,6 +431,7 @@ class hpl_properties():
             if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Collection':
                 ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
                 hpl_config.hpl_outliner_selection[hpl_config.hpl_entity_type_identifier] = ent_type
+                # Static Object
                 hpl_config.hpl_outliner_selection[hpl_config.hpl_entity_type_value] = bpy.context.scene.hpl_parser['hpl_base_classes_enum']
                 hpl_config.hpl_var_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
                 hpl_properties.initialize_editor_vars()

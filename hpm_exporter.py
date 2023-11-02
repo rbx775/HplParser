@@ -17,6 +17,7 @@ from . import hpl_property_io
 from . import hpl_material
 from . import hpl_entity_exporter
 from . import hpl_texture
+from . import hpl_conversion_helper as hpl_convert
 
 class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     
@@ -33,9 +34,11 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         
     def execute(self, context):
         run_python_hook()
+        hpl_config.hpl_export_warnings = {}
         write_hpm()
         hpl_entity_exporter.hpl_export_objects(self)
         hpl_entity_exporter.hpl_export_materials(self)
+        hpl_entity_exporter.send_warning_messages(self)
         return {'FINISHED'}
 
     def register():
@@ -72,6 +75,31 @@ def load_map_file(file_path):
         return map_file
     return ''
 
+def general_properties(spatial_general, obj, _id, _index):
+
+    spatial_general.set('ID', str(_id + _index))
+    spatial_general.set('Name', str(obj.name))
+    spatial_general.set('CreStamp', str(0))
+    spatial_general.set('ModStamp', str(0))
+    spatial_general.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.location))
+    spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
+    spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
+    spatial_general.set('FileIndex', str(_index))
+
+def write_hpm_placeholder(_map_path, _id, identifier):
+
+    root_id = random.randint(100000000, 999999999)
+    
+    root = xtree.Element('HPLMapTrack' + identifier, ID=str(_id), MajorVersion='1', MinorVersion='1')
+    section = xtree.SubElement(root, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
+    #file_index = xtree.SubElement(section, 'FileIndex_' + identifier, NumOfFiles=str(0)) #TODO: Get count
+    objects = xtree.SubElement(section, 'Objects')
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
+### MAIN HPM ###
 def write_hpm_main(map_col, _map_path, _id):
 
     sub_element = None
@@ -107,21 +135,54 @@ def write_hpm_main(map_col, _map_path, _id):
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path) 
-
-def get_object_path(obj):
-    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name+'.ent'
 '''
-<HPLMapTrack_StaticObject ID="55240FA1214456333DC3BAC1ACA182308CB87007" MajorVersion="1" MinorVersion="1">
+<HPLMapTrack_Area ID="C4547C63F553509279840CC3D26496E43E0CA576" MajorVersion="1" MinorVersion="1">
     <Section Name="9347656469469383509">
-        <FileIndex_StaticObjects NumOfFiles="0">
-            <File Id="0" Path="static_objects/technical/block_out_tools/block_out_box.dae" />
-        <FileIndex_StaticObjects />
-        <Objects>
-            <StaticObject ID="268437172" Name="roman_roman_stairs_roman_stair_brick_straight_1" CreStamp="1666161604" ModStamp="1672235129" WorldPos="-7.25696 0 33.5064" Rotation="0 1.5708 0" Scale="0.5 0.5 0.562072" FileIndex="8" Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172" />
         <Objects />
     </Section>
-</HPLMapTrack_StaticObject>
+</HPLMapTrack_Area>
 '''
+### AREA ### 
+# empty implementation
+def write_hpm_area(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
+    
+    root = xtree.Element('HPLMapTrack_Area', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    section = xtree.SubElement(root, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
+### BILLBOARD ### 
+# empty implementation
+def write_hpm_billboard(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
+    
+    root = xtree.Element('HPLMapTrack_Billboard', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    section = xtree.SubElement(root, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+    
+def get_object_path(obj):
+    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name
+
+### STATIC_OBJECTS BATCHES ###
+def write_hpm_static_object_batches(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
+    
+    root = xtree.Element('HPLMapTrack_StaticObjectBatches', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    section = xtree.SubElement(root, "StaticObjectBatches")
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
+### STATIC_OBJECTS ###
 def write_hpm_static_objects(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
@@ -129,55 +190,53 @@ def write_hpm_static_objects(map_col, _map_path, _id):
     root = xtree.Element('HPLMapTrack_StaticObject', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
-    file_index = xtree.SubElement(section, 'FileIndex_StaticObject', NumOfFiles=str(0)) #TODO: Get count
+    file_index = xtree.SubElement(section, 'FileIndex_StaticObjects', NumOfFiles=str(len(map_col.objects))) #TODO: Get count
     objects = xtree.SubElement(section, 'Objects')
     _index = 0
     
     for obj in map_col.objects:
         if obj.is_instancer:
-            
-            static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-            #user_variables = xtree.SubElement(entity, 'UserVariables')
-            xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj))
+            #if obj.instance_collection['hpl_entity_type'] == 'StaticObject':
+            if any([var for var in obj.instance_collection.items() if hpl_config.hpl_entity_type_identifier in var[0]]):
+                if obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
+                
+                    static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
+                    #user_variables = xtree.SubElement(entity, 'UserVariables')
+                    xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.dae')
 
-            static_object.set('ID', str(root_id+_index))
-            static_object.set('Name', str(obj.name))
-            static_object.set('CreStamp', str(0))
-            static_object.set('ModStamp', str(0))
-            static_object.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
-            static_object.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
-            static_object.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
-            static_object.set('FileIndex', str(_index))
-            '''
-            static_object.set('Collides', )
-            static_object.set('CastShadows', )
-            static_object.set('IsOccluder', )
-            static_object.set('ColorMul', )
-            static_object.set('CulledByDistance', )
-            static_object.set('CulledByFog', )
-            static_object.set('IllumColor', )
-            static_object.set('IllumBrightness', )
-            static_object.set('UID', )
-            '''
-            #Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172"
-            '''
-            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+                    general_properties(static_object, obj, root_id, _index)
 
-            for var in vars:
-                var_name = var[0].split('hpl_parser_var_')[-1]
-                if var_name in hpm_config.hpm_entities_properties['Entity']:
-                    entity.set(var_name, str(var[1]))
-                else:
-                    xml_var = xtree.SubElement(user_variables,'Var')
-                    xml_var.set('ObjectId', str(root_id+_index))
-                    xml_var.set('Name', var_name)
-                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-            '''
-            _index = _index + 1
+                    '''
+                    static_object.set('Collides', )
+                    static_object.set('CastShadows', )
+                    static_object.set('IsOccluder', )
+                    static_object.set('ColorMul', )
+                    static_object.set('CulledByDistance', )
+                    static_object.set('CulledByFog', )
+                    static_object.set('IllumColor', )
+                    static_object.set('IllumBrightness', )
+                    static_object.set('UID', )
+                    '''
+                    #Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172"
+                    '''
+                    vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+
+                    for var in vars:
+                        var_name = var[0].split('hpl_parser_var_')[-1]
+                        if var_name in hpm_config.hpm_entities_properties['Entity']:
+                            entity.set(var_name, str(var[1]))
+                        else:
+                            xml_var = xtree.SubElement(user_variables,'Var')
+                            xml_var.set('ObjectId', str(root_id+_index))
+                            xml_var.set('Name', var_name)
+                            xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                    '''
+                    _index = _index + 1
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
+### ENTITY ###
 def write_hpm_entity(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
@@ -194,17 +253,19 @@ def write_hpm_entity(map_col, _map_path, _id):
             
             entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
             user_variables = xtree.SubElement(entity, 'UserVariables')
-            xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj))
+            xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.ent')
 
+            general_properties(entity, obj, root_id, _index)
+            '''            
             entity.set('ID', str(root_id+_index))
             entity.set('Name', str(obj.name))
             entity.set('CreStamp', str(0))
             entity.set('ModStamp', str(0))
-            entity.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
-            entity.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
-            entity.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+            entity.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.position))
+            entity.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
+            entity.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
             entity.set('FileIndex', str(_index))
-            
+            '''
             vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
             for var in vars:
                 var_name = var[0].split('hpl_parser_var_')[-1]
@@ -220,12 +281,13 @@ def write_hpm_entity(map_col, _map_path, _id):
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
+### DETAIL MESHES ###
 def write_hpm_detail_meshes(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
     mod_stamp = random.randint(100000000, 999999999)
 
-    root = xtree.Element('HPLMapTrack_Decal', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    root = xtree.Element('HPLMapTrack_DetailMeshes', ID=str(_id), MajorVersion='1', MinorVersion='1')
     detail_meshes = xtree.SubElement(root, "DetailMeshes")
     if any([var[0] for var in map_col.items() if 'hpl_parser_var_DetailMeshesMaxRange' == var[0]]):
         detail_meshes.set('MaxRange', str(map_col["hpl_parser_var_DetailMeshesMaxRange"]))
@@ -254,7 +316,7 @@ def write_hpm_detail_meshes(map_col, _map_path, _id):
         colors_list_str = ''
         mod_stamps_list_str = ''
 
-        detail_mesh = xtree.SubElement(section, 'DetailMesh', File=get_object_path(detail_meshes_objects_categories[category][0]) ,NumOfFiles=str(len(detail_meshes_objects_categories[category])))
+        detail_mesh = xtree.SubElement(section, 'DetailMesh', File=get_object_path(detail_meshes_objects_categories[category][0])+'.ent' ,NumOfFiles=str(len(detail_meshes_objects_categories[category])))
         detail_meshes_ids = xtree.SubElement(detail_mesh,'DetailMeshEntityIDs')
         detail_meshes_positions = xtree.SubElement(detail_mesh,'DetailMeshEntityPositions')
         detail_meshes_rotations = xtree.SubElement(detail_mesh,'DetailMeshEntityRotations')
@@ -287,7 +349,29 @@ def write_hpm_detail_meshes(map_col, _map_path, _id):
 
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path) 
+
+
+### TERRAIN ###
+def write_hpm_terrain(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
     
+    root = xtree.Element('HPLMapTrack_Terrain', ID=str(_id), MajorVersion='1', MinorVersion='1')
+    terrain = xtree.SubElement(root, "Terrain")
+    terrain.set('Active', str(False))
+    terrain.set('GeometryPatchSize', str(32))
+    terrain.set('TexturePatchSize', str(32))
+    terrain.set('HeightMapSize', str(64))
+    terrain.set('MaxHeight', str(10))
+    terrain.set('UnitSize', str(1))
+    terrain.set('UndergrowthGridSize', str(10))
+    terrain.set('UndergrowthFadeStart', str(18))
+    terrain.set('UndergrowthFadeEnd', str(20))
+                        
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
+'''
 ### Write all *.ent files ###
 def write_entity_files(obj_col, _ent_path):
 
@@ -320,14 +404,16 @@ def write_entity_files(obj_col, _ent_path):
             
             #xtree.SubElement(file_index, 'File', Id=str(_Id), Path=get_object_path(obj))
 
-            sub_mesh.set('ID', str(root_id+_Id))
-            sub_mesh.set('Name', str(obj.name))
-            sub_mesh.set('CreStamp', str(0))
-            sub_mesh.set('ModStamp', str(0))
-            sub_mesh.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
-            sub_mesh.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
-            sub_mesh.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
-
+            general_properties(sub_mesh, obj, root_id, _Id)
+            
+            #sub_mesh.set('ID', str(root_id+_Id))
+            #sub_mesh.set('Name', str(obj.name))
+            #sub_mesh.set('CreStamp', str(0))
+            #sub_mesh.set('ModStamp', str(0))
+            #sub_mesh.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
+            #sub_mesh.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
+            #sub_mesh.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
+            
             mesh_data = obj.data
             mesh_data.calc_loop_triangles()
             tri_count = len(mesh_data.loop_triangles)
@@ -346,7 +432,7 @@ def write_entity_files(obj_col, _ent_path):
                         
     xtree.indent(entity, space="    ", level=0)
     xtree.ElementTree(entity).write(_ent_path+obj_col.name+'.ent')
-
+'''
 def write_hpm():
     # Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
@@ -367,14 +453,26 @@ def write_hpm():
             _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
             if container == '':
                 write_hpm_main(map_col, _map_path, id)
-            if container == '_StaticObject':
+            #elif container == '_Area':
+            #    write_hpm_area(_map_path, id, container)
+            #elif container == '_Billboard':
+            #    write_hpm_billboard(_map_path, id, container)
+            #elif container == '_Compound':
+            #    write_hpm_compound(_map_path, id, container)
+            elif container == '_StaticObjectBatches':
+                write_hpm_static_object_batches(map_col, _map_path, id)
+            elif container == '_StaticObject':
                 write_hpm_static_objects(map_col, _map_path, id)
-            if container == '_Entity':
+            elif container == '_Entity':
                 write_hpm_entity(map_col, _map_path, id)
-            if container == '_DetailMeshes':
+            elif container == '_DetailMeshes':
                 write_hpm_detail_meshes(map_col, _map_path, id)
+            elif container == '_Terrain':
+                write_hpm_terrain(map_col, _map_path, id)
+            else:
+                write_hpm_placeholder(_map_path, id, container)
                 
-
+'''
 def hpl_export_objects():
 
     #Eventhough we are working with context overrides \
@@ -434,7 +532,7 @@ def hpl_export_objects():
             obj.select_set(True)
         
     bpy.context.view_layer.objects.active = act_obj
-
+'''
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()
     eval_mesh = obj.evaluated_get(deg).data.copy()

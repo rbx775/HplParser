@@ -4,13 +4,16 @@ import subprocess
 from urllib import request
 
 from . import hpl_config
-from . import hpm_exporter
+from . import hpm_exporter            
 
-def download(path, exe):
 
+def download(path, exe, op):
     if not os.path.isfile(path+exe):
-        response = request.urlretrieve(hpl_config.texconv_download_path, path+exe)
-
+        try:
+            request.urlretrieve(hpl_config.texconv_download_path, path+exe)
+            op.report({"INFO"}, 'TexConV Texture Conversion Tool downloaded to '+path+exe)
+        except:
+            op.report({"WARNING"}, 'Broken URL, please download Nvidias \'TexConV\' manually.\nAnd put it in '+os.path.dirname(__file__)+'\\tools\\\nUnavailable URL: '+hpl_config.texconv_download_path)
     else:
         print('texconv available!')
 
@@ -26,7 +29,7 @@ class HPL_OT_DOWNLOADTEXCONV(bpy.types.Operator):
         return True
         
     def execute(self, context):        
-        download(os.path.dirname(os.path.realpath(__file__))+"\\tools\\", 'texconv.exe')
+        download(os.path.dirname(os.path.realpath(__file__))+"\\tools\\", 'texconv.exe', self)
         return {'FINISHED'}
 
     def register():
@@ -36,7 +39,7 @@ class HPL_OT_DOWNLOADTEXCONV(bpy.types.Operator):
         return
 
 class HPL_AddonPreferences(bpy.types.AddonPreferences):
-    
+
     bl_idname = __package__
 
     advancedOptions: bpy.props.BoolProperty(

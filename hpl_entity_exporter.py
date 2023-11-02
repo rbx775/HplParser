@@ -10,6 +10,7 @@ from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
 from . import hpl_texture
+from . import hpl_conversion_helper as hpl_convert
 
 class HPL_OT_ENTITYEXPORTER(bpy.types.Operator):
     
@@ -20,7 +21,7 @@ class HPL_OT_ENTITYEXPORTER(bpy.types.Operator):
     
     @classmethod
     def poll(self, context):
-        return
+        return True
         
     def execute(self, context):
         return {'FINISHED'}
@@ -59,17 +60,19 @@ def get_object_path(obj):
 ### Write material files ###
 
 def write_material_file(mat, root, relative_path):
-
-    hpl_config.texture_dict = hpl_config.texture_default_dict.copy()
+    
+    # Export Textures to HPL
     hpl_material.HPL_MATERIAL.get_textures_from_material(mat)
+    exported_textures = hpl_texture.HPL_TEXTURE.convert_texture(root, relative_path)
+    print('MAT: ', mat.name, 'TEX: ', exported_textures)
 
     material = xtree.Element('Material')
     main = xtree.SubElement(material, "Main", DepthTest='True', PhysicsMaterial='Default', Type='SolidDiffuse')
     texture_untis = xtree.SubElement(material, 'TextureUnits')
     specific_variables = xtree.SubElement(material, 'SpecificVariables')
-    diffuse = xtree.SubElement(texture_untis, 'Diffuse', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(hpl_config.texture_dict['Base Color']), Mipmaps='true', Type='2D', Wrap='Repeat')
-    specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(hpl_config.texture_dict['Specular']), Mipmaps='true', Type='2D', Wrap='Repeat')
-    normalmap = xtree.SubElement(texture_untis, 'NMap', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(hpl_config.texture_dict['Normal']), Mipmaps='true', Type='2D', Wrap='Repeat')
+    diffuse = xtree.SubElement(texture_untis, 'Diffuse', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(exported_textures['Base Color']), Mipmaps='true', Type='2D', Wrap='Repeat')
+    specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(exported_textures['Specular']), Mipmaps='true', Type='2D', Wrap='Repeat')
+    normalmap = xtree.SubElement(texture_untis, 'NMap', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(exported_textures['Normal']), Mipmaps='true', Type='2D', Wrap='Repeat')
 
     vars = [var for var in mat.items() if hpl_config.hpl_variable_identifier in var[0]]
     for var in vars:
@@ -109,16 +112,13 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
 
     def general_properties(spatial_general, obj):
 
-        def swizzle(_t):
-            return (_t[0],_t[2],_t[1])
-
         spatial_general.set('ID', str(id_dict[obj]['ID']))
         spatial_general.set('Name', str(obj.name))
         spatial_general.set('CreStamp', str(0))
         spatial_general.set('ModStamp', str(0))
-        spatial_general.set('WorldPos', str(swizzle(tuple(transpose_dict[obj].to_translation()))).translate(str.maketrans({'(': '', ')': ''})))
-        spatial_general.set('Rotation', str(swizzle(tuple(transpose_dict[obj].to_euler()))).translate(str.maketrans({'(': '', ')': ''})))
-        spatial_general.set('Scale', str(swizzle(tuple(transpose_dict[obj].to_scale()))).translate(str.maketrans({'(': '', ')': ''})))
+        spatial_general.set('WorldPos', hpl_convert.convert_to_hpl_vec3(transpose_dict[obj].to_translation()))
+        spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vec3(transpose_dict[obj].to_euler()))
+        spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(transpose_dict[obj].to_scale()))
 
     for o, obj in enumerate(obj_list):
 
@@ -212,12 +212,12 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
     xtree.indent(entity, space="    ", level=0)
     xtree.ElementTree(entity).write(root+relative_path+obj_col.name+'.ent')
 
-def add_warning_message(warning_msg, export_collection, obj):
+def add_warning_message(warning_msg, export_collection_name, obj_name):
     if not hpl_config.hpl_export_warnings:
-        hpl_config.hpl_export_warnings = {export_collection.name : []}
-    elif export_collection.name not in hpl_config.hpl_export_warnings:
-        hpl_config.hpl_export_warnings[export_collection.name] = []
-    hpl_config.hpl_export_warnings[export_collection.name].append(obj.name + warning_msg)
+        hpl_config.hpl_export_warnings = {export_collection_name : []}
+    elif export_collection_name not in hpl_config.hpl_export_warnings:
+        hpl_config.hpl_export_warnings[export_collection_name] = []
+    hpl_config.hpl_export_warnings[export_collection_name].append(obj_name + warning_msg)
 
 def get_export_objects(export_collection):
 
@@ -227,13 +227,13 @@ def get_export_objects(export_collection):
         if obj.type == 'MESH':
             if 'Shape' not in obj[hpl_config.hpl_internal_type_identifier]:
                 if not obj.data.uv_layers:
-                    add_warning_message(' has no UVs, faulty export. ', export_collection, obj)
+                    add_warning_message(' has no UVs, faulty export. ', export_collection.name, obj.name)
                 if not obj.material_slots:
-                    add_warning_message(' has no material applied, faulty export. ', export_collection, obj)
+                    add_warning_message(' has no material applied, faulty export. ', export_collection.name, obj.name)
                 elif not obj.material_slots[0].material:
-                    add_warning_message(' has empty material slot, faulty export. ', export_collection, obj)
+                    add_warning_message(' has empty material slot, faulty export. ', export_collection.name, obj.name)
         if obj.is_instancer:
-            add_warning_message(' is an instancer, possible faulty export. ', export_collection, obj)
+            add_warning_message(' is an instancer, possible faulty export. ', export_collection.name, obj.name)
             continue
 
         if obj.hide_render:
@@ -260,9 +260,7 @@ def get_world_matrix(obj):
 def hpl_export_objects(op):
     
     # Eventhough we are working with context overrides \
-    # we need the selection for the DAE Exporter at the end.
-    hpl_config.hpl_export_warnings = {}
-    
+    # we need the selection for the DAE Exporter at the end.    
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
@@ -309,7 +307,7 @@ def hpl_export_objects(op):
 
         
         
-        bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = True,\
+        bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = False,\
                                 selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                 export_global_forward_selection = 'Y', export_global_up_selection = 'Z', \
                                 apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
@@ -361,6 +359,7 @@ def hpl_export_objects(op):
         
     bpy.context.view_layer.objects.active = act_obj
 
+def send_warning_messages(op):
     if hpl_config.hpl_export_warnings:
         for obj in hpl_config.hpl_export_warnings:
             op.report({"WARNING"}, obj + "\n" + "\n".join(hpl_config.hpl_export_warnings[obj]))
@@ -370,12 +369,9 @@ def hpl_export_materials(op):
     relative_path = 'mods\\'+bpy.context.scene.hpl_parser.hpl_project_root_col+'\\entities\\'#+export_collection.name+'\\'
 
     for mat in bpy.data.materials:
+        print(mat)
         if mat.users > 0 and any([var for var in mat.items() if hpl_config.hpl_variable_identifier in var[0]]):
             write_material_file(mat, root, relative_path)
-
-            for tex in hpl_config.texture_dict:
-                if hpl_config.texture_dict[tex]:
-                    hpl_texture.HPL_TEXTURE.convert_texture(hpl_config.texture_dict[tex], root+relative_path)
 
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()

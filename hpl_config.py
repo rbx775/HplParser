@@ -53,6 +53,10 @@ class hpl_selection(Enum):
 
 hpl_selection_type = None
 
+hpl_entity_baseclass_list = []
+
+hpl_static_object_class = ['Static_Object']
+
 hpl_custom_properties_prefixes_dict = {'Var' : 'hpl_parser_var_'}
 
 hpl_properties = {'entities' : 'editor\\userclasses\\EntityClasses.def'}
@@ -254,5 +258,6 @@ texconv_subpath = "\\tools\\texconv.exe"
 texconv_download_path = 'https://github.com/Microsoft/DirectXTex/releases/latest/download/texconv.exe'
 is_texconv_available = False
 
-texture_dict = {'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
-texture_default_dict = {'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
+texture_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}
+texture_default_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}#{'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
+texture_format_dict = {'Base Color': "BC1_UNORM", 'Specular': "BC3_UNORM", 'Normal': "BC5_UNORM"}

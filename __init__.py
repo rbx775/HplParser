@@ -408,10 +408,10 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     )
     
     def update_hpl_base_classes_enum(self, context):
-        if not hpl_property_io.hpl_properties.entity_baseclass_list:
-            hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
+        if not hpl_config.hpl_entity_baseclass_list:
+            hpl_config.hpl_entity_baseclass_list = hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
         data = []
-        for name in hpl_property_io.hpl_properties.entity_baseclass_list:
+        for name in hpl_config.hpl_entity_baseclass_list:
             fdata = (name,name,'')
             data.append(fdata)
         return data
@@ -685,6 +685,7 @@ class HPL_PT_3D_CREATE(bpy.types.Panel):
     #@persistent
 
 def draw_panel_mat_content(context, layout):
+    
     scene = context.scene
     props = scene.hpl_parser
     wm = context.window_manager
@@ -795,8 +796,10 @@ def scene_selection_listener(self, context):
                 bpy.context.scene.hpl_parser['hpl_base_classes_enum'] = hpl_config.hpl_outliner_selection[hpl_config.hpl_entity_type_value]
     hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(hpl_config.hpl_outliner_selection)
 
+    # Initialize material vars
     if hpl_config.hpl_active_material:
         if not any([var for var in hpl_config.hpl_active_material.items() if hpl_config.hpl_variable_identifier+'_' in var[0]]):
+            print(hpl_config.hpl_active_material)
             hpl_property_io.hpl_properties.initialize_editor_vars(hpl_config.hpl_active_material, hpl_config.hpl_material_properties_vars_dict)
     hpl_config.hpl_mat_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(hpl_config.hpl_active_material)
 

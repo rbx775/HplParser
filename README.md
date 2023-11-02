@@ -12,6 +12,7 @@ Blender to HPL3 Engine Parser for Mod Creation.
 ### Known Issues
 1. Crash when generating asset thumbnails
 1. Material errors for some imported assets
+1. No OpenEXR support yet as source texture format.
 
 ### Main Features, Todo
 1. [ ] Interchangeability HPL Level Editor <=> Blender HPL Parser
@@ -35,8 +36,8 @@ Blender to HPL3 Engine Parser for Mod Creation.
 1. Full model editor feature set
 Animations
 ProcAnimations
-   - [x] StaticObjects
-   - [x] Entities
+   - [ ] StaticObjects
+   - [ ] Entities
       - [ ] Animations
       - [ ] ProcAnimations
 1. [ ] Custom character creation
