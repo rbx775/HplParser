@@ -7,7 +7,9 @@ Blender to HPL3 Engine Parser for Mod Creation.
 
 ### Supported Games
 - [x] Amnesia The Bunker
-- [ ] Amnesia Rebirth
+
+### Supported Platforms
+- [x] Windows
 
 ### Known Issues
 1. Crash when generating asset thumbnails

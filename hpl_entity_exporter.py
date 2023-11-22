@@ -5,7 +5,10 @@ import random
 import time
 import hashlib
 import xml.etree.ElementTree as xtree
+
 from . import hpl_config
+from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type)
+
 from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
@@ -42,9 +45,6 @@ def load_xml_file(file_path):
             map_file = _map_file.read()
 
         #TODO: build xml handler that ignores quotation segments
-        #map_file = map_file.replace('&', '')
-        #map_file = map_file.replace(' < ', '')
-        #map_file = map_file.replace(' > ', '')
         return map_file
     return ''
 
@@ -129,9 +129,10 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
         
     for obj in list(id_dict):
 
-        if not any([var for var in obj.items() if 'hpl_' in var[0]]) and obj.type != 'MESH':
+        if not obj.get('hpl_parser_entity_properties') and obj.type != 'MESH':
             continue
-            
+
+        entity_type = obj.get('hpl_parser_entity_properies').get('') if any([var for var in obj.items() if hpl_config.hpl_internal_type_identifier in var[0]]) else None    
         entity_type = obj[hpl_config.hpl_internal_type_identifier] if any([var for var in obj.items() if hpl_config.hpl_internal_type_identifier in var[0]]) else None
         if not entity_type:
             continue
@@ -173,11 +174,12 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             
             children = xtree.SubElement(body, 'Children') #TODO: Check if there are children
             for child_ent in id_dict[obj]['Children']:
-                if any([var for var in child_ent.items() if hpl_config.hpl_internal_type_identifier in var[0]]):
-                    if 'Shape' in child_ent[hpl_config.hpl_internal_type_identifier]:
-                        shape = xtree.SubElement(body, 'Shape')
-                        shape.set('ID', str(id_dict[child_ent]['ID']))
-                        continue
+                if child_ent.get('hpl_parser_entity_properties').get('EntityType') == hpl_entity_type.SHAPE:
+                #if any([var for var in child_ent.items() if hpl_config.hpl_internal_type_identifier in var[0]]):
+                #    if 'Shape' in child_ent[hpl_config.hpl_internal_type_identifier]:
+                    shape = xtree.SubElement(body, 'Shape')
+                    shape.set('ID', str(id_dict[child_ent]['ID']))
+                    continue
                 
                 child = xtree.SubElement(children, 'Child')
                 child.set('ID', str(id_dict[child_ent]['ID']))
@@ -257,6 +259,40 @@ def get_world_matrix(obj):
         world_matrix = obj.parent.matrix_world @ world_matrix
     return world_matrix
 
+def is_valid_export_collection(col):
+
+    if not any([item for item in col.items() if hpl_config.hpl_entity_type_identifier in item[0]]):
+        return False
+    elif hpl_config.hpl_detail_mesh_identifier in col.name:
+        return False
+    elif col.exclude:
+        return False
+    elif not col.objects:
+        return False
+    elif hpl_config.hpl_map_collection_identifier == col.name:
+        return False
+    return True
+
+def get_export_jobs(op):
+    export_jobs = {}
+
+    # Eventhough we are working with context overrides \
+    # we need the selection for the DAE Exporter at the end.    
+    #sel_objs = bpy.context.selected_objects
+    #act_obj = bpy.context.active_object
+    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
+    #root = bpy.context.scene.hpl_parser.hpl_game_root_path + '\\'
+    
+    # Using context to loop through collections to get their state. (enabled/ disabled)
+    viewlayer_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children
+    viewlayer_collections_list = [col.name for col in viewlayer_collections_list if is_valid_export_collection(col)]
+
+    for col_name in viewlayer_collections_list:
+        col = bpy.data.collections[col_name]
+        
+        #if col[hpl_config.hpl_internal_type_identifier] == 
+
+
 def hpl_export_objects(op):
     
     # Eventhough we are working with context overrides \
@@ -307,13 +343,15 @@ def hpl_export_objects(op):
 
         
         
-        bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = False,\
+        bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = True,\
                                 selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                 export_global_forward_selection = 'Y', export_global_up_selection = 'Z', \
                                 apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                 triangulate = False) #-Y, Z
         
         '''        
+        profile_COMMON
+        library_images
         # Inject necessary custom variables into the *.dae file
         dae_file = xtree.fromstring(load_xml_file(root + relative_path + col_name+'.dae'))
         #TODO: Better way to get xml namespace

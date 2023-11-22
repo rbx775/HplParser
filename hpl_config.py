@@ -1,4 +1,6 @@
 #---HPM PARSER CONFIG
+import dataclasses
+from typing import Dict
 from enum import Enum
 
 hpl_map_collection_identifier = 'Maps'
@@ -22,11 +24,11 @@ hpl_ui_enum_dict = {}
 hpl_joint_set_current_dict = {}
 hpl_joint_set_warning = False
 
-
 hpl_current_scene_collection = []
 hpl_shape_types = ['box','cylinder','capsule','sphere']
 
 hpl_outliner_selection = None
+hpl_previous_outliner_selection = None
 hpl_viewport_selection = None
 hpl_active_material = None
 
@@ -53,9 +55,34 @@ class hpl_selection(Enum):
 
 hpl_selection_type = None
 
+class hpl_entity_type(Enum):
+    MAP = 1
+    ENTITY = 2
+    ENTITY_INSTANCE = 3
+    BODY = 4
+    SHAPE = 5
+    SUBMESH = 6
+    LIGHT = 7
+    MATERIAL = 8
+    JOINT = 9
+
+hpl_selection_entity_type = None
+
+class hpl_shape_type(Enum):
+    BOX = 1
+    SPHERE = 2
+    CYLINDER = 3
+    CAPSULE = 4
+
+class hpl_joint_type(Enum):
+    HINGE = 1
+    SCREW = 2
+    BALL = 3
+    SLIDER = 4
+
 hpl_entity_baseclass_list = []
 
-hpl_static_object_class = ['Static_Object']
+hpl_static_object_class_list = ['Static_Object']
 
 hpl_custom_properties_prefixes_dict = {'Var' : 'hpl_parser_var_'}
 
@@ -76,156 +103,170 @@ hpl_entity_classes_file_sub_path = 'editor\\userclasses\\EntityClasses.def'
 hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
 hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str]
+hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color'] 
 
-hpl_level_editor_general_vars_list =    [
-    {'Name':"Active", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Activate or Deactivate the Object"},
-    {'Name':"Important", 'Type':"Bool", 'DefaultValue':"false", 'Description':""},
-    {'Name':"Static", 'Type':"Bool", 'DefaultValue':"false", 'Description':"Enable if this entity should stationary."},
-    {'Name':"CulledByDistance", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, no matter the distance."},
-    {'Name':"CulledByFog", 'Type':"Bool", 'DefaultValue':"true", 'Description':"Disable if the entity should be always rendered, even if fog occludes it."}]
-
-hpl_level_editor_general_vars_dict = {'General' : hpl_level_editor_general_vars_list}
+hpl_level_editor_general_vars_dict = {'General' :
+    {
+        'Active'            : {'Type' : "Bool",   'DefaultValue' : "true",  'Description' : "Activate or Deactivate the Object"},
+        'Important'         : {'Type' : "Bool",   'DefaultValue' : "false", 'Description' : ""},
+        'Static'            : {'Type' : "Bool",   'DefaultValue' : "false", 'Description' : "Enable if this entity should stationary."},
+        'CulledByDistance'  : {'Type' : "Bool",   'DefaultValue' : "true",  'Description' : "Disable if the entity should be always rendered, no matter the distance."},
+        'CulledByFog'       : {'Type' : "Bool",   'DefaultValue' : "true",  'Description' : "Disable if the entity should be always rendered, even if fog occludes it."},
+    }
+}
 
 ###BODY
-hpl_body_properties_vars_list = [
-    {'Name':'Material',                     'Type':"String",    'DefaultValue':"Default",       'Description':""},
-    {'Name':'Mass',                         'Type':"Float",     'DefaultValue':"0",             'Description':""}, 
-    {'Name':'LinearDamping',                'Type':"Float",     'DefaultValue':"0.1",           'Description':""}, 
-    {'Name':'AngularDamping',               'Type':"Float",     'DefaultValue':"0.1",           'Description':""}, 
-    {'Name':'MaxAngularSpeed',              'Type':"Int",       'DefaultValue':"20",            'Description':""}, 
-    {'Name':'MaxLinearSpeed',               'Type':"Int",       'DefaultValue':"20",            'Description':""}, 
-    {'Name':'BuoyancyDensityMul',           'Type':"Int",       'DefaultValue':"1",             'Description':""}, 
-    {'Name':'BlocksLight',                  'Type':"Bool",      'DefaultValue':"true",          'Description':""},
-    {'Name':'BlocksSound',                  'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'ContinuousCollision',          'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
-    {'Name':'CanAttachCharacter',           'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'PushedByCharacterGravity',     'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'CollideCharacter',             'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
-    {'Name':'CollideNonCharacter',          'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
-    {'Name':'Volatile',                     'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'UseSurfaceEffects',            'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
-    {'Name':'HasGravity',                   'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    ]
-hpl_body_properties_vars_dict = {'Body' : hpl_body_properties_vars_list}
+hpl_body_properties_vars_dict = {'Body' : 
+    {
+        'Material'                  : {'Type' : "String", 'DefaultValue' : "Default", 'Description' : ""},
+        'Mass'                      : {'Type' : "Float",  'DefaultValue' : "0",       'Description' : ""}, 
+        'LinearDamping'             : {'Type' : "Float",  'DefaultValue' : "0.1",     'Description' : ""},
+        'AngularDamping'            : {'Type' : "Float",  'DefaultValue' : "0.1",     'Description' : ""},
+        'MaxAngularSpeed'           : {'Type' : "Int",    'DefaultValue' : "20",      'Description' : ""},
+        'MaxLinearSpeed'            : {'Type' : "Int",    'DefaultValue' : "20",      'Description' : ""},
+        'BuoyancyDensityMul'        : {'Type' : "Int",    'DefaultValue' : "1",       'Description' : ""},
+        'BlocksLight'               : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
+        'BlocksSound'               : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
+        'ContinuousCollision'       : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
+        'CanAttachCharacter'        : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
+        'PushedByCharacterGravity'  : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
+        'CollideCharacter'          : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
+        'CollideNonCharacter'       : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
+        'Volatile'                  : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
+        'UseSurfaceEffects'         : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
+        'HasGravity'                : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
+    }
+}
 
 ###BASE
-hpl_joint_base_properties_vars_list = [
-    {'Name':'LimitStepCount',               'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    {'Name':'Stiffness',                    'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    {'Name':'StickyMinLimit',               'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'StickyMaxLimit',               'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'CollideBodies',                'Type':"Bool",      'DefaultValue':"true",          'Description':""}, 
-    {'Name':'Breakable',                    'Type':"Bool",      'DefaultValue':"false",         'Description':""}, 
-    {'Name':'BreakForce',                   'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    ]
-hpl_joint_base_properties_vars_dict = {'JointBase' : hpl_joint_base_properties_vars_list}
+hpl_joint_base_properties_vars_dict = {'JointBase' :
+    {
+        'LimitStepCount'     : {'Type' : "Int",   'DefaultValue' : "0",      'Description' : ""},
+        'Stiffness'          : {'Type' : "Int",   'DefaultValue' : "0",      'Description' : ""},
+        'StickyMinLimit'     : {'Type' : "Bool",  'DefaultValue' : "false",  'Description' : ""},
+        'StickyMaxLimit'     : {'Type' : "Bool",  'DefaultValue' : "false",  'Description' : ""},
+        'CollideBodies'      : {'Type' : "Bool",  'DefaultValue' : "true",   'Description' : ""},
+        'Breakable'          : {'Type' : "Bool",  'DefaultValue' : "false",  'Description' : ""},
+        'BreakForce'         : {'Type' : "Int",   'DefaultValue' : "0",      'Description' : ""},
+    }
+}
 
 ###BALL
-hpl_joint_ball_properties_vars_list = [
-    {'Name':'MaxConeAngle',                 'Type':"Int",       'DefaultValue':"0",             'Description':""},
-    {'Name':'MaxTwistAngle',                'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    ]
-hpl_joint_ball_properties_vars_dict = {'BallParams' : hpl_joint_ball_properties_vars_list}
+hpl_joint_ball_properties_vars_dict = {'BallParams' :
+    {
+        'MaxConeAngle'   : {'Type' : "Int",   'DefaultValue' : "0",  'Description' : ""},
+        'MaxTwistAngle'  : {'Type' : "Int",   'DefaultValue' : "0",  'Description' : ""},
+    }
+}
 
 ###HINGE
-hpl_joint_hinge_properties_vars_list = [
-    {'Name':'MinAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""},
-    {'Name':'MaxAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    ]
-hpl_joint_hinge_properties_vars_dict = {'HingeParams' : hpl_joint_hinge_properties_vars_list}
+hpl_joint_hinge_properties_vars_dict = {'HingeParams' :
+    {
+        'MinAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+        'MaxAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+    }
+}
 
 ###SLIDE
-hpl_joint_slider_properties_vars_list = [
-    {'Name':'MinDistance',                  'Type':"Int",       'DefaultValue':"0",             'Description':""},
-    {'Name':'MaxDistance',                  'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    ]
-hpl_joint_slider_properties_vars_dict = {'SlideParams' : hpl_joint_slider_properties_vars_list}
+hpl_joint_slider_properties_vars_dict = {'SlideParams' : 
+    {
+        'MinDistance' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+        'MaxDistance' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+    }
+}
 
 ###SCREW
-hpl_joint_screw_properties_vars_list = [
-    {'Name':'MinAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""},
-    {'Name':'MaxAngle',                     'Type':"Int",       'DefaultValue':"0",             'Description':""}, 
-    ]
-hpl_joint_screw_properties_vars_dict = {'ScrewParams' : hpl_joint_screw_properties_vars_list}
+hpl_joint_screw_properties_vars_dict = {'ScrewParams' :
+    {
+        'MinAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+        'MaxAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+    }
+}
 
 ###SOUND
-hpl_joint_sound_properties_vars_list = [
-    {'Name':'MoveType',                 'Type':"bb",        'DefaultValue':"Linear",    'Description':""},
-    {'Name':'MoveSound',                'Type':"File",      'DefaultValue':"",          'Description':""}, 
-    {'Name':'MinMoveSpeed',             'Type':"Float",     'DefaultValue':"0.1",       'Description':""}, 
-    {'Name':'MinMoveFreq',              'Type':"Float",     'DefaultValue':"0.95",      'Description':""}, 
-    {'Name':'MinMoveFreqSpeed',         'Type':"Float",     'DefaultValue':"0.2",       'Description':""}, 
-    {'Name':'MinMoveVolume',            'Type':"Float",     'DefaultValue':"0.01",      'Description':""}, 
-    {'Name':'MaxMoveSpeed',             'Type':"Float",     'DefaultValue':"2",         'Description':""}, 
-    {'Name':'MaxMoveFreq',              'Type':"Float",     'DefaultValue':"1.1",       'Description':""}, 
-    {'Name':'MaxMoveFreqSpeed',         'Type':"Float",     'DefaultValue':"0.7",       'Description':""}, 
-    {'Name':'MaxMoveVolume',            'Type':"Float",     'DefaultValue':"0.8",       'Description':""}, 
-    {'Name':'MiddleMoveSpeed',          'Type':"Float",     'DefaultValue':"0.5",       'Description':""}, 
-    {'Name':'MiddleMoveVolume',         'Type':"Float",     'DefaultValue':"0.5",       'Description':""}, 
-    {'Name':'BreakSound',               'Type':"File",      'DefaultValue':"",          'Description':""}, 
-    {'Name':'MinLimitSound',            'Type':"File",      'DefaultValue':"",          'Description':""}, 
-    {'Name':'MinLimitMinSpeed',         'Type':"Float",     'DefaultValue':"0",         'Description':""}, 
-    {'Name':'MinLimitMaxSpeed',         'Type':"Float",     'DefaultValue':"0",         'Description':""}, 
-    {'Name':'MaxLimitSound',            'Type':"File",      'DefaultValue':"",          'Description':""}, 
-    {'Name':'MaxLimitMinSpeed',         'Type':"Float",     'DefaultValue':"0",         'Description':""}, 
-    {'Name':'MaxLimitMaxSpeed',         'Type':"Float",     'DefaultValue':"0",         'Description':""}, 
-    ]
-hpl_joint_sound_properties_vars_dict = {'JointSounds' : hpl_joint_sound_properties_vars_list}
+hpl_joint_sound_properties_vars_dict = {'JointSounds' :
+    {
+        'MoveType'           : {'Type' : "bb",    'DefaultValue' : "Linear", 'Description' : ""},
+        'MoveSound'          : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
+        'MinMoveSpeed'       : {'Type' : "Float", 'DefaultValue' : "0.1",    'Description' : ""},
+        'MinMoveFreq'        : {'Type' : "Float", 'DefaultValue' : "0.95",   'Description' : ""},
+        'MinMoveFreqSpeed'   : {'Type' : "Float", 'DefaultValue' : "0.2",    'Description' : ""},
+        'MinMoveVolume'      : {'Type' : "Float", 'DefaultValue' : "0.01",   'Description' : ""},
+        'MaxMoveSpeed'       : {'Type' : "Float", 'DefaultValue' : "2",      'Description' : ""},
+        'MaxMoveFreq'        : {'Type' : "Float", 'DefaultValue' : "1.1",    'Description' : ""},
+        'MaxMoveFreqSpeed'   : {'Type' : "Float", 'DefaultValue' : "0.7",    'Description' : ""},
+        'MaxMoveVolume'      : {'Type' : "Float", 'DefaultValue' : "0.8",    'Description' : ""},
+        'MiddleMoveSpeed'    : {'Type' : "Float", 'DefaultValue' : "0.5",    'Description' : ""},
+        'MiddleMoveVolume'   : {'Type' : "Float", 'DefaultValue' : "0.5",    'Description' : ""},
+        'BreakSound'         : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
+        'MinLimitSound'      : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
+        'MinLimitMinSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
+        'MinLimitMaxSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
+        'MaxLimitSound'      : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
+        'MaxLimitMinSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
+        'MaxLimitMaxSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
+    }
+}
 
 ###SUBMESH
-hpl_submesh_properties_vars_list = [
-    {'Name':'Static',                   'Type':"Bool",      'DefaultValue':"True",      'Description':""},
-    ]
-hpl_submesh_properties_vars_dict = {'General' : hpl_submesh_properties_vars_list}
+hpl_submesh_properties_vars_dict = {'General' :
+    {
+        'Static'            : {'Type':"Bool",      'DefaultValue':"True",      'Description':""},
+    }
+}
 
 ###COLLIDER
-hpl_collider_properties_vars_list = [
-    {'Name':'ConnectedParentBodyID',    'Type':"String",      'DefaultValue':"",      'Description':""},
-    {'Name':'ConnectedChildBodyID',     'Type':"String",      'DefaultValue':"",      'Description':""},
-    ]
-hpl_collider_properties_vars_dict = {'General' : hpl_collider_properties_vars_list}
+hpl_collider_properties_vars_dict = {'General' :
+    {
+        'ConnectedParentBodyID' : {'Type' : "String", 'DefaultValue' : "", 'Description' : ""},
+        'ConnectedChildBodyID'  : {'Type' : "String", 'DefaultValue' : "", 'Description' : ""},
+    }
+}
 
-hpl_material_properties_vars_list = [
-    {'Name': 'HeightMapScale',              'Type': 'Float',    'DefaultValue': '0.05', 'Description': ''},
-    {'Name': 'HeightMapBias',               'Type': 'Float',    'DefaultValue': '0', 'Description': ''},
-    {'Name': 'IlluminationBrightness',      'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
-    {'Name': 'FrenselBias',                 'Type': 'Float',    'DefaultValue': '0.2', 'Description': ''},
-    {'Name': 'FrenselPow',                  'Type': 'Float',    'DefaultValue': '8', 'Description': ''},
-    {'Name': 'AlphaDissolveFilter',         'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
-    {'Name': 'DetailUvMul',                 'Type': 'Vector2',  'DefaultValue': '4 4', 'Description': ''},
-    {'Name': 'DetailWeight_Diffuse',        'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
-    {'Name': 'DetailWeight_Specular',       'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
-    {'Name': 'DetailWeight_Normal',         'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
-    {'Name': 'DetailFadeStart',             'Type': 'Float',    'DefaultValue': '5', 'Description': ''},
-    {'Name': 'DetailFadeEnd',               'Type': 'Float',    'DefaultValue': '10', 'Description': ''},
-    {'Name': 'SwayActive',                  'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
-    {'Name': 'SwayForceFieldAffected',      'Type': 'Bool',     'DefaultValue': 'true', 'Description': ''},
-    {'Name': 'SwayFreq',                    'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
-    {'Name': 'SwayAmplitude',               'Type': 'Float',    'DefaultValue': '0.1', 'Description': ''},
-    {'Name': 'SwaySpeed',                   'Type': 'Float',    'DefaultValue': '1', 'Description': ''},
-    {'Name': 'SwayOctaveMuls',              'Type': 'Vector3',  'DefaultValue': '0.125 0.25 1', 'Description': ''},
-    {'Name': 'SwayForceFieldMul',           'Type': 'Float',    'DefaultValue': '0.3', 'Description': ''},
-    {'Name': 'SwayForceFieldMax',           'Type': 'Float',    'DefaultValue': '0.6', 'Description': ''},
-    {'Name': 'SwayYFreqMul',                'Type': 'Float',    'DefaultValue': '0', 'Description': ''},
-    {'Name': 'SwaySingleDir',               'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
-    {'Name': 'SwaySingleDirVector',         'Type': 'Vector3',  'DefaultValue': '0 0 1', 'Description': ''},
-    {'Name': 'SwaySingleSampleVector',      'Type': 'Vector3',  'DefaultValue': '1 0 0', 'Description': ''},
-    {'Name': 'LiquidTrickleColor',          'Type': 'Color',    'DefaultValue': '0 0 0 1', 'Description': ''},
-    {'Name': 'LiquidTrickleSpecular',       'Type': 'Color',    'DefaultValue': '0 0 0 0', 'Description': ''},
-    {'Name': 'LiquidTrickleLoopFade',       'Type': 'Bool',     'DefaultValue': 'false', 'Description': ''},
-    {'Name': 'LiquidTrickleFadeSpeed',      'Type': 'Vector2',  'DefaultValue': '0.5 0.5', 'Description': ''},
-    {'Name': 'LiquidTrickleEdgeSize',       'Type': 'Float',    'DefaultValue': '0.5', 'Description': ''},
-    {'Name': 'LiquidTrickleDryness',        'Type': 'Float',    'DefaultValue': '0.5', 'Description': ''},
-    {'Name': 'LiquidTrickleBlendMode',      'Type': 'String',   'DefaultValue': 'Alpha', 'Description': ''}
-]
+hpl_material_properties_vars_dict = {'SolidDiffuse' :
+    {
+        'HeightMapScale'            : {'Type' : "Float",    'DefaultValue' : "0.05", 'Description' : ""},
+        'HeightMapBias'             : {'Type' : "Float",    'DefaultValue' : "0",    'Description' : ""},
+        'IlluminationBrightness'    : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
+        'FrenselBias'               : {'Type' : "Float",    'DefaultValue' : "0.2",  'Description' : ""},
+        'FrenselPow'                : {'Type' : "Float",    'DefaultValue' : "8",    'Description' : ""},
+        'AlphaDissolveFilter'       : {'Type' : "Bool",     'DefaultValue' : "false",'Description' : ""},
+        'DetailUvMul'               : {'Type' : "Vector2",  'DefaultValue' : "4 4",  'Description' : ""},
+        'DetailWeight_Diffuse'      : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
+        'DetailWeight_Specular'     : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
+        'DetailWeight_Normal'       : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
+        'DetailFadeStart'           : {'Type' : "Float",    'DefaultValue' : "5",    'Description' : ""},
+        'DetailFadeEnd'             : {'Type' : "Float",    'DefaultValue' : "10",   'Description' : ""},
+        'SwayActive'                : {'Type' : "Bool",     'DefaultValue' : "false",'Description' : ""},
+        'SwayForceFieldAffected'    : {'Type' : "Bool",     'DefaultValue' : "true", 'Description' : ""},
+        'SwayFreq'                  : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
+        'SwayAmplitude'             : {'Type' : "Float",    'DefaultValue' : "0.1",  'Description' : ""},
+        'SwaySpeed'                 : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
+        'SwayOctaveMuls'            : {'Type' : "Vector3",  'DefaultValue' : "0.125 0.25 1", 'Description' : ""},
+        'SwayForceFieldMul'         : {'Type' : "Float",    'DefaultValue' : "0.3",  'Description' : ""},
+        'SwayForceFieldMax'         : {'Type' : "Float",    'DefaultValue' : "0.6",  'Description' : ""},
+        'SwayYFreqMul'              : {'Type' : "Float",    'DefaultValue' : "0",    'Description' : ""},
+        'SwaySingleDir'             : {'Type' : "Bool",     'DefaultValue' : "false",'Description' : ""},
+        'SwaySingleDirVector'       : {'Type' : "Vector3",  'DefaultValue' : "0 0 1", 'Description' : ""},
+        'SwaySingleSampleVector'    : {'Type' : "Vector3", 'DefaultValue' : "1 0 0",   'Description' : ""},
+        'LiquidTrickleColor'        : {'Type' : "Color",   'DefaultValue' : "0 0 0 1", 'Description' : ""},
+        'LiquidTrickleSpecular'     : {'Type' : "Color",   'DefaultValue' : "0 0 0 0", 'Description' : ""},
+        'LiquidTrickleLoopFade'     : {'Type' : "Bool",    'DefaultValue' : "false",   'Description' : ""},
+        'LiquidTrickleFadeSpeed'    : {'Type' : "Vector2", 'DefaultValue' : "0.5 0.5", 'Description' : ""},
+        'LiquidTrickleEdgeSize'     : {'Type' : "Float",   'DefaultValue' : "0.5",     'Description' : ""},
+        'LiquidTrickleDryness'      : {'Type' : "Float",   'DefaultValue' : "0.5",     'Description' : ""},
+        'LiquidTrickleBlendMode'    : {'Type' : "String",  'DefaultValue' : "Alpha",   'Description' : ""},
+    }
+}
 
-hpl_material_shader_properties_vars_list = [
-    {'Name': 'DepthTest',                   'Type': 'Bool',     'DefaultValue': 'true', 'Description': ''},
-    {'Name': 'PhysicsMaterial',             'Type': 'String',   'DefaultValue': 'Default', 'Description': ''},
-    {'Name': 'SolidDiffuse',                'Type': 'String',   'DefaultValue': 'SolidDiffuse', 'Description': ''},
-]
-hpl_material_shader_properties_vars_dict = {'Main' : hpl_material_shader_properties_vars_list}
-hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict, **{'SolidDiffuse' : hpl_material_properties_vars_list}}
+hpl_material_shader_properties_vars_dict = {'Main' :
+    {
+        'DepthTest'        : {'Type' : "Bool",   'DefaultValue' : "true",     'Description' : ""},
+        'PhysicsMaterial'  : {'Type' : "String", 'DefaultValue' : "Default",  'Description' : ""},
+        'SolidDiffuse'     : {'Type' : "String", 'DefaultValue' : "SolidDiffuse", 'Description' : ""},
+    }
+}
+hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict, **hpl_material_properties_vars_dict}
 
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 

@@ -12,7 +12,7 @@ import socket
 
 from glob import glob
 from . import hpl_config
-from . import hpm_config
+from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type)
 from . import hpl_property_io
 from . import hpl_material
 from . import hpl_entity_exporter
@@ -60,8 +60,6 @@ def run_python_hook():
 
 
 def load_map_file(file_path):
-    #root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    #map_file_path = root + file_path
 
     if os.path.isfile(file_path):
         map_file = ""
@@ -69,9 +67,6 @@ def load_map_file(file_path):
             map_file = _map_file.read()
 
         #TODO: build xml handler that ignores quotation segments
-        #map_file = map_file.replace('&', '')
-        #map_file = map_file.replace(' < ', '')
-        #map_file = map_file.replace(' > ', '')
         return map_file
     return ''
 
@@ -106,9 +101,10 @@ def write_hpm_main(map_col, _map_path, _id):
     root = xtree.Element('HPLMap', ID=str(_id), MajorVersion='1', MinorVersion='1')
     global_settings = xtree.SubElement(root, "GlobalSettings")
 
-    var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(map_col)
+    #var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(map_col)
+    map_var_dict = hpl_property_io.hpl_properties.get_var_from_entity_properties(map_col).get('Vars', {})
 
-    for group in var_dict:
+    for group in map_var_dict:
         attribute = group.rsplit('_')[-1]
         if attribute == 'Decals':
             continue
@@ -117,7 +113,7 @@ def write_hpm_main(map_col, _map_path, _id):
         if not any([elem.tag for elem in root.iter() if attribute_hpm == elem.tag]):
             sub_element = xtree.SubElement(global_settings, attribute_hpm)
 
-        for var in var_dict[group]:
+        for var in map_var_dict[group]:
             
             var_name = var[len(hpl_config.hpl_custom_properties_prefixes_dict['Var'])+len(attribute):]
             if sub_element.tag == 'EnvParticles': 
@@ -250,34 +246,36 @@ def write_hpm_entity(map_col, _map_path, _id):
     
     for obj in map_col.objects:
         if obj.is_instancer:
-            
-            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
-            user_variables = xtree.SubElement(entity, 'UserVariables')
-            xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.ent')
+            if obj.instance_collection.get('hpl_parser_entity_properties').get('PropType') == 'Static_Object':
+            #if any([var for var in obj.instance_collection.items() if hpl_config.hpl_entity_type_identifier in var[0]]):
+                #if not obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
+                entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
+                user_variables = xtree.SubElement(entity, 'UserVariables')
+                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.ent')
 
-            general_properties(entity, obj, root_id, _index)
-            '''            
-            entity.set('ID', str(root_id+_index))
-            entity.set('Name', str(obj.name))
-            entity.set('CreStamp', str(0))
-            entity.set('ModStamp', str(0))
-            entity.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.position))
-            entity.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
-            entity.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
-            entity.set('FileIndex', str(_index))
-            '''
-            vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
-            for var in vars:
-                var_name = var[0].split('hpl_parser_var_')[-1]
-                if var_name in hpm_config.hpm_entities_properties['Entity']:
-                    entity.set(var_name, str(var[1]))
-                else:
-                    xml_var = xtree.SubElement(user_variables,'Var')
-                    xml_var.set('ObjectId', str(root_id+_index))
-                    xml_var.set('Name', var_name)
-                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-            _index = _index + 1
-                        
+                general_properties(entity, obj, root_id, _index)
+                '''            
+                entity.set('ID', str(root_id+_index))
+                entity.set('Name', str(obj.name))
+                entity.set('CreStamp', str(0))
+                entity.set('ModStamp', str(0))
+                entity.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.position))
+                entity.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
+                entity.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
+                entity.set('FileIndex', str(_index))
+                '''
+                vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+                for var in vars:
+                    var_name = var[0].split('hpl_parser_var_')[-1]
+                    if var_name in hpm_config.hpm_entities_properties['Entity']:
+                        entity.set(var_name, str(var[1]))
+                    else:
+                        xml_var = xtree.SubElement(user_variables,'Var')
+                        xml_var.set('ObjectId', str(root_id+_index))
+                        xml_var.set('Name', var_name)
+                        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                _index = _index + 1
+                    
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
