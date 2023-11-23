@@ -4,7 +4,6 @@ from . import hpl_property_io
 
 class HPL_MATERIAL():
 
-    
     def find_textures(node, tex_node):
         if node.type == 'TEX_IMAGE':
             hpl_config.texture_dict[tex_node] = node.image.filepath

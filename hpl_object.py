@@ -41,11 +41,11 @@ def add_body(self, context):
 
     var_dict = hpl_config.hpl_body_properties_vars_dict
     body_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
-                                                    'EntityType': hpl_entity_type.BODY,
+                                                    'EntityType': hpl_entity_type.BODY.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {key: False for key in var_dict},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
+                                                    'BlenderType': 'Object',
                                                 }
     
     #hpl_property_io.hpl_properties.initialize_editor_vars(body_empty)
@@ -67,15 +67,15 @@ def add_joint_screw(self, context):
     bpy.context.collection.objects.link(screw_empty)
     bpy.ops.object.select_all(action='DESELECT')
     #screw_empty['hpl_internal_type'] = 'Joint_Screw'
-
+    
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     screw_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
-                                                    'EntityType': hpl_entity_type.JOINT,
-                                                    'JointType' : hpl_joint_type.SCREW,
+                                                    'EntityType': hpl_entity_type.JOINT.init(),
+                                                    'JointType' : hpl_joint_type.SCREW.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {key: False for key in var_dict},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
+                                                    'BlenderType': 'Object',
                                                 }
     
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
@@ -103,12 +103,12 @@ def add_joint_slider(self, context):
 
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     arrow_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
-                                                    'EntityType': hpl_entity_type.JOINT,
-                                                    'JointType' : hpl_joint_type.SLIDER,
+                                                    'EntityType': hpl_entity_type.JOINT.init(),
+                                                    'JointType' : hpl_joint_type.SLIDER.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {key: False for key in var_dict},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
+                                                    'BlenderType': 'Object',
                                                 }
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(arrow_empty)
@@ -135,12 +135,12 @@ def add_joint_ball(self, context):
 
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
     sphere_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
-                                                    'EntityType': hpl_entity_type.JOINT,
-                                                    'JointType' : hpl_joint_type.BALL,
+                                                    'EntityType': hpl_entity_type.JOINT.init(),
+                                                    'JointType' : hpl_joint_type.BALL.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {key: False for key in var_dict},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
+                                                    'BlenderType': 'Object',
                                                 }
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(sphere_empty)
@@ -179,12 +179,11 @@ def add_joint_hinge(self, context):
     
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     circle_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
-                                                    'EntityType': hpl_entity_type.JOINT,
-                                                    'JointType' : hpl_joint_type.HINGE,
+                                                    'EntityType': hpl_entity_type.JOINT.init(),
+                                                    'JointType' : hpl_joint_type.HINGE.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {key: False for key in var_dict},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                 }
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(circle_empty)
@@ -201,12 +200,11 @@ def add_shape_box(self, context):
     #box_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeBox'
     
     box_shape['hpl_parser_entity_properties'] = {   'Vars': {}, 
-                                                    'EntityType': hpl_entity_type.SHAPE, 
-                                                    'ShapeType': hpl_shape_type.BOX,
+                                                    'EntityType': hpl_entity_type.SHAPE.init(), 
+                                                    'ShapeType': hpl_shape_type.BOX.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                 }
 
     # Link the object into the scene.
@@ -229,12 +227,11 @@ def add_shape_sphere(self, context):
     sphere_shape = bpy.data.objects.new("ShapeSphere", mesh)
     #sphere_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeSphere'
     sphere_shape['hpl_parser_entity_properties'] = {'Vars': {}, 
-                                                    'EntityType': hpl_entity_type.SHAPE, 
-                                                    'ShapeType':  hpl_shape_type.SPHERE,
+                                                    'EntityType': hpl_entity_type.SHAPE.init(), 
+                                                    'ShapeType':  hpl_shape_type.SPHERE.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                 }
 
     # Add the object into the scene.
@@ -257,12 +254,11 @@ def add_shape_cylinder(self, context):
     cylinder_shape = bpy.data.objects.new("ShapeCylinder", mesh)
     #cylinder_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeCylinder'
     cylinder_shape['hpl_parser_entity_properties'] = {'Vars': {}, 
-                                                    'EntityType': hpl_entity_type.SHAPE, 
-                                                    'ShapeType':  hpl_shape_type.CYLINDER,
+                                                    'EntityType': hpl_entity_type.SHAPE.init(), 
+                                                    'ShapeType':  hpl_shape_type.CYLINDER.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {},
                                                     'InstancerName': None,
-                                                    'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                 }
     # Link the object into the scene.
     bpy.context.collection.objects.link(cylinder_shape)
@@ -300,12 +296,11 @@ def add_shape_capsule(self, context):
     capsule_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeCapsule'
 
     capsule_shape['hpl_parser_entity_properties'] = {'Vars': {}, 
-                                                'EntityType': hpl_entity_type.SHAPE, 
-                                                'ShapeType': hpl_shape_type.CAPSULE,
+                                                'EntityType': hpl_entity_type.SHAPE.init(), 
+                                                'ShapeType': hpl_shape_type.CAPSULE.init(),
                                                 'PropType' : None,
                                                 'GroupStates': {},
                                                 'InstancerName': None,
-                                                'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                             }
 
     # Link the object into the scene.
@@ -348,6 +343,32 @@ class OBJECT_PT_CREATE_ADD_PANEL(bpy.types.Panel):
         sub_menu = self.layout.menu(menu=OBJECT_MT_display_presets, text='HPL Object')
         sub_menu.operator(OBJECT_OT_add_box_shape.bl_idname, icon="PLUGIN")
 '''
+def add_entity(self, context, _type):
+    
+    #   Signal the scene listener to skip the next couple of scene updates, entity will be initialized from here.
+    hpl_config.hpl_skip_scene_listener = True
+
+    if _type == 'body':
+        add_body(self, context)
+    elif _type == 'box':
+        add_shape_box(self, context)
+    elif _type == 'sphere':
+        add_shape_sphere(self, context)
+    elif _type == 'cylinder':
+        add_shape_cylinder(self, context)
+    elif _type == 'capsule':
+        add_shape_capsule(self, context)
+    elif _type == 'screw':
+        add_joint_screw(self, context)
+    elif _type == 'slider':
+        add_joint_slider(self, context)
+    elif _type == 'ball':
+        add_joint_ball(self, context)
+    elif _type == 'hinge':
+        add_joint_hinge(self, context)
+
+    hpl_config.hpl_skip_scene_listener = False
+
 class OBJECT_MT_display_presets(Menu):
     bl_label = "Object Display Presets"
     bl_idname = "HPL_MT_ADD_MENU"
@@ -361,7 +382,7 @@ class OBJECT_OT_add_body(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_body(self, context)
+        add_entity(self, context, _type='body')
         return {'FINISHED'}
 
 class OBJECT_OT_add_box_shape(Operator, AddObjectHelper):
@@ -370,7 +391,7 @@ class OBJECT_OT_add_box_shape(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_shape_box(self, context)
+        add_entity(self, context, _type='box')
         return {'FINISHED'}
     
 class OBJECT_OT_add_sphere_shape(Operator, AddObjectHelper):
@@ -379,7 +400,7 @@ class OBJECT_OT_add_sphere_shape(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_shape_sphere(self, context)
+        add_entity(self, context, _type='sphere')
         return {'FINISHED'}
 
 class OBJECT_OT_add_cylinder_shape(Operator, AddObjectHelper):
@@ -388,7 +409,7 @@ class OBJECT_OT_add_cylinder_shape(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_shape_cylinder(self, context)
+        add_entity(self, context, _type='cylinder')
         return {'FINISHED'}
 
 class OBJECT_OT_add_capsule_shape(Operator, AddObjectHelper):
@@ -397,7 +418,7 @@ class OBJECT_OT_add_capsule_shape(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_shape_capsule(self, context)
+        add_entity(self, context, _type='capsule')
         return {'FINISHED'}
 
 class OBJECT_OT_add_screw_joint(Operator, AddObjectHelper):
@@ -406,7 +427,7 @@ class OBJECT_OT_add_screw_joint(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_joint_screw(self, context)
+        add_entity(self, context, _type='screw')
         return {'FINISHED'}
     
 class OBJECT_OT_add_slider_joint(Operator, AddObjectHelper):
@@ -415,7 +436,7 @@ class OBJECT_OT_add_slider_joint(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_joint_slider(self, context)
+        add_entity(self, context, _type='slider')
         return {'FINISHED'}
 
 class OBJECT_OT_add_ball_joint(Operator, AddObjectHelper):
@@ -424,7 +445,7 @@ class OBJECT_OT_add_ball_joint(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_joint_ball(self, context)
+        add_entity(self, context, _type='ball')
         return {'FINISHED'}
 
 class OBJECT_OT_add_hinge_joint(Operator, AddObjectHelper):
@@ -433,7 +454,7 @@ class OBJECT_OT_add_hinge_joint(Operator, AddObjectHelper):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        add_joint_hinge(self, context)
+        add_entity(self, context, _type='hinge')
         return {'FINISHED'}
 
 class OBJECT_MT_ADD_HPL_SHAPE(bpy.types.Menu):

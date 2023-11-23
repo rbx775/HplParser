@@ -17,7 +17,7 @@ from . import hpl_conversion_helper as hpl_convert
 
 class HPL_OT_ENTITYEXPORTER(bpy.types.Operator):
     
-    bl_idname = "hpl.entityexporter"
+    bl_idname = "hpl_parser.entityexporter"
     bl_label = "Export Entities"
     bl_description = "This will write all the entities and static objects to disk"
     bl_options = {'REGISTER', 'UNDO'}

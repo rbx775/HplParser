@@ -31,8 +31,10 @@ hpl_outliner_selection = None
 hpl_previous_outliner_selection = None
 hpl_viewport_selection = None
 hpl_active_material = None
+hpl_skip_scene_listener = False
 
 class hpl_selection(Enum):
+    NONE = 0
     ACTIVE_ENTITY_INSTANCE = 1
     INACTIVE_ENTITY_INSTANCE = 2
     MOD = 3
@@ -55,6 +57,26 @@ class hpl_selection(Enum):
 
 hpl_selection_type = None
 
+@dataclasses.dataclass
+class EntityTypeData:
+    id: int
+    active: bool
+
+class hpl_entity_type(Enum):
+    MAP = EntityTypeData(1, True)
+    ENTITY = EntityTypeData(2, True)
+    ENTITY_INSTANCE = EntityTypeData(3, True)
+    BODY = EntityTypeData(4, True)
+    SHAPE = EntityTypeData(5, True)
+    SUBMESH = EntityTypeData(6, True)
+    LIGHT = EntityTypeData(7, True)
+    MATERIAL = EntityTypeData(8, True)
+    JOINT = EntityTypeData(9, True)
+
+    def init(self):
+        #print(f"Using {self.value.id} as id for {self.name} and its state is: {self.value.active}")
+        return self.value.id
+'''
 class hpl_entity_type(Enum):
     MAP = 1
     ENTITY = 2
@@ -65,7 +87,7 @@ class hpl_entity_type(Enum):
     LIGHT = 7
     MATERIAL = 8
     JOINT = 9
-
+'''
 hpl_selection_entity_type = None
 
 class hpl_shape_type(Enum):
@@ -74,11 +96,19 @@ class hpl_shape_type(Enum):
     CYLINDER = 3
     CAPSULE = 4
 
+    def init(self):
+        #print(f"Using {self} as id for {self.name}")
+        return self.value
+
 class hpl_joint_type(Enum):
     HINGE = 1
     SCREW = 2
     BALL = 3
     SLIDER = 4
+
+    def init(self):
+        #print(f"Using {self} as id for {self.name}")
+        return self.value
 
 hpl_entity_baseclass_list = []
 

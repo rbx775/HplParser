@@ -10,7 +10,7 @@ import __init__ as init
 
 class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
     
-    bl_idname = "hpl.resetproperties"
+    bl_idname = "hpl_parser.resetproperties"
     bl_label = "Reset to Default"
     bl_description = "This will reset all the variables of this entity"
     bl_options = {'REGISTER', 'UNDO'}
@@ -296,15 +296,16 @@ class hpl_properties():
     def get_selection_type():
 
         ### SELECTION RULESET ###
-        #if hpl_config.hpl_outliner_selection:
         entity_dictionary = hpl_config.hpl_outliner_selection.get('hpl_parser_entity_properties', {})
         entity_dictionary = entity_dictionary.to_dict().copy() if hasattr(entity_dictionary, 'to_dict') else entity_dictionary.copy()
 
         prop_type = entity_dictionary.get('PropType')
-        bl_rna_type = entity_dictionary.get('BlenderType')
+        #bl_rna_type = entity_dictionary.get('BlenderType')
 
         ### COLLECTION ###
         if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Collection':
+            if hpl_config.hpl_outliner_selection == bpy.context.scene.collection:
+                return hpl_config.hpl_selection.NONE
             if hpl_config.hpl_outliner_selection == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
                 return hpl_config.hpl_selection.MOD
             if hpl_config.hpl_outliner_selection.name == hpl_config.hpl_map_collection_identifier:
@@ -316,6 +317,7 @@ class hpl_properties():
             if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == hpl_config.hpl_outliner_selection]):
                 return hpl_config.hpl_selection.ACTIVE_ENTITY
             else:
+
                 return hpl_config.hpl_selection.INACTIVE_ENTITY
             
         ### OBJECT ###
@@ -334,7 +336,7 @@ class hpl_properties():
                             #if prop_type.startswith(hpl_config.hpl_submesh_identifier):
                             return hpl_config.hpl_selection.ACTIVE_SUBMESH
                         else:
-                            hpl_properties.set_entity_type_on_mesh(hpl_config.hpl_outliner_selection)
+                            #hpl_properties.set_entity_type_on_mesh(hpl_config.hpl_outliner_selection)
                             return hpl_config.hpl_selection.BLANK_SUBMESH
                     else:
                         return hpl_config.hpl_selection.INACTIVE_SUBMESH
@@ -382,11 +384,10 @@ class hpl_properties():
         
         instancevars_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
         hpl_config.hpl_outliner_selection['hpl_parser_entity_properties'] = {'Vars': instancevars_dict, 
-                                                                             'EntityType': hpl_entity_type.ENTITY, 
+                                                                             'EntityType': hpl_entity_type.ENTITY.init(), 
                                                                              'PropType' : ent_type,
                                                                              'GroupStates': {key: False for key in instancevars_dict},
                                                                              'InstancerName': collection_ent.name,
-                                                                             'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                                             }
 
     def set_level_settings_on_map_collection(ent):
@@ -394,11 +395,10 @@ class hpl_properties():
         typevars_dict = hpl_properties.get_properties('LevelSettings', 'TypeVars')
 
         hpl_config.hpl_outliner_selection['hpl_parser_entity_properties'] = {'Vars': typevars_dict, 
-                                                                             'EntityType': hpl_entity_type.MAP,
+                                                                             'EntityType': hpl_entity_type.MAP.init(),
                                                                              'PropType' : None,    
                                                                              'GroupStates': {key: False for key in typevars_dict},
                                                                              'InstancerName': None,
-                                                                             'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                                             }
 
     def set_entity_type_on_collection():
@@ -406,46 +406,42 @@ class hpl_properties():
         ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
         typevars_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
         instancevars_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
-
+        print('AASD')
         hpl_config.hpl_outliner_selection['hpl_parser_entity_properties'] = {'Vars': typevars_dict, 
-                                                                             'EntityType': hpl_entity_type.ENTITY, 
+                                                                             'EntityType': hpl_entity_type.ENTITY.init(), 
                                                                              'PropType' : ent_type,
                                                                              'GroupStates': {key: False for key in typevars_dict},
                                                                              'InstancerName': None,
-                                                                             'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
                                                                             }
         # Update Instances
         instances = [inst for inst in [valid_inst for valid_inst in bpy.data.objects if valid_inst.is_instancer] if inst.instance_collection == hpl_config.hpl_outliner_selection]
 
         for instance in instances:
-                    instance['hpl_parser_entity_properties'] = {'Vars': instancevars_dict, 
-                                                                'EntityType': hpl_entity_type.ENTITY_INSTANCE, 
-                                                                'PropType' : ent_type,
-                                                                'GroupStates': {key: False for key in instancevars_dict},
-                                                                'InstancerName': instance.instance_collection.name,
-                                                                'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
-                                                                }
+            instance['hpl_parser_entity_properties'] = {'Vars': instancevars_dict, 
+                                                        'EntityType': hpl_entity_type.ENTITY_INSTANCE.init(), 
+                                                        'PropType' : ent_type,
+                                                        'GroupStates': {key: False for key in instancevars_dict},
+                                                        'InstancerName': instance.instance_collection.name,
+                                                        }
         
     def set_entity_type_on_mesh(submesh):
 
         submesh_vars_dict = hpl_config.hpl_submesh_properties_vars_dict
 
         hpl_config.hpl_outliner_selection['hpl_parser_entity_properties'] = {'Vars': submesh_vars_dict, 
-                                                                        'EntityType': hpl_entity_type.SUBMESH, 
-                                                                        'PropType' : None,
-                                                                        'GroupStates': {key: False for key in submesh_vars_dict},
-                                                                        'InstancerName': None,
-                                                                        'BlenderType': hpl_config.hpl_outliner_selection.bl_rna.identifier,
-                                                                    }
+                                                                            'EntityType': hpl_entity_type.SUBMESH.init(),
+                                                                            'PropType' : None,
+                                                                            'GroupStates': {key: False for key in submesh_vars_dict},
+                                                                            'InstancerName': None,
+                                                                            }
         
     def set_material_settings_on_material():
         
         matvars_dict = hpl_config.hpl_material_properties_vars_dict
 
-        hpl_config.hpl_active_material['hpl_parser_entity_properties'] = {'Vars': matvars_dict, 
-                                                                            'EntityType': hpl_entity_type.MATERIAL,
+        hpl_config.hpl_active_material['hpl_parser_entity_properties'] = {  'Vars': matvars_dict, 
+                                                                            'EntityType': hpl_entity_type.MATERIAL.init(),
                                                                             'PropType' : None,    
                                                                             'GroupStates': {key: False for key in matvars_dict},
                                                                             'InstancerName': None,
-                                                                            'BlenderType': hpl_config.hpl_active_material.bl_rna.identifier,
                                                                         }

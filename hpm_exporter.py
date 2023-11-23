@@ -13,15 +13,18 @@ import socket
 from glob import glob
 from . import hpl_config
 from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type)
+from . import hpm_config
 from . import hpl_property_io
 from . import hpl_material
 from . import hpl_entity_exporter
+from . import hpl_file_system
 from . import hpl_texture
 from . import hpl_conversion_helper as hpl_convert
+from . import hpl_file_system
 
 class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     
-    bl_idname = "hpl.hpmexporter"
+    bl_idname = "hpl_parser.hpmexporter"
     bl_label = "Export Project"
     bl_description = "This will write all assets to disk, to be read by the HPL3 engine"
     bl_options = {'REGISTER', 'UNDO'}
@@ -33,6 +36,7 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
+        hpl_file_system.mod_init()
         run_python_hook()
         hpl_config.hpl_export_warnings = {}
         write_hpm()
@@ -431,6 +435,7 @@ def write_entity_files(obj_col, _ent_path):
     xtree.indent(entity, space="    ", level=0)
     xtree.ElementTree(entity).write(_ent_path+obj_col.name+'.ent')
 '''
+
 def write_hpm():
     # Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
@@ -444,8 +449,7 @@ def write_hpm():
 
         id = hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()
 
-        if not os.path.exists(map_path + map_col.name):
-            os.mkdir(map_path + map_col.name)
+        hpl_file_system.recursive_mkdir(map_path + map_col.name)
 
         for container in hpm_config.hpm_file_containers:
             _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container

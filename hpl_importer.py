@@ -9,7 +9,7 @@ from . import hpl_property_io
 
 class HPL_OT_ASSETIMPORTER(bpy.types.Operator):
 
-    bl_idname = "hpl.assetimporter"
+    bl_idname = "hpl_parser.assetimporter"
     bl_label = 'Import Game Entities'
     bl_description = "This will import Amnesia entities"
     bl_options = {'REGISTER', 'UNDO'}

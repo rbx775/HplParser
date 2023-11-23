@@ -4,7 +4,8 @@ import subprocess
 from urllib import request
 
 from . import hpl_config
-from . import hpm_exporter            
+from . import hpm_exporter     
+from .hpl_importer import (HPL_OT_ASSETIMPORTER)        
 
 
 def download(path, exe, op):
@@ -19,7 +20,7 @@ def download(path, exe, op):
 
 class HPL_OT_DOWNLOADTEXCONV(bpy.types.Operator):
 
-    bl_idname = "hpl.downloadtexconv"
+    bl_idname = "hpl_parser.downloadtexconv"
     bl_label = "Get Texture Conversion Tool"
     bl_description = "This will download a necessary texture conversion tool to disk"
     bl_options = {'REGISTER', 'UNDO'}
@@ -60,8 +61,16 @@ class HPL_AddonPreferences(bpy.types.AddonPreferences):
         col = layout.column(align=True)
         box = col.box()
         row = box.row(align=False)
-        row.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
+        row.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = False, icon = 'CHECKMARK' if bpy.context.scene.hpl_parser.hpl_is_game_root_valid else 'ERROR')
         
+        col = layout.column(align=True)
+        box = col.box()
+        box.label(text='Project Resources')
+        box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
+        box.prop(props, 'hpl_create_preview')
+        
+        col = layout.column(align=True)
+        box = col.box()
         row = box.row(align=False)
         row.prop(prefs, 'advancedOptions',
             icon = "DOWNARROW_HLT" if prefs.advancedOptions else "RIGHTARROW",

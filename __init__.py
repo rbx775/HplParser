@@ -37,6 +37,7 @@ from . import hpl_property_io
 from . import hpl_importer
 from . import hpl_object
 from . import hpl_preferences
+from .hpl_file_system import (HPL_OT_CREATE_MOD_PROMPT)
 from .hpm_exporter import (HPM_OT_HPMEXPORTER)
 from .hpl_importer import (HPL_OT_ASSETIMPORTER) 
 from .hpl_object import (OBJECT_OT_add_box_shape, 
@@ -638,20 +639,22 @@ def draw_panel_3d_content(context, layout):
     layout.use_property_decorate = False
     
     col = layout.column(align=True)
-    box = col.box()
-    box.label(text='Game Settings')
-    box.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
+    if not bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
+        box = col.box()
+        box.label(text='Set the Game Path in the Addon Settings', icon='ERROR')
+        #box.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
+        box.operator("hpl_parser.open_user_preferences")
 
-    if bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
+    else:
         col = layout.column(align=True)
         box = col.box()
-        box.label(text='Project Resources')
-        box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
-        box.prop(props, 'hpl_create_preview')
-        col = layout.column(align=True)
-        box = col.box()
+        #box.label(text='Project Resources')
+        #box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
+        #box.prop(props, 'hpl_create_preview')
+        #col = layout.column(align=True)
+        #box = col.box()
+        #box.label(text='Project Settings')
         box.label(text='Project Settings')
-
         singleRow = box.row(align=True)
         if not bpy.context.scene.hpl_parser.hpl_has_project_col:
             box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
@@ -720,6 +723,8 @@ def draw_panel_3d_content(context, layout):
 
         elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY:
             box = col.box()
+            #print('UI SEL: ',hpl_config.hpl_outliner_selection)
+            #print()
             col_color = hpl_config.hpl_outliner_selection.color_tag
             box.label(text=f'\"{hpl_config.hpl_outliner_selection.name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color) #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D COLLECTION_COLOR_04
             col = layout.column(align=True)
@@ -858,8 +863,16 @@ class HPL_PT_MAT_CREATE(bpy.types.Panel):
     def draw(self, context):
         draw_panel_mat_content(context, self.layout)
 
-    #persistent handler for later asset import
-    #@persistent
+class HPL_OT_OpenUserPreferences(bpy.types.Operator):
+    bl_idname = "hpl_parser.open_user_preferences"
+    bl_label = "Open Addon Settings"
+
+    def execute(self, context):
+        bpy.ops.screen.userpref_show(section='ADDONS')
+        bpy.data.window_managers["WinMan"].addon_search = 'hpl_parser'
+        #bpy.data.window_managers["WinMan"].addon_expand(module="HplParser")
+        bpy.ops.preferences.addon_expand(module="HplParser")
+        return {'FINISHED'}
 
 def update_ui():
 
@@ -916,26 +929,27 @@ def update_ui():
             item.name = key
             item.type = _type
 
+#   We use the DepsGraphs post_update handler to update and initialize entities in the background.
 def scene_selection_listener(self, context):
-    #   We use the DepsGraphs post_update handler to update and initialize entities in the background.
-
-    #print(bpy.context.scene.hpl_parser.hpl_base_classes_enum)
+    
+    #   Skip scene selection evaluation if we create a new Object from hpl_object.py.
+    if hpl_config.hpl_skip_scene_listener:
+        return
 
     #   Save window type for later check in file browsers
     hpl_config.main_window = bpy.context.window
 
-    hpl_property_io.hpl_properties.update_selection()
-    #print(hpl_config.hpl_outliner_selection.get('hpl_parser_entity_properties', {}).get('EntityType'))
-    #hpl_config.hpl_outliner_selection.get('hpl_parser_entity_properties', {}).setattr('EntityType')
+    hpl_property_io.hpl_properties.update_selection()  
 
     if hpl_config.hpl_outliner_selection != hpl_config.hpl_previous_outliner_selection:
 
-        if not hpl_config.hpl_outliner_selection.get('hpl_parser_entity_properties'):
+        if not hpl_config.hpl_outliner_selection.get('hpl_parser_entity_properties', {}):
             # Catch newly created instances by pressing (Alt+G)
-            if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Object':
-                if hpl_config.hpl_outliner_selection.is_instancer:
-                        hpl_property_io.hpl_properties.set_collection_properties_on_instance()
-
+            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE:
+                hpl_property_io.hpl_properties.set_collection_properties_on_instance()
+            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_SUBMESH:
+                hpl_property_io.hpl_properties.set_entity_type_on_mesh()
+                pass
             # No need to check for Collection rna type
             if hpl_config.hpl_selection_type == hpl_config.hpl_selection.MAP:
                 hpl_property_io.hpl_properties.set_level_settings_on_map_collection(hpl_config.hpl_outliner_selection)
@@ -946,9 +960,9 @@ def scene_selection_listener(self, context):
                 if not hpl_config.hpl_active_material.get('hpl_parser_entity_properties'):
                     hpl_property_io.hpl_properties.set_material_settings_on_material()
             #hpl_config.hpl_mat_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(hpl_config.hpl_active_material)
-        else:
-            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY:
-                pass
+        #else:
+        #    if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY:
+        #        pass
                 #print(hasattr(hpl_config.hpl_outliner_selection, 'color_tag'))
                 #print(hpl_config.hpl_outliner_selection.get('hpl_parser_entity_properties').get('PropType'))
                 #print(bpy.context.scene.hpl_parser.hpl_base_classes_enum)
@@ -979,6 +993,7 @@ def register():
     bpy.utils.register_class(HPM_OT_HPMEXPORTER)
     bpy.utils.register_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.register_class(HPL_OT_RESETPROPERTIES)
+    bpy.utils.register_class(HPL_OT_CREATE_MOD_PROMPT)
     bpy.utils.register_class(OBJECT_OT_add_box_shape)
     bpy.utils.register_class(OBJECT_OT_add_sphere_shape)
     bpy.utils.register_class(OBJECT_OT_add_cylinder_shape)
@@ -990,6 +1005,7 @@ def register():
     bpy.utils.register_class(OBJECT_MT_ADD_HPL_SHAPE)
     bpy.utils.register_class(OBJECT_MT_ADD_HPL_JOINT)
     bpy.utils.register_class(OBJECT_OT_add_body)
+    bpy.utils.register_class(HPL_OT_OpenUserPreferences)
     bpy.utils.register_class(HPLPropertyCollection)
 
     bpy.utils.register_manual_map(hpl_object.add_shape_manual_map)
@@ -1012,6 +1028,7 @@ def unregister():
     bpy.utils.unregister_class(HPM_OT_HPMEXPORTER)
     bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
     bpy.utils.unregister_class(HPL_OT_RESETPROPERTIES)
+    bpy.utils.unregister_class(HPL_OT_CREATE_MOD_PROMPT)
     bpy.utils.unregister_class(OBJECT_OT_add_box_shape)
     bpy.utils.unregister_class(OBJECT_OT_add_sphere_shape)
     bpy.utils.unregister_class(OBJECT_OT_add_cylinder_shape)
@@ -1023,6 +1040,7 @@ def unregister():
     bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_SHAPE)
     bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_JOINT)
     bpy.utils.unregister_class(OBJECT_OT_add_body)
+    bpy.utils.unregister_class(HPL_OT_OpenUserPreferences)
     bpy.utils.unregister_class(HPLPropertyCollection)
 
     bpy.utils.unregister_manual_map(hpl_object.add_shape_manual_map)
