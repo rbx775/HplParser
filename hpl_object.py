@@ -40,7 +40,7 @@ def add_body(self, context):
     #hpl_config.hpl_var_dict = hpl_config.hpl_body_properties_vars_dict
 
     var_dict = hpl_config.hpl_body_properties_vars_dict
-    body_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
+    body_empty['hplp_i_properties'] = {'Vars': var_dict, 
                                                     'EntityType': hpl_entity_type.BODY.init(),
                                                     'PropType' : None,
                                                     'GroupStates': {key: False for key in var_dict},
@@ -49,7 +49,6 @@ def add_body(self, context):
                                                 }
     
     #hpl_property_io.hpl_properties.initialize_editor_vars(body_empty)
-    hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(body_empty)
     bpy.context.view_layer.objects.active = body_empty
     body_empty.select_set(True)
     update_viewport()
@@ -69,7 +68,7 @@ def add_joint_screw(self, context):
     #screw_empty['hpl_internal_type'] = 'Joint_Screw'
     
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    screw_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
+    screw_empty['hplp_i_properties'] = {'Vars': var_dict, 
                                                     'EntityType': hpl_entity_type.JOINT.init(),
                                                     'JointType' : hpl_joint_type.SCREW.init(),
                                                     'PropType' : None,
@@ -80,7 +79,6 @@ def add_joint_screw(self, context):
     
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(screw_empty)
-    #hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(screw_empty)
     bpy.context.view_layer.depsgraph.update()
     bpy.context.view_layer.objects.active = screw_empty
     screw_empty.select_set(True)
@@ -102,7 +100,7 @@ def add_joint_slider(self, context):
     #arrow_empty['hpl_internal_type'] = 'Joint_Slider'
 
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    arrow_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
+    arrow_empty['hplp_i_properties'] = {'Vars': var_dict, 
                                                     'EntityType': hpl_entity_type.JOINT.init(),
                                                     'JointType' : hpl_joint_type.SLIDER.init(),
                                                     'PropType' : None,
@@ -112,7 +110,6 @@ def add_joint_slider(self, context):
                                                 }
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(arrow_empty)
-    #hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(arrow_empty)
     bpy.context.view_layer.depsgraph.update()
     bpy.context.view_layer.objects.active = arrow_empty
     arrow_empty.select_set(True)
@@ -134,7 +131,7 @@ def add_joint_ball(self, context):
     #sphere_empty['hpl_internal_type'] = 'Joint_Ball'
 
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
-    sphere_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
+    sphere_empty['hplp_i_properties'] = {'Vars': var_dict, 
                                                     'EntityType': hpl_entity_type.JOINT.init(),
                                                     'JointType' : hpl_joint_type.BALL.init(),
                                                     'PropType' : None,
@@ -144,7 +141,6 @@ def add_joint_ball(self, context):
                                                 }
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(sphere_empty)
-    #hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(sphere_empty)
     bpy.context.view_layer.depsgraph.update()
     bpy.context.view_layer.objects.active = sphere_empty
     sphere_empty.select_set(True)
@@ -178,7 +174,7 @@ def add_joint_hinge(self, context):
     #circle_empty['hpl_internal_type'] = 'Joint_Hinge'
     
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    circle_empty['hpl_parser_entity_properties'] = {'Vars': var_dict, 
+    circle_empty['hplp_i_properties'] = {'Vars': var_dict, 
                                                     'EntityType': hpl_entity_type.JOINT.init(),
                                                     'JointType' : hpl_joint_type.HINGE.init(),
                                                     'PropType' : None,
@@ -187,7 +183,6 @@ def add_joint_hinge(self, context):
                                                 }
     #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     #hpl_property_io.hpl_properties.initialize_editor_vars(circle_empty)
-    #hpl_config.hpl_ui_var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(circle_empty)
     bpy.context.view_layer.depsgraph.update()
     bpy.context.view_layer.objects.active = circle_empty
     circle_empty.select_set(True)
@@ -199,7 +194,7 @@ def add_shape_box(self, context):
     box_shape = bpy.data.objects.new("ShapeBox", mesh)
     #box_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeBox'
     
-    box_shape['hpl_parser_entity_properties'] = {   'Vars': {}, 
+    box_shape['hplp_i_properties'] = {   'Vars': {}, 
                                                     'EntityType': hpl_entity_type.SHAPE.init(), 
                                                     'ShapeType': hpl_shape_type.BOX.init(),
                                                     'PropType' : None,
@@ -226,7 +221,7 @@ def add_shape_sphere(self, context):
     mesh = bpy.data.meshes.new('ShapeSphere')
     sphere_shape = bpy.data.objects.new("ShapeSphere", mesh)
     #sphere_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeSphere'
-    sphere_shape['hpl_parser_entity_properties'] = {'Vars': {}, 
+    sphere_shape['hplp_i_properties'] = {'Vars': {}, 
                                                     'EntityType': hpl_entity_type.SHAPE.init(), 
                                                     'ShapeType':  hpl_shape_type.SPHERE.init(),
                                                     'PropType' : None,
@@ -253,7 +248,7 @@ def add_shape_cylinder(self, context):
     mesh = bpy.data.meshes.new('ShapeCylinder')
     cylinder_shape = bpy.data.objects.new("ShapeCylinder", mesh)
     #cylinder_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeCylinder'
-    cylinder_shape['hpl_parser_entity_properties'] = {'Vars': {}, 
+    cylinder_shape['hplp_i_properties'] = {'Vars': {}, 
                                                     'EntityType': hpl_entity_type.SHAPE.init(), 
                                                     'ShapeType':  hpl_shape_type.CYLINDER.init(),
                                                     'PropType' : None,
@@ -295,7 +290,7 @@ def add_shape_capsule(self, context):
     capsule_shape = bpy.data.objects.new("ShapeCapsule", mesh)
     capsule_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeCapsule'
 
-    capsule_shape['hpl_parser_entity_properties'] = {'Vars': {}, 
+    capsule_shape['hplp_i_properties'] = {'Vars': {}, 
                                                 'EntityType': hpl_entity_type.SHAPE.init(), 
                                                 'ShapeType': hpl_shape_type.CAPSULE.init(),
                                                 'PropType' : None,

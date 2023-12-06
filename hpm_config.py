@@ -19,34 +19,6 @@ hpm_attribute_identifiers_dict = {'Fog':'Fog', 'SecondaryFog':'Fog', 'SkyBox':'S
                                     'EnvironmentParticles':'EnvParticles', 'EnvironmentParticle':'EnvParticle', 'Decal': 'Decal',
                                     'PostEffects':'PostEffects', 'DistanceCulling':'DistanceCulling', 'Decal':'Decal', 'DetailMeshes':'DetailMeshes'}
 
-'''
-__hpm_entities_file_index_tag = {'Objects': None}
-__hpm_entities_file_index_attributes = {'NumOfFiles' : 0, 'NumOfFiles2' : 1}
-__hpm_entities_file_index_element = {__hpm_entities_file_index_tag, __hpm_entities_file_index_attributes}
-__hpm_entities_file_index_dict = {__hpm_entities_file_index_element, None}
-
-__hpm_entities_file_index_tag = {'FileIndex_Entities': None}
-__hpm_entities_file_index_attributes = {'NumOfFiles' : 0, 'NumOfFiles2' : 1}
-__hpm_entities_file_index_element = {__hpm_entities_file_index_tag, __hpm_entities_file_index_attributes}
-__hpm_entities_file_index_dict = {__hpm_entities_file_index_element, None}
-
-__hpm_entities_section_tag = {'Section' : __hpm_entities_file_index_tag}
-__hpm_entities_section_attributes = {'Name' : 0}
-__hpm_entities_section_element = {__hpm_entities_section_tag : __hpm_entities_section_attributes}
-__hpm_entities_section_dict = {__hpm_entities_section_element : __hpm_entities_file_index_dict}
-
-__hpm_entities_hpl_map_track_tag = {'HPLMapTrack_Entity' : __hpm_entities_section_tag}
-__hpm_entities_hpl_map_track_attributes = {'ID' : 0, 'MajorVersion' : 1, 'MinorVersion' : 1}
-__hpm_entities_hpl_map_track_element = {__hpm_entities_hpl_map_track_tag : __hpm_entities_hpl_map_track_attributes}
-hpm_entities_dict = {__hpm_entities_hpl_map_track_element : __hpm_entities_section_dict}
-'''
-
-#ent_list = [{'HPLMapTrack_Entity' : __hpm_entities_hpl_map_track_attributes} ,{'Section' : __hpm_entities_section_attributes}, {'FileIndex_Entities': __hpm_entities_file_index_attributes, }]
-#for ent in ent_list:
-
-
-
-
 hpm_entities_file_count = {'FileIndex_Entities' : ['NumOfFiles']}
 hpm_entities_file_id = {'File' : ['Id', 'Path']}
 hpm_entities_properties_objects = 'Objects'

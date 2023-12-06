@@ -1,32 +1,22 @@
-# HPL Parser
+# HPL Parser - Alpha Version 0.3
 Blender to HPL3 Engine Parser for Mod Creation.
 
-### Supported Blender Versions
-- [x] 3.6+
-- [x] 4.0+
+| Platform  | Games | Blender Versions |
+| ------------- | ------------- |         |
+| :---         |     :---      |         :--- |
+| Windows  | [Amnesia: The Bunker](https://store.steampowered.com/app/1944430/Amnesia_The_Bunker/)  |      [3.6x - 4.1](https://builder.blender.org/download/daily/)
 
-### Supported Games
-- [x] Amnesia The Bunker
-
-### Supported Platforms
-- [x] Windows
-
-### Known Issues
-1. Crash when generating asset thumbnails
-1. Material errors for some imported assets
-1. No OpenEXR support yet as source texture format.
-
-### Main Features, Todo
-1. [ ] Interchangeability HPL Level Editor <=> Blender HPL Parser
+### Working Features
+1. [ ] Interchangeability HPL Level Editor <=> Blender HPL_Parser
+   - [ ] Hpm importer
 1. [ ] Mod Initialization
-1. [ ] Team-oriented workflow
-1. [ ] hpm importer
+1. [ ] Collaborative workflow (user IDs)
 1. Full level editor feature set
    - [x] StaticObjects
-      - [ ] detail meshes
+      - [x] detail meshes
    - [x] Entities
       - [x] all physical Entities
-      - [ ] Lights
+      - [x] Lights
    - [ ] Areas
    - [ ] Particles
    - [ ] Sounds
@@ -48,8 +38,8 @@ ProcAnimations
 ### Roadmap
 2. [x] v0.1: Basic level decoration. texture, material, model, visual assets export is mostly working.
 2. [x] v0.2: Basic interactable entities. i.e.: Prop_Lamp, Prop_Grab... entity file exports are mostly working.
-2. [ ] v0.3: Basic asset imports. game content imports are mostly working.
-2. [ ] v0.4: Mod Initialization.
+2. [x] v0.3: Mod Initialization.
+2. [ ] v0.4: Basic asset imports. game content imports are mostly working.
 2. [ ] v0.5: Interchangeability, HPL Parser can read *.hpm files.
 2. [ ] v0.6: ...
 

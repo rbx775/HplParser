@@ -36,7 +36,12 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        hpl_file_system.mod_init()
+        hpl_file_system.create_mod(bpy.context.scene.hpl_parser.hpl_game_root_path + 'mods\\' + bpy.context.scene.hpl_parser.hpl_project_root_col)
+        return {'FINISHED'}
+        if hpl_file_system.mod_check() != 1:
+            hpl_file_system.mod_init()
+            return {'CANCELLED'}    
+        
         run_python_hook()
         hpl_config.hpl_export_warnings = {}
         write_hpm()
@@ -105,7 +110,6 @@ def write_hpm_main(map_col, _map_path, _id):
     root = xtree.Element('HPLMap', ID=str(_id), MajorVersion='1', MinorVersion='1')
     global_settings = xtree.SubElement(root, "GlobalSettings")
 
-    #var_dict = hpl_property_io.hpl_properties.get_dict_from_entity_vars(map_col)
     map_var_dict = hpl_property_io.hpl_properties.get_var_from_entity_properties(map_col).get('Vars', {})
 
     for group in map_var_dict:
@@ -190,48 +194,47 @@ def write_hpm_static_objects(map_col, _map_path, _id):
     root = xtree.Element('HPLMapTrack_StaticObject', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
-    file_index = xtree.SubElement(section, 'FileIndex_StaticObjects', NumOfFiles=str(len(map_col.objects))) #TODO: Get count
+    file_index = xtree.SubElement(section, 'FileIndex_StaticObjects', NumOfFiles=str(len(map_col.objects))) #TODO: Get count, 
     objects = xtree.SubElement(section, 'Objects')
     _index = 0
     
     for obj in map_col.objects:
         if obj.is_instancer:
             #if obj.instance_collection['hpl_entity_type'] == 'StaticObject':
-            if any([var for var in obj.instance_collection.items() if hpl_config.hpl_entity_type_identifier in var[0]]):
-                if obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
-                
-                    static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-                    #user_variables = xtree.SubElement(entity, 'UserVariables')
-                    xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.dae')
+            if obj.get('hplp_i_properties', {}).get('EntityType', None) == hpl_config.hpl_entity_type.STATIC_OBJECT.value:
+            
+                static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
+                #user_variables = xtree.SubElement(entity, 'UserVariables')
+                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.dae')
 
-                    general_properties(static_object, obj, root_id, _index)
+                general_properties(static_object, obj, root_id, _index)
 
-                    '''
-                    static_object.set('Collides', )
-                    static_object.set('CastShadows', )
-                    static_object.set('IsOccluder', )
-                    static_object.set('ColorMul', )
-                    static_object.set('CulledByDistance', )
-                    static_object.set('CulledByFog', )
-                    static_object.set('IllumColor', )
-                    static_object.set('IllumBrightness', )
-                    static_object.set('UID', )
-                    '''
-                    #Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172"
-                    '''
-                    vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
+                '''
+                static_object.set('Collides', )
+                static_object.set('CastShadows', )
+                static_object.set('IsOccluder', )
+                static_object.set('ColorMul', )
+                static_object.set('CulledByDistance', )
+                static_object.set('CulledByFog', )
+                static_object.set('IllumColor', )
+                static_object.set('IllumBrightness', )
+                static_object.set('UID', )
+                '''
+                #Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172"
+                '''
+                vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
 
-                    for var in vars:
-                        var_name = var[0].split('hpl_parser_var_')[-1]
-                        if var_name in hpm_config.hpm_entities_properties['Entity']:
-                            entity.set(var_name, str(var[1]))
-                        else:
-                            xml_var = xtree.SubElement(user_variables,'Var')
-                            xml_var.set('ObjectId', str(root_id+_index))
-                            xml_var.set('Name', var_name)
-                            xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-                    '''
-                    _index = _index + 1
+                for var in vars:
+                    var_name = var[0].split('hpl_parser_var_')[-1]
+                    if var_name in hpm_config.hpm_entities_properties['Entity']:
+                        entity.set(var_name, str(var[1]))
+                    else:
+                        xml_var = xtree.SubElement(user_variables,'Var')
+                        xml_var.set('ObjectId', str(root_id+_index))
+                        xml_var.set('Name', var_name)
+                        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                '''
+                _index = _index + 1
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
@@ -250,7 +253,7 @@ def write_hpm_entity(map_col, _map_path, _id):
     
     for obj in map_col.objects:
         if obj.is_instancer:
-            if obj.instance_collection.get('hpl_parser_entity_properties').get('PropType') == 'Static_Object':
+            if obj.instance_collection.get('hplp_i_properties').get('PropType') == 'Static_Object':
             #if any([var for var in obj.instance_collection.items() if hpl_config.hpl_entity_type_identifier in var[0]]):
                 #if not obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
                 entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))

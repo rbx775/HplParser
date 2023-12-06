@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Content 
+	Version="1.0" 
+	Author="Your name here" 
+	LauncherPic="" 
+	InitCfg="main_init.cfg"
+	HotLoad="true"
+	Type="StandAlone" 
+	Title="DemoProject" 
+	Description_english="This is a minimal setup for creating custom maps" 
+	Description_spanish="Esto es una plantilla base para crear mapas personalizados" 
+/>

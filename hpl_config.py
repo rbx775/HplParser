@@ -3,6 +3,7 @@ import dataclasses
 from typing import Dict
 from enum import Enum
 
+hpl_invoke_mod_dialogue = 1
 hpl_map_collection_identifier = 'Maps'
 hpl_xml_typevars = 'TypeVars'
 hpl_xml_inherit_attribute = 'InheritsFrom'
@@ -24,14 +25,40 @@ hpl_ui_enum_dict = {}
 hpl_joint_set_current_dict = {}
 hpl_joint_set_warning = False
 
-hpl_current_scene_collection = []
+hpl_previous_project_col = None
+hpl_previous_scene_collection = []
 hpl_shape_types = ['box','cylinder','capsule','sphere']
 
+hpl_mod_init_files = {'main_init.cfg' : {'Directories' : '','Variables' : '', 'StartMap' : ''}, 'main_settings' : 'main_settings.cfg', 'main_menu' : 'main_menu.cfg'}
+'''
+class HPLConfig:
+    def __init__(self):
+        self._hpl_outliner_selection = None
+
+    @property
+    def hpl_outliner_selection(self):
+        return self._hpl_outliner_selection
+
+    @hpl_outliner_selection.setter
+    def hpl_outliner_selection(self, value):
+        self._hpl_outliner_selection = value
+        # You can add additional code here to be executed when the value is set
+'''
 hpl_outliner_selection = None
 hpl_previous_outliner_selection = None
 hpl_viewport_selection = None
 hpl_active_material = None
 hpl_skip_scene_listener = False
+
+#   UI variables
+hpl_ui_outliner_selection_name = ''
+hpl_ui_viewport_selection_name = ''
+hpl_ui_active_material_name = ''
+
+hpl_ui_outliner_selection_color_tag = ''
+hpl_ui_outliner_selection_instancer_name = ''
+hpl_ui_outliner_selection_prop_type = ''
+
 
 class hpl_selection(Enum):
     NONE = 0
@@ -72,9 +99,9 @@ class hpl_entity_type(Enum):
     LIGHT = EntityTypeData(7, True)
     MATERIAL = EntityTypeData(8, True)
     JOINT = EntityTypeData(9, True)
+    STATIC_OBJECT = EntityTypeData(10, True)
 
     def init(self):
-        #print(f"Using {self.value.id} as id for {self.name} and its state is: {self.value.active}")
         return self.value.id
 '''
 class hpl_entity_type(Enum):
@@ -97,7 +124,6 @@ class hpl_shape_type(Enum):
     CAPSULE = 4
 
     def init(self):
-        #print(f"Using {self} as id for {self.name}")
         return self.value
 
 class hpl_joint_type(Enum):
@@ -107,7 +133,6 @@ class hpl_joint_type(Enum):
     SLIDER = 4
 
     def init(self):
-        #print(f"Using {self} as id for {self.name}")
         return self.value
 
 hpl_entity_baseclass_list = []
@@ -133,15 +158,16 @@ hpl_entity_classes_file_sub_path = 'editor\\userclasses\\EntityClasses.def'
 hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
 hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str]
-hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color'] 
+hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color', 'color3', 'color4'] 
 
-hpl_level_editor_general_vars_dict = {'General' :
+#   Only Dict in which the default values are not stored as strings
+hpl_instance_general_vars_dict = {'General' :
     {
-        'Active'            : {'Type' : "Bool",   'DefaultValue' : "true",  'Description' : "Activate or Deactivate the Object"},
-        'Important'         : {'Type' : "Bool",   'DefaultValue' : "false", 'Description' : ""},
-        'Static'            : {'Type' : "Bool",   'DefaultValue' : "false", 'Description' : "Enable if this entity should stationary."},
-        'CulledByDistance'  : {'Type' : "Bool",   'DefaultValue' : "true",  'Description' : "Disable if the entity should be always rendered, no matter the distance."},
-        'CulledByFog'       : {'Type' : "Bool",   'DefaultValue' : "true",  'Description' : "Disable if the entity should be always rendered, even if fog occludes it."},
+        'Active'            : {'Type' : "Bool",   'DefaultValue' : True,  'Description' : "Activate or Deactivate the Object"},
+        'Important'         : {'Type' : "Bool",   'DefaultValue' : False, 'Description' : ""},
+        'Static'            : {'Type' : "Bool",   'DefaultValue' : False, 'Description' : "Enable if this entity should stationary."},
+        'CulledByDistance'  : {'Type' : "Bool",   'DefaultValue' : True,  'Description' : "Disable if the entity should be always rendered, no matter the distance."},
+        'CulledByFog'       : {'Type' : "Bool",   'DefaultValue' : True,  'Description' : "Disable if the entity should be always rendered, even if fog occludes it."},
     }
 }
 
@@ -253,50 +279,50 @@ hpl_collider_properties_vars_dict = {'General' :
     }
 }
 
-hpl_material_properties_vars_dict = {'SolidDiffuse' :
+hpl_material_properties_sd_vars_dict = {'SolidDiffuse' :
     {
-        'HeightMapScale'            : {'Type' : "Float",    'DefaultValue' : "0.05", 'Description' : ""},
-        'HeightMapBias'             : {'Type' : "Float",    'DefaultValue' : "0",    'Description' : ""},
-        'IlluminationBrightness'    : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
-        'FrenselBias'               : {'Type' : "Float",    'DefaultValue' : "0.2",  'Description' : ""},
-        'FrenselPow'                : {'Type' : "Float",    'DefaultValue' : "8",    'Description' : ""},
-        'AlphaDissolveFilter'       : {'Type' : "Bool",     'DefaultValue' : "false",'Description' : ""},
-        'DetailUvMul'               : {'Type' : "Vector2",  'DefaultValue' : "4 4",  'Description' : ""},
-        'DetailWeight_Diffuse'      : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
-        'DetailWeight_Specular'     : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
-        'DetailWeight_Normal'       : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
-        'DetailFadeStart'           : {'Type' : "Float",    'DefaultValue' : "5",    'Description' : ""},
-        'DetailFadeEnd'             : {'Type' : "Float",    'DefaultValue' : "10",   'Description' : ""},
-        'SwayActive'                : {'Type' : "Bool",     'DefaultValue' : "false",'Description' : ""},
-        'SwayForceFieldAffected'    : {'Type' : "Bool",     'DefaultValue' : "true", 'Description' : ""},
-        'SwayFreq'                  : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
-        'SwayAmplitude'             : {'Type' : "Float",    'DefaultValue' : "0.1",  'Description' : ""},
-        'SwaySpeed'                 : {'Type' : "Float",    'DefaultValue' : "1",    'Description' : ""},
-        'SwayOctaveMuls'            : {'Type' : "Vector3",  'DefaultValue' : "0.125 0.25 1", 'Description' : ""},
-        'SwayForceFieldMul'         : {'Type' : "Float",    'DefaultValue' : "0.3",  'Description' : ""},
-        'SwayForceFieldMax'         : {'Type' : "Float",    'DefaultValue' : "0.6",  'Description' : ""},
-        'SwayYFreqMul'              : {'Type' : "Float",    'DefaultValue' : "0",    'Description' : ""},
-        'SwaySingleDir'             : {'Type' : "Bool",     'DefaultValue' : "false",'Description' : ""},
-        'SwaySingleDirVector'       : {'Type' : "Vector3",  'DefaultValue' : "0 0 1", 'Description' : ""},
-        'SwaySingleSampleVector'    : {'Type' : "Vector3", 'DefaultValue' : "1 0 0",   'Description' : ""},
-        'LiquidTrickleColor'        : {'Type' : "Color",   'DefaultValue' : "0 0 0 1", 'Description' : ""},
-        'LiquidTrickleSpecular'     : {'Type' : "Color",   'DefaultValue' : "0 0 0 0", 'Description' : ""},
-        'LiquidTrickleLoopFade'     : {'Type' : "Bool",    'DefaultValue' : "false",   'Description' : ""},
-        'LiquidTrickleFadeSpeed'    : {'Type' : "Vector2", 'DefaultValue' : "0.5 0.5", 'Description' : ""},
-        'LiquidTrickleEdgeSize'     : {'Type' : "Float",   'DefaultValue' : "0.5",     'Description' : ""},
-        'LiquidTrickleDryness'      : {'Type' : "Float",   'DefaultValue' : "0.5",     'Description' : ""},
+        'HeightMapScale'            : {'Type' : "Float",    'DefaultValue' : 0.05, 'Description' : ""},
+        'HeightMapBias'             : {'Type' : "Float",    'DefaultValue' : 0.0,    'Description' : ""},
+        'IlluminationBrightness'    : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
+        'FrenselBias'               : {'Type' : "Float",    'DefaultValue' : 0.2,  'Description' : ""},
+        'FrenselPow'                : {'Type' : "Float",    'DefaultValue' : 8.0,    'Description' : ""},
+        'AlphaDissolveFilter'       : {'Type' : "Bool",     'DefaultValue' : False,'Description' : ""},
+        'DetailUvMul'               : {'Type' : "Vector2",  'DefaultValue' : (4.0, 4.0),  'Description' : ""},
+        'DetailWeight_Diffuse'      : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
+        'DetailWeight_Specular'     : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
+        'DetailWeight_Normal'       : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
+        'DetailFadeStart'           : {'Type' : "Float",    'DefaultValue' : 5.0,    'Description' : ""},
+        'DetailFadeEnd'             : {'Type' : "Float",    'DefaultValue' : 10.0,   'Description' : ""},
+        'SwayActive'                : {'Type' : "Bool",     'DefaultValue' : False,'Description' : ""},
+        'SwayForceFieldAffected'    : {'Type' : "Bool",     'DefaultValue' : True, 'Description' : ""},
+        'SwayFreq'                  : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
+        'SwayAmplitude'             : {'Type' : "Float",    'DefaultValue' : 0.1,  'Description' : ""},
+        'SwaySpeed'                 : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
+        'SwayOctaveMuls'            : {'Type' : "Vector3",  'DefaultValue' : (0.125, 0.25, 1), 'Description' : ""},
+        'SwayForceFieldMul'         : {'Type' : "Float",    'DefaultValue' : 0.3,  'Description' : ""},
+        'SwayForceFieldMax'         : {'Type' : "Float",    'DefaultValue' : 0.6,  'Description' : ""},
+        'SwayYFreqMul'              : {'Type' : "Float",    'DefaultValue' : 0.0,    'Description' : ""},
+        'SwaySingleDir'             : {'Type' : "Bool",     'DefaultValue' : False,'Description' : ""},
+        'SwaySingleDirVector'       : {'Type' : "Vector3",  'DefaultValue' : (0.0, 0.0, 1.0), 'Description' : ""},
+        'SwaySingleSampleVector'    : {'Type' : "Vector3", 'DefaultValue' : (1.0, 0.0, 0.0),   'Description' : ""},
+        'LiquidTrickleColor'        : {'Type' : "Color",   'DefaultValue' : (0.0, 0.0, 0.0, 1.0), 'Description' : ""},
+        'LiquidTrickleSpecular'     : {'Type' : "Color",   'DefaultValue' : (0.0, 0.0, 0.0, 0.0), 'Description' : ""},
+        'LiquidTrickleLoopFade'     : {'Type' : "Bool",    'DefaultValue' : False,   'Description' : ""},
+        'LiquidTrickleFadeSpeed'    : {'Type' : "Vector2", 'DefaultValue' : (0.5, 0.5), 'Description' : ""},
+        'LiquidTrickleEdgeSize'     : {'Type' : "Float",   'DefaultValue' : 0.5,     'Description' : ""},
+        'LiquidTrickleDryness'      : {'Type' : "Float",   'DefaultValue' : 0.5,     'Description' : ""},
         'LiquidTrickleBlendMode'    : {'Type' : "String",  'DefaultValue' : "Alpha",   'Description' : ""},
     }
 }
 
 hpl_material_shader_properties_vars_dict = {'Main' :
     {
-        'DepthTest'        : {'Type' : "Bool",   'DefaultValue' : "true",     'Description' : ""},
+        'DepthTest'        : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'PhysicsMaterial'  : {'Type' : "String", 'DefaultValue' : "Default",  'Description' : ""},
         'SolidDiffuse'     : {'Type' : "String", 'DefaultValue' : "SolidDiffuse", 'Description' : ""},
     }
 }
-hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict, **hpl_material_properties_vars_dict}
+hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict, **hpl_material_properties_sd_vars_dict}
 
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
@@ -332,3 +358,17 @@ is_texconv_available = False
 texture_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}
 texture_default_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}#{'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
 texture_format_dict = {'Base Color': "BC1_UNORM", 'Specular': "BC3_UNORM", 'Normal': "BC5_UNORM"}
+
+#   Values will be evaluated with eval() for mod creation.
+hpl_mod_files = {   'main_init.cfg' : {
+                                    'MainSaveFolder' : 'bpy.context.scene.hpl_parser.hpl_project_root_col+\'/save/\'',
+                                    'File' : 'bpy.context.scene.hpl_parser.hpl_startup_map_col+\'.hpm\'',
+                                    'GameName' : 'bpy.context.scene.hpl_parser.hpl_project_root_col',
+                                    },
+                    'entry.hpc' : {
+                                    'Title' : 'bpy.context.scene.hpl_parser.hpl_project_root_col',
+                                    },
+                    'WIPMod.cfg' : {    
+                                    'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col + \'\\entry.hpc\'',
+                                    },
+                  }

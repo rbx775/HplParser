@@ -1,0 +1,6 @@
+<LANGUAGE>
+  <CATEGORY Name="SampleMap">
+	<Entry Name="SampleMessage">This is a language entry added by the sample mod!</Entry>
+	<Entry Name="SampleMessage2">This is another language entry added by the sample mod!</Entry>
+  </CATEGORY>  
+</LANGUAGE>

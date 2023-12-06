@@ -7,6 +7,31 @@ from . import hpl_catalogue_io
 from . import hpl_material
 from . import hpl_property_io
 
+def is_blend_file_dirty():
+    return not bpy.data.is_saved or bpy.data.is_dirty
+
+class HPL_OT_INITASSETIMPORTER(bpy.types.Operator):
+    bl_idname = "hpl_parser.initassetimporter"
+    bl_label = "Discard Unsaved Changes? Esc to cancel."
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def invoke(self, context, event):
+        if is_blend_file_dirty():
+            return context.window_manager.invoke_confirm(self, event)
+        return {'CANCELLED'}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Discard unsaved *.blend changes? ", icon='ERROR')
+        #layout.label(text="Esc to cancel.", icon='EVENT_ESC')
+
+    def execute(self, context):
+        return bpy.ops.hpl_parser.assetimporter('INVOKE_DEFAULT')
+
 class HPL_OT_ASSETIMPORTER(bpy.types.Operator):
 
     bl_idname = "hpl_parser.assetimporter"
@@ -24,6 +49,15 @@ class HPL_OT_ASSETIMPORTER(bpy.types.Operator):
     def execute(self, context):
         hpl_import_assets(self)
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+        
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="This operation may take up to an hour. Esc to cancel.", icon='ERROR')
+        #layout.label(text=" Esc to cancel.", icon='EVENT_ESC')
 
     def register():
         return
