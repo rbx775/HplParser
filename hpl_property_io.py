@@ -8,7 +8,6 @@ import bpy.props
 import bpy.types
 import bpy.utils
 import mathutils
-import __init__ as init
 
 class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
     
@@ -17,15 +16,13 @@ class HPL_OT_RESETPROPERTIES(bpy.types.Operator):
     bl_description = "This will reset all the variables of this entity"
     bl_options = {'REGISTER', 'UNDO'}
 
-    root : bpy.props.StringProperty()
-
     @classmethod
     def poll(self, context):
         return True
         
     def execute(self, context):
-        #hpl_properties.set_entity_type() #TODO: Rewrite Reset
         hpl_properties.reset_editor_vars()
+        hpl_properties.update_selection()
         return {'FINISHED'}
 
     def register():
@@ -341,7 +338,8 @@ class hpl_properties():
                 
                 ### MESH ###
                 if sel_bl_type == 'MESH':
-                    if entity_properties_type == hpl_entity_type.SUBMESH.name:
+                    #TODO: Maybe add SUBMESH back to the entity list. 
+                    if entity_properties_type == hpl_entity_type.SUBMESH.name or entity_properties_type == '':
                         hpl_properties.set_entity_state(sel, hpl_entity_type.SUBMESH.name)
                         return hpl_entity_type.SUBMESH.name
                     elif entity_properties_type.endswith('_Shape'):
@@ -426,7 +424,7 @@ class hpl_properties():
         #hpl_config.hpl_selection_type = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType', '')
 
         if hpl_config.hpl_outliner_selection != hpl_config.hpl_previous_outliner_selection:
-            pass
+            pass #TODO: Update UI ?
 
         #   Initialize material vars
         if hpl_config.hpl_active_material:
@@ -575,7 +573,7 @@ class hpl_properties():
                                                 'InstancerName': None,
                                             }
 
-        if _type == hpl_entity_type.ENTITY_INSTANCE.name:
+        elif _type == hpl_entity_type.ENTITY_INSTANCE.name:
 
             collection_ent = hpl_properties.get_collection_instance_is_of(selection)
             ent_type = collection_ent.get('hplp_i_properties',{}).to_dict().get('PropType', None)
@@ -617,15 +615,7 @@ class hpl_properties():
                                                     'InstancerName': instance.instance_collection.name,
                                                 }
                 
-        elif _type == hpl_entity_type.SUBMESH.name:
-            
-            submesh_vars_dict = hpl_config.hpl_submesh_properties_vars_dict
-            hpl_properties.set_entity_custom_properties(submesh_vars_dict, selection)
-            
-            selection['hplp_i_properties'] = {
-                                                'EntityType': _type,
-                                            }
-            
+
         elif _type == hpl_entity_type.POINT_LIGHT.name:
             
             pointlightvars_dict = hpl_config.hpl_point_light_entity_properties_vars_dict
@@ -655,6 +645,19 @@ class hpl_properties():
                                                 'EntityType': _type, 
                                                 'InstancerName': None,
                                             }
+            
+        # TODO: Maybe add SubMesh back to the entity list.
+
+        '''        
+        elif _type == hpl_entity_type.SUBMESH.name:
+            
+            submesh_vars_dict = hpl_config.hpl_submesh_properties_vars_dict
+            hpl_properties.set_entity_custom_properties(submesh_vars_dict, selection)
+            
+            selection['hplp_i_properties'] = {
+                                                'EntityType': _type,
+                                            }
+        '''
 
     def set_material_settings_on_material():
         

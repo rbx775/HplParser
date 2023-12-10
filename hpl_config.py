@@ -329,12 +329,14 @@ hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict,
 
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
-#   <PointLight ID="268435459" Name="Light_Point_1" CreStamp="1701906917" ModStamp="1701906931" WorldPos="9.75 4 0" Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" 
-#   ShadowsAffectStatic="true" ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" 
-#   FlickerOnMinLength="0" FlickerOnMaxLength="0" FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" FlickerOffColor="0 0 0 1" FlickerOffRadius="0" 
-#   FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" Static="false" 
-#   CulledByDistance="true" CulledByFog="true" FalloffPow="1" ConnectedLightMaskID="4294967295" UID="16 30 268435459" />
- 
+hpl_light_general_vars_dict = {'General' :
+    {
+        'Static'            : {'Type' : "Bool",   'DefaultValue' : False, 'Description' : "Enable if this entity should stationary."},
+        'CulledByDistance'  : {'Type' : "Bool",   'DefaultValue' : True,  'Description' : "Disable if the entity should be always rendered, no matter the distance."},
+        'CulledByFog'       : {'Type' : "Bool",   'DefaultValue' : True,  'Description' : "Disable if the entity should be always rendered, even if fog occludes it."},
+    }
+}
+
 hpl_light_flicker_properties_vars_dict = {'Flicker' :
     {
         'FlickerActive'             : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
@@ -356,58 +358,145 @@ hpl_light_flicker_properties_vars_dict = {'Flicker' :
     }
 }
 
+# <PointLight ID="268435459" Name="Light_Point_1" CreStamp="1701906917" ModStamp="1701906931" WorldPos="9.75 4 0" 
+# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
+# ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
+# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" 
+# FlickerOnMaxLength="0" FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" 
+# FlickerOffPS="" FlickerOffSound="" FlickerOffColor="0 0 0 1" FlickerOffRadius="0" 
+# FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
+# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" 
+# CastSpecularLight="true" Brightness="1" Static="false" 
+# CulledByDistance="true" CulledByFog="true" FalloffPow="1" ConnectedLightMaskID="4294967295" 
+# UID="16 30 268435459" />
+
+# <PointLight ID="268435459" Name="Light_Point_1" CreStamp="1701906917" ModStamp="1701906931" WorldPos="9.75 4 0" 
+# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
+# ShadowsAffectDynamic="true"
+# UID="16 30 268435459" />
+ 
 hpl_point_light_properties_vars_dict = {'PointLight' :
     {
         'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,'Min' : 0, 'Max' : 100, 'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
+        'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
         'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-        'GoboType'                  : {'Type' : "String", 'DefaultValue' : "Diffuse", 'Description' : ""},
+        'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
         'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
         'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
         'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
         'ConnectedLightMaskID'      : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
     }
 }
-hpl_point_light_entity_properties_vars_dict = {**hpl_instance_general_vars_dict, **hpl_point_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+hpl_point_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hpl_point_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+
+# <BoxLight ID="268435457" Name="Light_Box_2" CreStamp="1702178696" ModStamp="1702178696" WorldPos="2 0 0" 
+# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
+# ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
+# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" 
+# FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" 
+# FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
+# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" 
+# Static="false" CulledByDistance="true" CulledByFog="true" BlendFunc="0" Size="1 1 1" GroundColor="1 1 1 0" 
+# SkyColor="1 1 1 0" Weight="1" Bevel="0" FalloffPow="0" UseSphericalHarmonics="false" ProbeOffset="0 0 0" 
+# ConnectedLightMaskID="4294967295" UID="16 14 268435457" />
+
+# <BoxLight ID="268435457" Name="Light_Box_2" CreStamp="1702178696" ModStamp="1702178696" WorldPos="2 0 0" 
+# Rotation="0 0 0" Scale="1 1 1"
+# UID="16 14 268435457" />
+
+# TODO: 'Hidden' boolean override property. Some properties are hidden in the editor, but seem to get set elsewhere.
+# TODO: 'UIName' override property. i.e. 'Ground Color' -> 'AmbientGroundColor' or 'BlendFunc' -> 'BlendFunction'
+# TODO: Convert in hpm_exporter -> hpl_radius = Radius * (math.pi / 180)
 # TODO: rework box light
-hpl_box_light_properties_vars_dict = {'PointLight' :
+hpl_box_light_properties_vars_dict = {'BoxLight' :
     {
         'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1, 'Min' : 0, 'Max' : 100,  'Description' : ""},
+        'Size'                      : {'Type' : "Vector3",'DefaultValue' : (1, 1, 1), 'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'BlendFunction'             : {'Type' : "Enum",   'DefaultValue' : "Replace",'Description' : ""},
-        'AmbientGroundColor'        : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'AmbientSkyColor'           : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
+        'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'BlendFunc'                 : {'Type' : "Enum",   'DefaultValue' : "Replace", 'EnumValues' : ['Replace', 'Add', 'Average'], 'Description' : ""},
+        'GroundColor'               : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'SkyColor'                  : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
         'Weight'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
         'Bevel'                     : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
         'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
-        'IrrSet'                    : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-    }
-}
-hpl_box_light_entity_properties_vars_dict = {**hpl_instance_general_vars_dict, **hpl_box_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
-# TODO: rework spot light
-hpl_spot_light_properties_vars_dict = {'PointLight' :
-    {
-        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
-        'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
-        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'UseSphericalHarmonics'     : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
+        'ProbeOffset'               : {'Type' : "Vector3",'DefaultValue' : (0, 0, 0), 'Description' : ""},
+        'IrrSet'                    : {'Type' : "String", 'DefaultValue' : "Default",       'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-        'GoboType'                  : {'Type' : "String", 'DefaultValue' : "Diffuse", 'Description' : ""},
+        'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
         'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
         'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
         'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
         'ConnectedLightMaskID'      : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
     }
 }
-hpl_spot_light_entity_properties_vars_dict = {**hpl_instance_general_vars_dict, **hpl_spot_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+
+hpl_box_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hpl_box_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+
+# <SpotLight ID="268435458" Name="Light_Spot_1" CreStamp="1702178701" ModStamp="1702178701" WorldPos="0 0 1.5" 
+# Rotation="0.785398 -2.35619 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
+# ShadowsAffectDynamic="true" Radius="0" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
+# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" 
+# FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" 
+# FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
+# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" 
+# Static="false" CulledByDistance="true" CulledByFog="true" FalloffPow="1" FOV="1.0472" Aspect="1" NearClipPlane="0.1" 
+# SpotFalloffPow="1" ShadowFadeRange="-1" ShadowCasterDistance="-1" ShadowUpdatePriority="10" 
+# ConnectedLightMaskID="4294967295" UID="16 13 268435458" />
+
+# <SpotLight ID="268435458" Name="Light_Spot_1" CreStamp="1702178701" ModStamp="1702178701" WorldPos="0 0 1.5" 
+# Rotation="0.785398 -2.35619 0" Scale="1 1 1" 
+# ShadowFadeRange="-1" ShadowCasterDistance="-1"
+# UID="16 13 268435458" />
+
+
+# TODO: rework spot light
+# TODO: fov_radians = Radius * (math.pi / 180)
+hpl_spot_light_properties_vars_dict = {'SpotLight' :
+    {
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1, 'Min' : 0, 'Max' : 100,          'Description' : ""},
+        'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
+        'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'NearClipPlane'             : {'Type' : "Float",  'DefaultValue' : 0.1,      'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
+        'FOV'                       : {'Type' : "Float",  'DefaultValue' : 60,       'Description' : ""},
+        'Aspect'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'SpotFalloffPow'            : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'ShadowFadeRangeActive'     : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
+        'ShadowFadeRange'           : {'Type' : "Float",  'DefaultValue' : 0,       'Description' : ""},
+        'ShadowCasterDistanceActive': {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
+        'ShadowCasterDistance'      : {'Type' : "Float",  'DefaultValue' : 0,       'Description' : ""},
+        'ShadowUpdatePriority'      : {'Type' : "Int",    'DefaultValue' : 10,       'Description' : ""},
+        'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'GoboType'                  : {'Type' : "Enum", 'DefaultValue' : "Diffuse", 'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
+        'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
+        'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
+        'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'ConnectedLightMaskID'      : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+    }
+}
+hpl_spot_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hpl_spot_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
 
 hpl_detail_mesh_identifier = '_detailmesh'
 hpl_variable_identifier = 'hpl_parser_var'

@@ -29,8 +29,6 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     bl_description = "This will write all assets to disk, to be read by the HPL3 engine"
     bl_options = {'REGISTER', 'UNDO'}
 
-    #root : bpy.props.StringProperty()
-
     @classmethod
     def poll(self, context):
         return True
@@ -82,7 +80,8 @@ def load_map_file(file_path):
         return map_file
     return ''
 
-def general_properties(spatial_general, obj, _id, _index):
+
+def general_properties(spatial_general, obj, _id, _index, has_file_index = True):
 
     spatial_general.set('ID', str(_id + _index))
     spatial_general.set('Name', str(obj.name))
@@ -91,7 +90,8 @@ def general_properties(spatial_general, obj, _id, _index):
     spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location(obj.location)))
     spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
     spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
-    spatial_general.set('FileIndex', str(_index))
+    if has_file_index:
+        spatial_general.set('FileIndex', str(_index))
 
 def write_hpm_placeholder(_map_path, _id, identifier):
 
@@ -388,6 +388,63 @@ def write_hpm_terrain(map_col, _map_path, _id):
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
+#<HPLMapTrack_Light ID="5EA807976D604255A9863AB2EA9935D63A35C828" MajorVersion="1" MinorVersion="1">
+#    <IrradianceSets>
+#        <Set Name="Default" Priority="0" LightBoost="1" MaxDistance="2000" BounceNum="3" Quality="Normal" UseFog="false" UseDepthOfField="true" UseSkybox="true" Preview="true" />
+#    </IrradianceSets>
+#    <Section Name="18063263218655078958">
+#        <Objects>
+
+# <BoxLight ID="268435457" Name="Light_Box_2" CreStamp="1702178696" ModStamp="1702178696" WorldPos="2 0 0" 
+# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
+# ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
+# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" 
+# FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" 
+# FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
+# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" 
+# Static="false" CulledByDistance="true" CulledByFog="true" BlendFunc="0" Size="1 1 1" GroundColor="1 1 1 0" 
+# SkyColor="1 1 1 0" Weight="1" Bevel="0" FalloffPow="0" UseSphericalHarmonics="false" ProbeOffset="0 0 0" 
+# ConnectedLightMaskID="4294967295" UID="16 14 268435457" />
+### LIGHT ###
+def write_hpm_light(map_col, _map_path, _id):
+
+    root_id = random.randint(100000000, 999999999)
+    
+    root = xtree.Element('HPLMapTrack_Light', ID=str(_id), MajorVersion='1', MinorVersion='1')
+
+    irradianc_sets = xtree.SubElement(root, "IrradianceSets")
+    #irradianc_sets.set('Name', '')
+
+    section = xtree.SubElement(root, "Section")
+    section.set('Name', os.getlogin()+'@'+socket.gethostname())
+    objects = xtree.SubElement(section, 'Objects')
+    
+    _index = 0
+
+    lights = [light for light in map_col.objects if light.get('hplp_i_properties', {}).get('EntityType', '').endswith('_LIGHT')]
+
+    for light_entity in lights:
+
+            light = xtree.SubElement(objects, light_entity.get('hplp_i_properties', {}).get('EntityType', 'PointLight').title().replace('_',''), ID=str(root_id+_index))
+
+            general_properties(light, light_entity, root_id, _index, has_file_index=False)
+
+            vars = [item for item in light_entity.items() if 'hplp_v_' in item[0]]
+            for var in vars:
+                var_name = var[0].split('hplp_v_')[-1]
+                #if var_name in hpm_config.hpm_entities_properties['Entity']:
+                #else:
+                light.set(var_name, str(var[1]))
+                #xml_var = xtree.SubElement(objects,'Var')
+                light.set('ObjectId', str(root_id+_index))
+                light.set('Name', var_name)
+                light.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+            _index = _index + 1
+    
+    # TODO: move xtree creation to main loop, return root
+    xtree.indent(root, space="    ", level=0)
+    xtree.ElementTree(root).write(_map_path)
+
 '''
 ### Write all *.ent files ###
 def write_entity_files(obj_col, _ent_path):
@@ -486,6 +543,10 @@ def write_hpm():
                 write_hpm_detail_meshes(map_col, _map_path, id)
             elif container == '_Terrain':
                 write_hpm_terrain(map_col, _map_path, id)
+            elif container == '_Light':
+                write_hpm_light(map_col, _map_path, id)
+            #elif container == '_LightMask':
+            #    write_hpm_lightmask(map_col, _map_path, id)
             else:
                 write_hpm_placeholder(_map_path, id, container)
 

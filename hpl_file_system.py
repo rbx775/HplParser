@@ -90,7 +90,7 @@ class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
     bl_label = 'Create Mod? Esc to cancel.'
     bl_options = {'REGISTER', 'UNDO'}
 
-    path : bpy.props.StringProperty(name="Path", description="Path to mod", default="")
+    path : bpy.props.StringProperty(name="Path", description="Path to mod", default="", options={'HIDDEN'})
 
     @classmethod
     def poll(cls, context):

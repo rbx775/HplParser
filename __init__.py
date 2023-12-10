@@ -924,6 +924,10 @@ def draw_panel_3d_content(context, layout):
 
         layout.use_property_split = True
         col = layout.column(align=True)
+        box = col.box()
+        box.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
+
+        col = layout.column(align=True)
 
         if not hpl_config.hpl_outliner_selection:
             return
@@ -1029,12 +1033,12 @@ def draw_panel_3d_content(context, layout):
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
         
         #inactive
-        elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a inactive point light.', icon='LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+        #elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
+        #    box = col.box()
+        #    box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a inactive point light.', icon='LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        #    box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+        #    box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+        #    draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
 
 class HPL_PT_3D_CREATE(bpy.types.Panel):
