@@ -3,7 +3,7 @@ import os
 import xml.etree.ElementTree as xtree
 import dataclasses
 from . import hpl_config
-from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type)
+from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type, hpl_light_type)
 import bpy.props
 import bpy.types
 import bpy.utils
@@ -54,7 +54,7 @@ class hpl_properties():
                 index = index + 1
                 #vars_dict[var[0].replace('hplp_v_','')] = var[1]
             if var[0].startswith('hplp_v_'):
-                vars_dict[current_group][var[0]] = var[1]
+                vars_dict[current_group][var[0][7:]] = var[1]
 
         return vars_dict
         #if not ent:
@@ -246,27 +246,6 @@ class hpl_properties():
             if any([var for var in obj.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
                 if obj[hpl_config.hpl_internal_type_identifier] == 'Body':
                     hpl_config.hpl_joint_set_current_dict[obj.name] = obj
-    
-    def get_selection():
-        if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
-            for window in bpy.context.window_manager.windows:
-                if window == hpl_config.main_window:
-                    for area in window.screen.areas:
-                        if area.type == 'OUTLINER':
-                            with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
-                                if bpy.context.selected_ids:
-                                    hpl_config.hpl_outliner_selection = bpy.context.selected_ids[0]
-                                    hpl_config.hpl_ui_outliner_selection_name = bpy.context.selected_ids[0].name
-                        if area.type == 'VIEW_3D':
-                            with bpy.context.temp_override(window=window, area=area): #TODO: Skip if opening Game Path
-                                if bpy.context.selected_ids:
-                                    hpl_config.hpl_viewport_selection = bpy.context.selected_ids[0]
-                                    hpl_config.hpl_ui_viewport_selection_name = bpy.context.selected_ids[0].name
-                        if area.type == 'NODE_EDITOR':
-                            with bpy.context.temp_override(window=window, area=area):
-                                if bpy.context.material:
-                                    hpl_config.hpl_active_material = bpy.context.material
-                                    hpl_config.hpl_ui_active_material_name = bpy.context.material.name
 
     def get_relative_body_hierarchy(joint):
         parent = None
@@ -291,94 +270,179 @@ class hpl_properties():
 
         return parent, child
     
-    def file_to_ui_properties(var_dict):
+    def set_entity_state(ent = None, _type = ''):
 
+        ent = hpl_config.hpl_outliner_selection if not ent else ent
+        _type = hpl_config.hpl_selection_type if not _type else _type
+
+        if ent.hide_render:
+            return 
+        # if for collections
+        hpl_config.hpl_selection_state = True
+        #print('set TRUE state', hpl_config.hpl_selection_state)
         return
+    
+    ### SELECTION RULESET ###
+    def get_selection_type(sel = None):
+
+        sel = hpl_config.hpl_outliner_selection if not sel else sel
+        if not sel:
+            return None
         
-    def file_to_blender_properties(file_path):
-        return
-    
-    def blender_to_hpl_properties(file_path):
-        return
-    
-    def get_selection_type():
+        sel_identifier = sel.bl_rna.identifier
 
-        ### SELECTION RULESET ###
-        entity_dictionary = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {})
+        entity_dictionary = sel.get('hplp_i_properties', {})
         entity_dictionary = entity_dictionary.to_dict().copy() if hasattr(entity_dictionary, 'to_dict') else entity_dictionary.copy()
 
-        entity_type = entity_dictionary.get('EntityType') # 
-        #bl_rna_type = entity_dictionary.get('BlenderType')
+        entity_properties_type = entity_dictionary.get('EntityType', '')
+        hpl_config.hpl_selection_state = False
+        #print('set FALSE state', hpl_config.hpl_selection_state)
 
         ### COLLECTION ###
-        if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Collection':
-            if hpl_config.hpl_outliner_selection == bpy.context.scene.collection:
-                return hpl_config.hpl_selection.NONE
-            if hpl_config.hpl_outliner_selection == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
-                return hpl_config.hpl_selection.MOD
-            if hpl_config.hpl_outliner_selection.name == hpl_config.hpl_map_collection_identifier:
-                return hpl_config.hpl_selection.MAPROOT
-            if any([col for col in bpy.data.collections if col.name == hpl_config.hpl_map_collection_identifier]):
-                if any([col for col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children if col == hpl_config.hpl_outliner_selection]):
-                    return hpl_config.hpl_selection.MAP
+        if sel_identifier == 'Collection':
 
-            if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col == hpl_config.hpl_outliner_selection]):
-                return hpl_config.hpl_selection.ACTIVE_ENTITY
-            else:
-
-                return hpl_config.hpl_selection.INACTIVE_ENTITY
+            if sel == bpy.context.scene.collection:
+                return hpl_entity_type.NONE.name
+            ### PROJECT FOLDER ###
+            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
+                hpl_properties.set_entity_state(sel, hpl_entity_type.MOD.name)
+                return hpl_entity_type.MOD.name
+            ### ENTITY FOLDER ###
+            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col]:
+                hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT_FOLDER.name)
+                return hpl_entity_type.STATIC_OBJECT_FOLDER.name
+            ### ENTITY FOLDER ###
+            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col]:
+                hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_FOLDER.name)
+                return hpl_entity_type.ENTITY_FOLDER.name
+            ### MAP FOLDER ###
+            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col]:
+                hpl_properties.set_entity_state(sel, hpl_entity_type.MAP_FOLDER.name)
+                return hpl_entity_type.MAP_FOLDER.name
+            ### MAPS ###
+            if bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+                if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children if col == sel]):
+                    hpl_properties.set_entity_state(sel, hpl_entity_type.MAP.name)
+                    return hpl_entity_type.MAP.name
+                
+            #   Check if the entity is inside project collection
+            if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col].children if col == sel]):
+                hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY.name)
+                return hpl_entity_type.ENTITY.name
             
         ### OBJECT ###
-        if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Object':
-            if hpl_config.hpl_outliner_selection.is_instancer:
-                if hpl_config.hpl_outliner_selection.users_collection[0] in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children_recursive:
-                    return hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE
-                return hpl_config.hpl_selection.INACTIVE_ENTITY_INSTANCE
-            
-            # Not an instance
+        if sel_identifier == 'Object':
+
+            sel_bl_type = sel.type
+            sel_bl_data_type = sel.data.type if sel_bl_type == 'LIGHT' else None
+
+            #   No Instance
+            if not sel.is_instancer:
+                
+                ### MESH ###
+                if sel_bl_type == 'MESH':
+                    if entity_properties_type == hpl_entity_type.SUBMESH.name:
+                        hpl_properties.set_entity_state(sel, hpl_entity_type.SUBMESH.name)
+                        return hpl_entity_type.SUBMESH.name
+                    elif entity_properties_type.endswith('_Shape'):
+                        hpl_properties.set_entity_state(sel, entity_properties_type)
+                        return entity_properties_type
+                
+                ### EMPTY ###
+                elif sel_bl_type == 'EMPTY':
+                    hpl_properties.update_hierarchy_bodies()
+                    if entity_properties_type == 'Body':
+                        hpl_properties.set_entity_state(sel, hpl_entity_type.BODY.name)
+                        return hpl_entity_type.BODY.name
+                    elif entity_properties_type.endswith('_Joint'):
+                        hpl_properties.set_entity_state(sel, entity_properties_type)
+                        hpl_properties.check_for_circular_dependency()
+                        return entity_properties_type
+                        
+                ### LIGHT ###                         
+                elif sel_bl_type == 'LIGHT':
+                    if sel_bl_data_type == 'POINT':
+                        hpl_properties.set_entity_state(sel, sel_bl_data_type)
+                        return hpl_entity_type.POINT_LIGHT.name
+                    if sel_bl_data_type == 'SPOT':
+                        hpl_properties.set_entity_state(sel, sel_bl_data_type)
+                        return hpl_entity_type.SPOT_LIGHT.name
+                    if sel_bl_data_type == 'AREA':
+                        hpl_properties.set_entity_state(sel, sel_bl_data_type)
+                        return hpl_entity_type.BOX_LIGHT.name
+                    
+            #   Instance
             else:
-                if hpl_config.hpl_outliner_selection.type == 'MESH':
-                    if not hpl_config.hpl_outliner_selection.hide_render:
-                        if not entity_type == hpl_entity_type.SUBMESH.value.id:
-                            return hpl_config.hpl_selection.ACTIVE_SUBMESH
-                        else:
-                            return hpl_config.hpl_selection.BLANK_SUBMESH
-                    else:
-                        return hpl_config.hpl_selection.INACTIVE_SUBMESH
+                if sel.users_collection[0] in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children_recursive:
+                    hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_INSTANCE.name)
+                    return hpl_entity_type.ENTITY_INSTANCE.name
                     
-                # Not a Mesh
-                elif hpl_config.hpl_outliner_selection.type == 'EMPTY':
-                    #entity_dictionary = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).to_dict().copy() #TODO: write getter
-                    #if hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}) #TODO: write getter
-                    if entity_dictionary:
-                        hpl_properties.update_hierarchy_bodies()
-                        if entity_dictionary['PropType'].startswith(hpl_config.hpl_body_identifier):
-                            return hpl_config.hpl_selection.ACTIVE_BODY
-                        elif entity_dictionary['PropType'].endswith('_Ball'):
-                            hpl_properties.check_for_circular_dependency()
-                            return hpl_config.hpl_selection.ACTIVE_BALL_JOINT
-                        elif entity_dictionary['PropType'].endswith('_Hinge'):
-                            hpl_properties.check_for_circular_dependency()
-                            return hpl_config.hpl_selection.ACTIVE_HINGE_JOINT
-                        elif entity_dictionary['PropType'].endswith('_Slider'):
-                            hpl_properties.check_for_circular_dependency()
-                            return hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT
-                        elif entity_dictionary['PropType'].endswith('_Screw'):
-                            hpl_properties.check_for_circular_dependency()
-                            return hpl_config.hpl_selection.ACTIVE_SCREW_JOINT                                
-                else:
-                    if entity_type == hpl_entity_type.SHAPE.value.id:
-                        return hpl_config.hpl_selection.ACTIVE_SHAPE
-        return None
+        return ''
+    
+    def update_outliner_selection(ent):
+
+        hpl_config.hpl_outliner_selection = ent
+        hpl_config.hpl_ui_outliner_selection_name = ent.name
+        return
+    
+    def update_viewport_selection(ent):
+
+        hpl_config.hpl_viewport_selection = ent
+        hpl_config.hpl_ui_viewport_selection_name = ent.name
+        return
                     
-    def update_selection():        
-        hpl_properties.get_selection()
+    def update_material_selection(ent):
+
+        hpl_config.hpl_ui_active_material_name = ent
+        return
+    
+    def update_selection():   
+
+        if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
+            for window in bpy.context.window_manager.windows:
+                if window == hpl_config.main_window:
+                    for area in window.screen.areas:
+
+                        if area.type == 'OUTLINER':
+                            with bpy.context.temp_override(window=window, area=area):
+                                hpl_properties.update_outliner_selection(bpy.context.selected_ids[0]) if bpy.context.selected_ids else None         
+
+                        if area.type == 'VIEW_3D':
+                            with bpy.context.temp_override(window=window, area=area):
+                                hpl_properties.update_viewport_selection(bpy.context.selected_ids[0]) if bpy.context.selected_ids else None
+
+                        if area.type == 'NODE_EDITOR':
+                            with bpy.context.temp_override(window=window, area=area):
+                                hpl_properties.update_material_selection(bpy.context.material) if bpy.context.material else None
+        
         if not hpl_config.hpl_outliner_selection:
             hpl_config.hpl_outliner_selection = bpy.context.scene.collection
-
+        
         hpl_config.hpl_selection_type = hpl_properties.get_selection_type()
 
-        # Update various variables for faster UI code.
+        if not hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}):
+            hpl_properties.set_entity_type()
+
+        #hpl_config.hpl_selection_type = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType', '')
+
+        if hpl_config.hpl_outliner_selection != hpl_config.hpl_previous_outliner_selection:
+            pass
+
+        #   Initialize material vars
+        if hpl_config.hpl_active_material:
+        #if hpl_config.hpl_active_material != hpl_config.hpl_previous_active_material:
+            if not hpl_config.hpl_active_material.get('hplp_i_properties', {}):
+                hpl_properties.set_material_settings_on_material()
+
+            #bpy.context.scene.hpl_parser_entity_properties.clear()
+
+        hpl_config.hpl_ui_outliner_selection_instancer_name = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('InstancerName')
+            
+        hpl_config.hpl_previous_scene_collection = [obj for obj in bpy.context.scene.objects]
+        hpl_config.hpl_previous_outliner_selection = hpl_config.hpl_outliner_selection
+        hpl_config.hpl_previous_active_material = hpl_config.hpl_active_material
+
+        #   Update various variables for faster UI code.
         if hpl_config.hpl_ui_outliner_selection_name in [col.name for col in bpy.data.collections]:
             if hpl_config.hpl_outliner_selection:
                 hpl_config.hpl_ui_outliner_selection_prop_type = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('PropType')
@@ -386,18 +450,13 @@ class hpl_properties():
                 if hpl_config.hpl_outliner_selection.bl_rna.identifier == 'Collection':
                     hpl_config.hpl_ui_outliner_selection_color_tag = hpl_config.hpl_outliner_selection.color_tag
 
-        #if hpl_config.hpl_ui_viewport_selection_name in [obj.name for obj in bpy.context.scene.objects]:
-        #    if hpl_config.hpl_viewport_selection:
-        #        hpl_config.hpl_ui_viewport_selection_name = hpl_config.hpl_viewport_selection.name
-
-        #if hpl_config.hpl_ui_active_material_name in [obj.name for obj in bpy.data.materials]:
-        #    if hpl_config.hpl_active_material:
-        #        hpl_config.hpl_ui_active_material_name = hpl_config.hpl_active_material.name
-
     def reset_editor_vars(ent = None):
 
         if not ent:
             ent = hpl_config.hpl_outliner_selection
+
+        if not ent:
+            return
 
         delete_vars = []
         for var in ent.items():
@@ -499,73 +558,103 @@ class hpl_properties():
                     var_list.append(variable)
                 group_dict[group] = var_list
         '''
-    def set_collection_properties_on_instance():
+    
+    def set_entity_type(selection = None, _type = ''):
 
-        collection_ent = hpl_properties.get_collection_instance_is_of(hpl_config.hpl_outliner_selection)
-        ent_type = collection_ent.get('hplp_i_properties',{}).to_dict().get('PropType', None)
-        
-        instancevars_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
-        if not hpl_config.hpl_outliner_selection.name.endswith('_Instance'):
-            hpl_config.hpl_outliner_selection.name = collection_ent.name + '_Instance'
+        selection = hpl_config.hpl_outliner_selection if not selection else selection
+        _type = hpl_config.hpl_selection_type if not _type else _type
+        #print('type',_type)
+
+        if _type == hpl_entity_type.MAP.name:
+            #print('MAP SETTINGS')
+            mapvars_dict = hpl_properties.get_properties('LevelSettings', 'TypeVars')
+            hpl_properties.set_entity_custom_properties(mapvars_dict, selection)
             
+            selection['hplp_i_properties'] = { 
+                                                'EntityType': _type, 
+                                                'InstancerName': None,
+                                            }
 
-        hpl_properties.set_entity_custom_properties(instancevars_dict, hpl_config.hpl_outliner_selection)   
-                    
-        hpl_config.hpl_outliner_selection['hplp_i_properties'] = { 
-                                            'EntityType': hpl_entity_type.ENTITY_INSTANCE.init(), 
-                                            'PropType' : ent_type,
-                                            'InstancerName': collection_ent.name,
-                                        }
-        
+        if _type == hpl_entity_type.ENTITY_INSTANCE.name:
 
-    def set_level_settings_on_map_collection():
-        
-        typevars_dict = hpl_properties.get_properties('LevelSettings', 'TypeVars')
-        hpl_properties.set_entity_custom_properties(typevars_dict, hpl_config.hpl_outliner_selection)
-        
-        hpl_config.hpl_outliner_selection['hplp_i_properties'] = {
-                                                                    'EntityType': hpl_entity_type.MAP.init(),
-                                                                    'PropType' : None,    
-                                                                    'InstancerName': None,
-                                                                }
-        
+            collection_ent = hpl_properties.get_collection_instance_is_of(selection)
+            ent_type = collection_ent.get('hplp_i_properties',{}).to_dict().get('PropType', None)
+            
+            instancevars_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
+            if not selection.name.endswith('_Instance'):
+                selection.name = collection_ent.name + '_Instance'
 
-    def set_entity_type_on_collection():
-        
-        ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
-        typevars_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
-        hpl_properties.set_entity_custom_properties(typevars_dict, hpl_config.hpl_outliner_selection)
-        
-        hpl_config.hpl_outliner_selection['hplp_i_properties'] = { 
-                                                                    'EntityType': hpl_entity_type.ENTITY.init(), 
-                                                                    'PropType' : ent_type,
-                                                                    'InstancerName': None,
-                                                                }
-        
-        
-        # Update Instances
-        instancevars_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
-        instances = [inst for inst in [valid_inst for valid_inst in bpy.data.objects if valid_inst.is_instancer] if inst.instance_collection == hpl_config.hpl_outliner_selection]
-
-        for instance in instances:
-            hpl_properties.set_entity_custom_properties(instancevars_dict, instance)    
-
-            instance['hplp_i_properties'] = { 
-                                                'EntityType': hpl_entity_type.ENTITY_INSTANCE.init(), 
+            hpl_properties.set_entity_custom_properties(instancevars_dict, selection)   
+                        
+            selection['hplp_i_properties'] = { 
+                                                'EntityType': _type, 
                                                 'PropType' : ent_type,
-                                                'InstancerName': instance.instance_collection.name,
+                                                'InstancerName': collection_ent.name,
                                             }
             
-        
-    def set_entity_type_on_mesh():
+        elif _type == hpl_entity_type.ENTITY.name:
+            
+            ent_type = bpy.context.scene.hpl_parser.hpl_base_classes_enum
+            typevars_dict = hpl_properties.get_properties(ent_type, 'TypeVars')
+            hpl_properties.set_entity_custom_properties(typevars_dict, selection)
+            
+            selection['hplp_i_properties'] = { 
+                                                                        'EntityType': _type, 
+                                                                        'PropType' : ent_type,
+                                                                        'InstancerName': None,
+                                                                    }
+            
+            # Update Instances
+            instancevars_dict = hpl_properties.get_properties(ent_type, 'InstanceVars')
+            instances = [inst for inst in [valid_inst for valid_inst in bpy.data.objects if valid_inst.is_instancer] if inst.instance_collection == selection]
 
-        submesh_vars_dict = hpl_config.hpl_submesh_properties_vars_dict
-        hpl_properties.set_entity_custom_properties(submesh_vars_dict, hpl_config.hpl_viewport_selection)
-        
-        hpl_config.hpl_outliner_selection['hplp_i_properties'] = {
-                                                                    'EntityType': hpl_entity_type.SUBMESH.init(),
-                                                                }
-        
+            for instance in instances:
+                hpl_properties.set_entity_custom_properties(instancevars_dict, instance)    
+
+                instance['hplp_i_properties'] = { 
+                                                    'EntityType': hpl_entity_type.ENTITY_INSTANCE.name, 
+                                                    'PropType' : ent_type,
+                                                    'InstancerName': instance.instance_collection.name,
+                                                }
+                
+        elif _type == hpl_entity_type.SUBMESH.name:
+            
+            submesh_vars_dict = hpl_config.hpl_submesh_properties_vars_dict
+            hpl_properties.set_entity_custom_properties(submesh_vars_dict, selection)
+            
+            selection['hplp_i_properties'] = {
+                                                'EntityType': _type,
+                                            }
+            
+        elif _type == hpl_entity_type.POINT_LIGHT.name:
+            
+            pointlightvars_dict = hpl_config.hpl_point_light_entity_properties_vars_dict
+            hpl_properties.set_entity_custom_properties(pointlightvars_dict, selection)
+            
+            selection['hplp_i_properties'] = {
+                                                'EntityType': _type, 
+                                                'InstancerName': None,
+                                            }
+            
+        elif _type == hpl_entity_type.BOX_LIGHT.name:
+            
+            pointlightvars_dict = hpl_config.hpl_box_light_entity_properties_vars_dict
+            hpl_properties.set_entity_custom_properties(pointlightvars_dict, selection)
+            
+            selection['hplp_i_properties'] = {
+                                                'EntityType': _type, 
+                                                'InstancerName': None,
+                                            }
+            
+        elif _type == hpl_entity_type.SPOT_LIGHT.name:
+            
+            pointlightvars_dict = hpl_config.hpl_spot_light_entity_properties_vars_dict
+            hpl_properties.set_entity_custom_properties(pointlightvars_dict, selection)
+            
+            selection['hplp_i_properties'] = {
+                                                'EntityType': _type, 
+                                                'InstancerName': None,
+                                            }
 
     def set_material_settings_on_material():
         
@@ -573,10 +662,10 @@ class hpl_properties():
         hpl_properties.set_entity_custom_properties(matvars_dict, hpl_config.hpl_active_material)
 
         hpl_config.hpl_active_material['hplp_i_properties'] = {
-                                                                'EntityType': hpl_entity_type.MATERIAL.init(),
-                                                                'PropType' : None,    
+                                                                'EntityType': 'MATERIAL',
                                                                 'InstancerName': None,
                                                             }
+        
 
     '''        
     def update_ui():

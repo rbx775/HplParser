@@ -36,13 +36,16 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        hpl_file_system.create_mod(bpy.context.scene.hpl_parser.hpl_game_root_path + 'mods\\' + bpy.context.scene.hpl_parser.hpl_project_root_col)
-        return {'FINISHED'}
+        run_python_hook()
+
+        #hpl_file_system.create_mod(bpy.context.scene.hpl_parser.hpl_game_root_path + 'mods\\' + bpy.context.scene.hpl_parser.hpl_project_root_col)
+        #return {'FINISHED'}
         if hpl_file_system.mod_check() != 1:
             hpl_file_system.mod_init()
-            return {'CANCELLED'}    
+            return {'CANCELLED'}
         
-        run_python_hook()
+        hpl_file_system.edit_wip_mod()
+        
         hpl_config.hpl_export_warnings = {}
         write_hpm()
         hpl_entity_exporter.hpl_export_objects(self)
@@ -56,6 +59,7 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return    
     
 def run_python_hook():
+    #TODO: Make this work even if script window is not opened.
     if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
         for window in bpy.context.window_manager.windows:
             screen = window.screen
@@ -66,7 +70,6 @@ def run_python_hook():
                         break
                     except:
                         pass
-
 
 def load_map_file(file_path):
 
@@ -85,7 +88,7 @@ def general_properties(spatial_general, obj, _id, _index):
     spatial_general.set('Name', str(obj.name))
     spatial_general.set('CreStamp', str(0))
     spatial_general.set('ModStamp', str(0))
-    spatial_general.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.location))
+    spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location(obj.location)))
     spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
     spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
     spatial_general.set('FileIndex', str(_index))
@@ -110,7 +113,7 @@ def write_hpm_main(map_col, _map_path, _id):
     root = xtree.Element('HPLMap', ID=str(_id), MajorVersion='1', MinorVersion='1')
     global_settings = xtree.SubElement(root, "GlobalSettings")
 
-    map_var_dict = hpl_property_io.hpl_properties.get_var_from_entity_properties(map_col).get('Vars', {})
+    map_var_dict = hpl_property_io.hpl_properties.get_var_from_entity_properties(map_col)
 
     for group in map_var_dict:
         attribute = group.rsplit('_')[-1]
@@ -123,13 +126,15 @@ def write_hpm_main(map_col, _map_path, _id):
 
         for var in map_var_dict[group]:
             
-            var_name = var[len(hpl_config.hpl_custom_properties_prefixes_dict['Var'])+len(attribute):]
+            var_name = var
+            var_value = map_var_dict[group][var]
+
             if sub_element.tag == 'EnvParticles': 
                 if var_name == 'Active':
-                    sub_element.set(var_name, str(tuple(map_col[var])).translate(str.maketrans({'(': '', ')': ''})) if type(map_col[var]) not in hpl_config.hpl_common_variable_types else str(map_col[var]))
+                    sub_element.set(var_name, str(tuple(var_value)).translate(str.maketrans({'(': '', ')': ''})) if type(var_value) not in hpl_config.hpl_common_variable_types else str(var_value))
                     sub_element = xtree.SubElement(sub_element, 'EnvParticle')
             else:
-                sub_element.set(var_name, str(tuple(map_col[var])).translate(str.maketrans({'(': '', ')': ''})) if type(map_col[var]) not in hpl_config.hpl_common_variable_types else str(map_col[var]))
+                sub_element.set(var_name, str(tuple(var_value)).translate(str.maketrans({'(': '', ')': ''})) if type(var_value) not in hpl_config.hpl_common_variable_types else str(var_value))
 
     registered_users = xtree.SubElement(root, 'RegisteredUsers')
     
@@ -171,6 +176,9 @@ def write_hpm_billboard(map_col, _map_path, _id):
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
+
+def get_object_name_path(obj_name):
+    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj_name
     
 def get_object_path(obj):
     return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name
@@ -201,7 +209,7 @@ def write_hpm_static_objects(map_col, _map_path, _id):
     for obj in map_col.objects:
         if obj.is_instancer:
             #if obj.instance_collection['hpl_entity_type'] == 'StaticObject':
-            if obj.get('hplp_i_properties', {}).get('EntityType', None) == hpl_config.hpl_entity_type.STATIC_OBJECT.value:
+            if obj.get('hplp_i_properties', {}).get('PropType', None) == 'Static_Object':
             
                 static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
                 #user_variables = xtree.SubElement(entity, 'UserVariables')
@@ -249,39 +257,43 @@ def write_hpm_entity(map_col, _map_path, _id):
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
     file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(len(map_col.objects)))
     objects = xtree.SubElement(section, 'Objects')
-    _index = 0
+
+    entity_files = list(set([obj.get('hplp_i_properties', {}).get('InstancerName', None) for obj in map_col.objects if obj.is_instancer]))
+    for e, entity in enumerate(entity_files):
+        xtree.SubElement(file_index, 'File', Id=str(e), Path=get_object_name_path(entity)+'.ent')
     
+    _index = 0
     for obj in map_col.objects:
         if obj.is_instancer:
-            if obj.instance_collection.get('hplp_i_properties').get('PropType') == 'Static_Object':
+            #if obj.instance_collection.get('hplp_i_properties').get('PropType') != 'Static_Object':
             #if any([var for var in obj.instance_collection.items() if hpl_config.hpl_entity_type_identifier in var[0]]):
-                #if not obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
-                entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
-                user_variables = xtree.SubElement(entity, 'UserVariables')
-                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.ent')
+            #if not obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
+            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
+            user_variables = xtree.SubElement(entity, 'UserVariables')
+            #xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.ent')
 
-                general_properties(entity, obj, root_id, _index)
-                '''            
-                entity.set('ID', str(root_id+_index))
-                entity.set('Name', str(obj.name))
-                entity.set('CreStamp', str(0))
-                entity.set('ModStamp', str(0))
-                entity.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.position))
-                entity.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
-                entity.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
-                entity.set('FileIndex', str(_index))
-                '''
-                vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
-                for var in vars:
-                    var_name = var[0].split('hpl_parser_var_')[-1]
-                    if var_name in hpm_config.hpm_entities_properties['Entity']:
-                        entity.set(var_name, str(var[1]))
-                    else:
-                        xml_var = xtree.SubElement(user_variables,'Var')
-                        xml_var.set('ObjectId', str(root_id+_index))
-                        xml_var.set('Name', var_name)
-                        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-                _index = _index + 1
+            general_properties(entity, obj, root_id, entity_files.index(obj.get('hplp_i_properties', {}).get('InstancerName', None)))
+            '''            
+            entity.set('ID', str(root_id+_index))
+            entity.set('Name', str(obj.name))
+            entity.set('CreStamp', str(0))
+            entity.set('ModStamp', str(0))
+            entity.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.position))
+            entity.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
+            entity.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
+            entity.set('FileIndex', str(_index))
+            '''
+            vars = [item for item in obj.items() if 'hplp_v_' in item[0]]
+            for var in vars:
+                var_name = var[0].split('hplp_v_')[-1]
+                if var_name in hpm_config.hpm_entities_properties['Entity']:
+                    entity.set(var_name, str(var[1]))
+                else:
+                    xml_var = xtree.SubElement(user_variables,'Var')
+                    xml_var.set('ObjectId', str(root_id+_index))
+                    xml_var.set('Name', var_name)
+                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+            _index = _index + 1
                     
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
@@ -294,8 +306,8 @@ def write_hpm_detail_meshes(map_col, _map_path, _id):
 
     root = xtree.Element('HPLMapTrack_DetailMeshes', ID=str(_id), MajorVersion='1', MinorVersion='1')
     detail_meshes = xtree.SubElement(root, "DetailMeshes")
-    if any([var[0] for var in map_col.items() if 'hpl_parser_var_DetailMeshesMaxRange' == var[0]]):
-        detail_meshes.set('MaxRange', str(map_col["hpl_parser_var_DetailMeshesMaxRange"]))
+    if map_col.get('hplp_v_DetailMeshesMaxRange', None) != None:
+        detail_meshes.set('MaxRange', str(map_col['hplp_v_DetailMeshesMaxRange']))
     
     sections = xtree.SubElement(detail_meshes, "Sections")
     section = xtree.SubElement(sections, "Section")
@@ -446,9 +458,9 @@ def write_hpm():
     mod = bpy.context.scene.hpl_parser.hpl_project_root_col
 
     map_path = root+'mods\\'+mod+'\\maps\\'
-    host_file_path = os.path.dirname(os.path.realpath(__file__))+'\\host\\host.hpm'
+    #host_file_path = os.path.dirname(os.path.realpath(__file__))+'\\host\\host.hpm'
 
-    for map_col in bpy.data.collections[hpl_config.hpl_map_collection_identifier].children:
+    for map_col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
 
         id = hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()
 
@@ -476,68 +488,7 @@ def write_hpm():
                 write_hpm_terrain(map_col, _map_path, id)
             else:
                 write_hpm_placeholder(_map_path, id, container)
-                
-'''
-def hpl_export_objects():
 
-    #Eventhough we are working with context overrides \
-    #we need the selection for the DAE Exporter at the end.
-    sel_objs = bpy.context.selected_objects
-    act_obj = bpy.context.active_object
-    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
-    root = bpy.context.scene.hpl_parser.hpl_game_root_path
- 
-    # Using context to loop through collections to get their state. (enabled/ disabled)
-    viewlayer_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children
-    viewlayer_collections_list = [col.name for col in viewlayer_collections_list if not col.exclude and hpl_config.hpl_map_collection_identifier != col.name]
-
-    for col_name in viewlayer_collections_list:
-        bpy.context.view_layer.objects.active = None
-        export_collection = bpy.data.collections[col_name]
-        export_objects = export_collection.objects
-
-        for obj in export_objects:
-            # Dae exporters triangulate doesnt account for custom normals.
-            tri_mod = obj.modifiers.new("_Triangulate", 'TRIANGULATE')
-            tri_mod.keep_custom_normals = True
-
-        bpy.ops.object.select_all(action='DESELECT')
-
-        for obj in export_objects:
-            obj.select_set(True)
-            obj.rotation_euler[0] = obj.rotation_euler[0] + math.radians(90)
-            obj.location[0] = -obj.location[0]
-
-        path = root+'\\mods\\'+root_collection+'\\entities\\'#+export_collection.name+'\\'
-
-        if not os.path.exists(path):
-            os.mkdir(path)
-
-        # Delete HPL *.msh file. This will be recreated when Level Editor or game is launched.
-        if os.path.isfile(path+col_name[:3]+'msh'):
-            os.remove(path+col_name[:3]+'msh')
-        
-        bpy.ops.wm.collada_export(filepath=path+col_name, check_existing=False, use_texture_copies = True,\
-                                selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
-                                export_global_forward_selection = 'Z', export_global_up_selection = 'Y', \
-                                apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
-                                triangulate = False) #-Y, Z
-        
-        write_entity_files(export_collection, path)
-
-        for obj in export_objects:
-            obj.modifiers.remove(obj.modifiers.get("_Triangulate"))
-            obj.rotation_euler[0] = obj.rotation_euler[0] - math.radians(90)
-            obj.location[0] = -obj.location[0]
-
-        bpy.ops.object.select_all(action='DESELECT')
-        # Eventhough we are working with context overrides
-        # we need to select our objects for the DAE Exporter at the end.
-        for obj in sel_objs:
-            obj.select_set(True)
-        
-    bpy.context.view_layer.objects.active = act_obj
-'''
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()
     eval_mesh = obj.evaluated_get(deg).data.copy()

@@ -98,7 +98,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         if value != self['hpl_base_classes_enum']:
             self['hpl_base_classes_enum'] = value
             
-            hpl_property_io.hpl_properties.set_entity_type_on_collection()
+            hpl_property_io.hpl_properties.set_entity_type()
             bpy.context.scene.hpl_parser_entity_properties.clear()
             update_ui()
 
@@ -108,9 +108,9 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     def set_hpl_project_root_col(self, value):
         self['hpl_project_root_col'] = value    
         if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
-            if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps']):
-                bpy.ops.collection.create(name='Maps')
-                bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections['Maps'])
+            if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
+                bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col)
+                bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col])
             hpl_file_system.mod_init()
 
     def get_hpl_startup_map_col(self):
@@ -119,6 +119,24 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     def set_hpl_startup_map_col(self, value):
         self['hpl_startup_map_col'] = value    
         hpl_file_system.set_startup_map()
+        
+    def get_hpl_folder_maps_col(self):
+        return self.get("hpl_folder_maps_col", 0)
+
+    def set_hpl_folder_maps_col(self, value):
+        self['hpl_folder_maps_col'] = value
+                
+    def get_hpl_folder_entities_col(self):
+        return self.get("hpl_folder_entities_col", 0)
+
+    def set_hpl_folder_entities_col(self, value):
+        self['hpl_folder_entities_col'] = value
+        
+    def get_hpl_folder_static_objects_col(self):
+        return self.get("hpl_folder_static_objects_col", 0)
+
+    def set_hpl_folder_static_objects_col(self, value):
+        self['hpl_folder_static_objects_col'] = value
 
     def get_hpl_map_root_col(self):
         try:
@@ -131,7 +149,8 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         self['set_hpl_map_root_col'] = value
         return
 
-    hpl_temporary_pointer : bpy.props.PointerProperty(type=bpy.types.Object)
+    hpl_ui_parser_settings_menu : bpy.props.BoolProperty(default=False)
+    hpl_ui_tool_settings_menu : bpy.props.BoolProperty(default=False)
     hpl_has_project_col : bpy.props.BoolProperty(default=False)
     hpl_has_maps_col : bpy.props.BoolProperty(default=False)
 
@@ -387,7 +406,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         
     def update_hpl_startup_map_col(self, context):
         data = []
-        for collection in bpy.data.collections['Maps'].children:
+        for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
             fdata = (collection.name,collection.name,'')
             data.append(fdata)
         return data
@@ -400,6 +419,57 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_startup_map_col, 
         set=set_hpl_startup_map_col,
     )
+
+    def update_hpl_folder_maps_col(self, context):
+        data = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col:
+            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
+                fdata = (collection.name,collection.name,'')
+                data.append(fdata)
+        return data
+    
+    hpl_folder_maps_col: bpy.props.EnumProperty(
+        name='Entity Folder',
+        options={'LIBRARY_EDITABLE'},
+        description='The folder that the exporter will export entities to',
+        items=update_hpl_folder_maps_col,
+        get=get_hpl_folder_maps_col, 
+        set=set_hpl_folder_maps_col,
+    )
+
+    def update_hpl_folder_entities_col(self, context):
+        data = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col:
+            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
+                fdata = (collection.name,collection.name,'')
+                data.append(fdata)
+        return data
+    
+    hpl_folder_entities_col: bpy.props.EnumProperty(
+        name='Entity Folder',
+        options={'LIBRARY_EDITABLE'},
+        description='The folder that the exporter will export entities to',
+        items=update_hpl_folder_entities_col,
+        get=get_hpl_folder_entities_col, 
+        set=set_hpl_folder_entities_col,
+    )
+
+    def update_hpl_folder_static_objects_col(self, context):
+        data = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col:
+            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
+                fdata = (collection.name,collection.name,'')
+                data.append(fdata)
+        return data
+    
+    hpl_folder_static_objects_col: bpy.props.EnumProperty(
+        name='Static Objects Folder',
+        options={'LIBRARY_EDITABLE'},
+        description='The folder that the exporter will export static objects to',
+        items=update_hpl_folder_static_objects_col,
+        get=get_hpl_folder_static_objects_col, 
+        set=set_hpl_folder_static_objects_col,
+    )
     
     def update_hpl_project_root_col(self, context):
         data = []
@@ -407,6 +477,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
             fdata = (collection.name,collection.name,'')
             data.append(fdata)
         return data
+
     
     hpl_project_root_col: bpy.props.EnumProperty(
         name='Project Name',
@@ -503,6 +574,7 @@ def draw_custom_property_ui(props, ent, properties, layout):
 
     #box = layout.box()
     #row = box.row(align=False)
+    #row.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "EXPORT")
 
     layout.use_property_split = False
     layout.use_property_decorate = True
@@ -802,19 +874,40 @@ def draw_panel_3d_content(context, layout):
         #col = layout.column(align=True)
         #box = col.box()
         #box.label(text='Project Settings')
-        box.label(text='HPL Parser Settings')
-        singleRow = box.row(align=True)
+        #box = layout.box()
+
+        #hpl_ui_parser_settings_menu
+        
         if not bpy.context.scene.hpl_parser.hpl_has_project_col:
             box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
-        else:
-            singleRow.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
-                
-            if bpy.context.scene.hpl_parser.hpl_project_root_col:
-                if not any([col for col in bpy.data.collections if col.name == 'Maps']):
-                    box.label(text=f'Create a collection called \'Maps\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'', icon= 'ERROR')
-            else:
-                box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
+            return
+
+        singleRow = box.row(align=True)
+        singleRow.prop(props, 'hpl_ui_parser_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_parser_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
+        singleRow.label(text='HPL Parser Settings')
         
+        if props.hpl_ui_parser_settings_menu:
+            box.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
+            
+        if bpy.context.scene.hpl_parser.hpl_project_root_col:
+            if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
+                box.label(text=f'Create a collection called \'maps\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'', icon= 'ERROR')
+        else:
+            box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
+        '''
+        col = layout.column(align=True)
+        box = col.box()
+        singleRow = box.row(align=True)
+        singleRow.prop(props, 'hpl_ui_tool_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_tool_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
+        singleRow.label(text='Tool Settings')
+
+        if props.hpl_ui_tool_settings_menu:
+            box.use_property_split = True
+            box.use_property_decorate = False
+            box.prop(bpy.context.scene.tool_settings, "use_transform_skip_children", text="Dont transform children")
+        '''
+        col = layout.column(align=True)
+        box = col.box()
         box.prop(props, 'hpl_external_script_hook', icon = "WORDWRAP_OFF") #'CONSOLE'
         singleRow = box.row(align=True)
         singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
@@ -829,42 +922,60 @@ def draw_panel_3d_content(context, layout):
         singleRow.prop(props, 'hpl_export_textures', expand=False)
         singleRow.prop(props, 'hpl_export_maps', expand=False)
 
-        box = col.box()
-        box.use_property_split = True
-        box.use_property_decorate = False
-        box.label(text='Tool Settings') #icon='MODIFIER'
-        box.prop(bpy.context.scene.tool_settings, "use_transform_skip_children", text="Dont transform children")
-
         layout.use_property_split = True
         col = layout.column(align=True)
-        
-        if hpl_config.hpl_selection_type == hpl_config.hpl_selection.MAP:
+
+        if not hpl_config.hpl_outliner_selection:
+            return
+
+        if hpl_config.hpl_selection_state:
+            pass
+
+        if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
+            box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
+            box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
+            box.prop(props, "hpl_folder_maps_col", text='Maps Folder', expand=False)
+            box.prop(props, "hpl_folder_entities_col", text='Entities Folder', expand=False)
+            box.prop(props, "hpl_folder_static_objects_col", text='Static Objects Folder', expand=False)
+
+        elif hpl_config.hpl_outliner_selection.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All levels go in here.', icon='FILE_FOLDER')
+
+        elif hpl_config.hpl_outliner_selection.name == bpy.context.scene.hpl_parser.hpl_folder_entities_col:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All entities go in here.', icon='FILE_FOLDER')
+
+        elif hpl_config.hpl_outliner_selection.name == bpy.context.scene.hpl_parser.hpl_folder_static_objects_col:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All static objects go in here.', icon='FILE_FOLDER')
+
+        elif hpl_config.hpl_selection_type == hpl_entity_type.MAP.name:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a map.', icon='HOME')
             singleRowbtn = box.row(align=True)
             singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.INACTIVE_ENTITY_INSTANCE:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in a level collection, ignored for export.', icon='INFO')
+        elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY.name:
+            if hpl_config.hpl_selection_state:
+                box = col.box()
+                col_color = hpl_config.hpl_ui_outliner_selection_color_tag
+                #col_color = bpy.data.collections[hpl_config.hpl_ui_outliner_selection_name].color_tag
+                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+                box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+                box.prop(props, "hpl_current_material", text='Material', expand=False)
+                singleRowbtn = box.row(align=True)
+                singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
+                #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
+                draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+            else:
+                box = col.box()
+                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.MAPROOT:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root map collection. All levels go in here.', icon='HOME')
-
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.MOD:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
-            box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
-            box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
-
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.INACTIVE_ENTITY:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
-
-
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE:
+        elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name:
             box = col.box()
             instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
@@ -873,55 +984,64 @@ def draw_panel_3d_content(context, layout):
             box.label(text=f'\"{instance_of}\" is of type {hpl_config.hpl_ui_outliner_selection_prop_type}', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY:
+        elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name and not hpl_config.hpl_selection_state:
             box = col.box()
-            col_color = hpl_config.hpl_ui_outliner_selection_color_tag
-            #col_color = bpy.data.collections[hpl_config.hpl_ui_outliner_selection_name].color_tag
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
-            box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-            box.prop(props, "hpl_current_material", text='Material', expand=False)
-            singleRowbtn = box.row(align=True)
-            singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
-            #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in a level collection, ignored for export.', icon='INFO')
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_BODY:
+        elif hpl_config.hpl_selection_type == hpl_entity_type.BODY.name:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a physical body.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
         #elif hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType') == hpl_config.hpl_entity_type.JOINT:
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_HINGE_JOINT or hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_BALL_JOINT or hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_SLIDER_JOINT or hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_SCREW_JOINT:
+        elif hpl_config.hpl_selection_type.endswith('_JOINT'):
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_SHAPE:
+        elif hpl_config.hpl_selection_type.endswith('_SHAPE'):
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a collision entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_SUBMESH:
+        elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a submesh.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
-        elif hpl_config.hpl_selection_type == hpl_config.hpl_selection.INACTIVE_SUBMESH:
+        #inactive
+        elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a deactivated submesh, it will only be used by blender.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
 
+        elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a {hpl_config.hpl_selection_type.lower().replace("_"," ")}.', icon='OUTLINER_OB_LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+        
+        #inactive
+        elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a inactive point light.', icon='LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+
 class HPL_PT_3D_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'HPL'
-    bl_label = "HPL Parser"
+    bl_label = "HPL Parser 0.4"
     bl_idname = "HPL_PT_CREATE"
 
     @classmethod
@@ -1085,57 +1205,30 @@ def scene_selection_listener_post(self, context):
     #   Skip scene selection evaluation if we create a new Object from hpl_object.py.
     if hpl_config.hpl_skip_scene_listener:
         return
+    
     #   Save window type for later check in file browsers.
     hpl_config.main_window = bpy.context.window
 
     #   Check if the outliner selection has been deleted.
     try:
+        #  Do some arbitrary call to see if hpl_outliner_selection is even VALID. NONE != VALID
         hpl_config.hpl_outliner_selection.get('hplp_i_properties', {})
     except:
         hpl_config.hpl_outliner_selection = bpy.context.scene.collection
 
     hpl_property_io.hpl_properties.update_selection()
 
-    if hpl_config.hpl_outliner_selection != hpl_config.hpl_previous_outliner_selection:
+    update_ui()
 
-        if not hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}):
-            #   Catch newly created instances by pressing (Alt+G)
-            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY_INSTANCE:
-                hpl_property_io.hpl_properties.set_collection_properties_on_instance()
-            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.INACTIVE_ENTITY_INSTANCE:
-                hpl_property_io.hpl_properties.set_collection_properties_on_instance()
-            #if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_SUBMESH:
-            #    hpl_property_io.hpl_properties.set_entity_type_on_mesh()
-                
-            #   No need to check for Collection rna type
-            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.MAP:
-                hpl_property_io.hpl_properties.set_level_settings_on_map_collection()
-
-            if hpl_config.hpl_selection_type == hpl_config.hpl_selection.BLANK_SUBMESH:
-                hpl_property_io.hpl_properties.set_entity_type_on_mesh()
-
-        #   Initialize material vars
-        if hpl_config.hpl_active_material:
-            if not hpl_config.hpl_active_material.get('hplp_i_properties', {}):
-                hpl_property_io.hpl_properties.set_material_settings_on_material()
-        #else:
-        #    if hpl_config.hpl_selection_type == hpl_config.hpl_selection.ACTIVE_ENTITY:
-                #bpy.context.scene.hpl_parser['hpl_base_classes_enum'] = hpl_config.hpl_outliner_selection.get('hplp_i_properties').get('PropType')
-
-        bpy.context.scene.hpl_parser_entity_properties.clear()
-        update_ui()
-
-    hpl_config.hpl_ui_outliner_selection_instancer_name = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('InstancerName')
-
+    #   Check if the project root collection exists.
     if not bpy.context.view_layer.active_layer_collection.collection.children:
         bpy.context.scene.hpl_parser.hpl_has_project_col = True
 
+    #   Check if the project root collection has a 'maps' collection.
     if bpy.context.scene.hpl_parser.hpl_project_root_col:
-        if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == 'Maps']):
+        if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
             bpy.context.scene.hpl_parser.hpl_has_maps_col = True
 
-    hpl_config.hpl_previous_scene_collection = [obj for obj in bpy.context.scene.objects]
-    hpl_config.hpl_previous_outliner_selection = hpl_config.hpl_outliner_selection
     #if not hpl_file_system.mod_check():
     #    hpl_file_system.mod_init()
         #bpy.context.scene.hpl_parser.hpl_has_project_col = True

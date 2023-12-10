@@ -1,8 +1,7 @@
 import bpy
 import os
-import platform
-import time
 import shutil
+from itertools import chain
 import xml.etree.ElementTree as xtree
 
 from bpy.types import Context
@@ -25,7 +24,7 @@ def mod_init(dropdown = False):
     mod_path = mod_check()
 
     if mod_path != 1:
-        ret = bpy.ops.hpl_parser.create_mod_prompt('INVOKE_DEFAULT', path = mod_path)
+        bpy.ops.hpl_parser.create_mod_prompt('INVOKE_DEFAULT', path = mod_path)
         
 
 def recursive_mkdir(path): 
@@ -40,28 +39,15 @@ def recursive_mkdir(path):
             if not os.path.exists(_path):
                 os.mkdir(_path)
 
-def check_for_wip_mod(path):
-
-    return
-
-def create_mod(mod_path):
-    
-    package_folder_path = os.path.dirname(os.path.abspath(__file__))
-    documents_folder_path = os.path.expanduser('~/Documents')+'HPL3\\'
-
-    #   WIPMod.cfg in user documents is needed to point the HPL Level editor to the actual mod.
-    recursive_mkdir(documents_folder_path)
-    if not os.path.isfile(documents_folder_path + 'WIPMod.cfg'):
-        shutil.copy(package_folder_path+'\\UserFiles\\WIPMod.cfg', documents_folder_path)
+# TODO: Maybe call every project_col change?
+def edit_wip_mod():
         
+    documents_folder_path = os.path.expanduser('~/Documents')+'HPL3\\'
+    edit_mod_files(iter(os.walk(documents_folder_path)))
 
-    #   Copy the whole fake mod directory
-    recursive_mkdir(mod_path)
-    shutil.copytree(package_folder_path+'\\ModFiles\\', mod_path, dirs_exist_ok=True)
-
-    print(os.walk(mod_path))
-
-    for dirpath, dirnames, filenames in os.walk(mod_path):
+def edit_mod_files(path_generators):
+    
+    for dirpath, dirnames, filenames in path_generators:
         for filename in filenames:
             filepath = os.path.join(dirpath, filename)
 
@@ -74,10 +60,30 @@ def create_mod(mod_path):
                 for i, line in enumerate(lines):
                     for mod_line in hpl_config.hpl_mod_files[filename]:
                         if mod_line in line and '=' in line:
-                            lines[i] = lines[i].split('=')[0] + '= "' + str(eval(hpl_config.hpl_mod_files[filename][mod_line])) + '"' + '\n'  # Replace 'new_line' with your new line
+                            lines[i] = lines[i].split('=')[0] + '= "' + str(eval(hpl_config.hpl_mod_files[filename][mod_line])) + '"' + '\n'
                 #   Save file
                 with open(filepath, 'w', encoding='ascii') as file:
                     file.writelines(lines)
+
+def create_mod(mod_path):
+    
+    package_folder_path = os.path.dirname(os.path.abspath(__file__))
+    documents_folder_path = os.path.expanduser('~/Documents')+'HPL3\\'
+
+    #   WIPMod.cfg in user documents is needed to point the HPL Level editor to the actual mod.
+    recursive_mkdir(documents_folder_path)
+    if not os.path.isfile(documents_folder_path + 'WIPMod.cfg'):
+        shutil.copy(package_folder_path+'\\UserFiles\\WIPMod.cfg', documents_folder_path)
+        
+
+    #   Copy the mod template
+    recursive_mkdir(mod_path)
+    shutil.copytree(package_folder_path+'\\ModFiles\\', mod_path, dirs_exist_ok=True)
+
+    mod_folders = iter(os.walk(mod_path))
+    user_folders = iter(os.walk(documents_folder_path))
+
+    edit_mod_files(chain(mod_folders, user_folders))
 
 class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
     bl_idname = 'hpl_parser.create_mod_prompt'

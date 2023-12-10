@@ -4,7 +4,6 @@ from typing import Dict
 from enum import Enum
 
 hpl_invoke_mod_dialogue = 1
-hpl_map_collection_identifier = 'Maps'
 hpl_xml_typevars = 'TypeVars'
 hpl_xml_inherit_attribute = 'InheritsFrom'
 
@@ -48,6 +47,7 @@ hpl_outliner_selection = None
 hpl_previous_outliner_selection = None
 hpl_viewport_selection = None
 hpl_active_material = None
+hpl_previous_active_material = None
 hpl_skip_scene_listener = False
 
 #   UI variables
@@ -59,50 +59,46 @@ hpl_ui_outliner_selection_color_tag = ''
 hpl_ui_outliner_selection_instancer_name = ''
 hpl_ui_outliner_selection_prop_type = ''
 
-
-class hpl_selection(Enum):
-    NONE = 0
-    ACTIVE_ENTITY_INSTANCE = 1
-    INACTIVE_ENTITY_INSTANCE = 2
-    MOD = 3
-    MAPROOT = 4
-    MAP = 5
-    INACTIVE_ENTITY = 6
-    ACTIVE_ENTITY = 7
-    ACTIVE_BODY = 8
-    INACTIVE_BODY = 9
-    INACTIVE_JOINT = 10
-    ACTIVE_SHAPE = 11
-    INACTIVE_SHAPE = 12
-    ACTIVE_HINGE_JOINT = 13
-    ACTIVE_BALL_JOINT = 14
-    ACTIVE_SLIDER_JOINT = 15
-    ACTIVE_SCREW_JOINT = 16
-    BLANK_SUBMESH = 17
-    ACTIVE_SUBMESH = 18
-    INACTIVE_SUBMESH = 19
-
-hpl_selection_type = None
-
 @dataclasses.dataclass
 class EntityTypeData:
-    id: int
-    active: bool
+    EntityType: int
+    InstancerName: str
+    state: bool
 
 class hpl_entity_type(Enum):
-    MAP = EntityTypeData(1, True)
-    ENTITY = EntityTypeData(2, True)
-    ENTITY_INSTANCE = EntityTypeData(3, True)
-    BODY = EntityTypeData(4, True)
-    SHAPE = EntityTypeData(5, True)
-    SUBMESH = EntityTypeData(6, True)
-    LIGHT = EntityTypeData(7, True)
-    MATERIAL = EntityTypeData(8, True)
-    JOINT = EntityTypeData(9, True)
-    STATIC_OBJECT = EntityTypeData(10, True)
+    NONE = 0
+    SUBMESH = 1
+    ENTITY = 2
+    ENTITY_INSTANCE = 3
+    MOD = 4
+    MAP_FOLDER = 5
+    ENTITY_FOLDER = 6
+    STATIC_OBJECT_FOLDER = 7
+    FOLDER = 8
+    MAP = 9
+    BODY = 10
+
+    SPHERE_SHAPE = 20
+    BOX_SHAPE = 21
+    CYLINDER_SHAPE = 22
+    CAPSULE_SHAPE = 23
+
+    HINGE_JOINT = 30
+    BALL_JOINT = 31
+    SLIDER_JOINT = 32
+    SCREW_JOINT = 33
+
+    POINT_LIGHT = 40
+    SPOT_LIGHT = 41
+    BOX_LIGHT = 42
 
     def init(self):
-        return self.value.id
+        return self.value
+
+hpl_selection_type = ''
+hpl_selection_state = False
+hpl_selection_state_info = ''
+
 '''
 class hpl_entity_type(Enum):
     MAP = 1
@@ -134,6 +130,14 @@ class hpl_joint_type(Enum):
 
     def init(self):
         return self.value
+    
+class hpl_light_type(Enum):
+    POINT = 1
+    SPOT = 2
+    BOX = 3
+
+    def init(self):
+        return self.value
 
 hpl_entity_baseclass_list = []
 
@@ -160,7 +164,6 @@ hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str]
 hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color', 'color3', 'color4'] 
 
-#   Only Dict in which the default values are not stored as strings
 hpl_instance_general_vars_dict = {'General' :
     {
         'Active'            : {'Type' : "Bool",   'DefaultValue' : True,  'Description' : "Activate or Deactivate the Object"},
@@ -326,13 +329,85 @@ hpl_material_properties_vars_dict = {**hpl_material_shader_properties_vars_dict,
 
 hpl_level_editor_entity_type = {'General':'TypeVars/Group', 'LevelEditor_Entity':'InstanceVars', 'Entity_File':'EditorSetupVars/Group'}
 
-                                        #first stop                                                    #search inside container
-hpl_entity_file_identifier =            {'Identifier':'Objects'             , 'File':hpl_entity_classes_file_sub_path, 'Tag':None,    'Attribute':None}         #*.hpm file
-hpl_entity_class_file_identifier =      {'Identifier':'TypeVars'            , 'File':hpl_entity_classes_file_sub_path, 'Tag':'Group', 'Attribute':'Name'}       #Blender original collection
-hpl_leveleditor_general_identifier =    {'Identifier':'UserDefinedVariables', 'File':hpl_hpm_sub_path, 'Tag':None   , 'Attribute':'EntityType'}                 #*.ent file
-hpl_leveleditor_entity_identifier =     {'Identifier':'InstanceVars'        , 'File':hpl_entity_classes_file_sub_path, 'Tag':'Group', 'Attribute':'Name'}       #Blender instanced collection
+#   <PointLight ID="268435459" Name="Light_Point_1" CreStamp="1701906917" ModStamp="1701906931" WorldPos="9.75 4 0" Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" 
+#   ShadowsAffectStatic="true" ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" 
+#   FlickerOnMinLength="0" FlickerOnMaxLength="0" FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" FlickerOffColor="0 0 0 1" FlickerOffRadius="0" 
+#   FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" Static="false" 
+#   CulledByDistance="true" CulledByFog="true" FalloffPow="1" ConnectedLightMaskID="4294967295" UID="16 30 268435459" />
+ 
+hpl_light_flicker_properties_vars_dict = {'Flicker' :
+    {
+        'FlickerActive'             : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
+        'FlickerOnMinLength'        : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOnMaxLength'        : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOnPS'               : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'FlickerOnSound'            : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'FlickerOffMinLength'       : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOffMaxLength'       : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOffPS'              : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'FlickerOffSound'           : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'FlickerOffColor'           : {'Type' : "Color",  'DefaultValue' : (0, 0, 0, 1), 'Description' : ""},
+        'FlickerOffRadius'          : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
+        'FlickerFade'               : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
+        'FlickerOnFadeMinLength'    : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOnFadeMaxLength'    : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOffFadeMinLength'   : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOffFadeMaxLength'   : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+    }
+}
 
-hpl_ent_containers = {'Entity_File':hpl_entity_file_identifier, 'Entity_Class_File':hpl_entity_class_file_identifier, 'LevelEditor_General':hpl_leveleditor_general_identifier, 'LevelEditor_Entity':hpl_leveleditor_entity_identifier}
+hpl_point_light_properties_vars_dict = {'PointLight' :
+    {
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'GoboType'                  : {'Type' : "String", 'DefaultValue' : "Diffuse", 'Description' : ""},
+        'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
+        'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
+        'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'ConnectedLightMaskID'      : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+    }
+}
+hpl_point_light_entity_properties_vars_dict = {**hpl_instance_general_vars_dict, **hpl_point_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+# TODO: rework box light
+hpl_box_light_properties_vars_dict = {'PointLight' :
+    {
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'BlendFunction'             : {'Type' : "Enum",   'DefaultValue' : "Replace",'Description' : ""},
+        'AmbientGroundColor'        : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'AmbientSkyColor'           : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'Weight'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Bevel'                     : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
+        'IrrSet'                    : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+    }
+}
+hpl_box_light_entity_properties_vars_dict = {**hpl_instance_general_vars_dict, **hpl_box_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+# TODO: rework spot light
+hpl_spot_light_properties_vars_dict = {'PointLight' :
+    {
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
+        'GoboType'                  : {'Type' : "String", 'DefaultValue' : "Diffuse", 'Description' : ""},
+        'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
+        'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
+        'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+        'ConnectedLightMaskID'      : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
+    }
+}
+hpl_spot_light_entity_properties_vars_dict = {**hpl_instance_general_vars_dict, **hpl_spot_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
 
 hpl_detail_mesh_identifier = '_detailmesh'
 hpl_variable_identifier = 'hpl_parser_var'
@@ -369,6 +444,6 @@ hpl_mod_files = {   'main_init.cfg' : {
                                     'Title' : 'bpy.context.scene.hpl_parser.hpl_project_root_col',
                                     },
                     'WIPMod.cfg' : {    
-                                    'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col + \'\\entry.hpc\'',
+                                    'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col + \'\\\\entry.hpc\'',
                                     },
                   }
