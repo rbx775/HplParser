@@ -151,7 +151,7 @@ class hpl_properties():
 
         hpl_config.hpl_outliner_selection['hplp_i_properties'] = var_dict
 
-    def get_properties(sub_prop, variable_type):
+    def get_properties(sub_prop, variable_type, is_area = False):
 
         if sub_prop == 'None' or sub_prop == 'Static_Object':
             return {}
@@ -159,9 +159,11 @@ class hpl_properties():
         var_dict = {}
         level_settings_path = os.path.dirname(os.path.realpath(__file__))+'\\'+'fake_level_settings.def'
         entity_settings_path = bpy.context.scene.hpl_parser.hpl_game_root_path + hpl_config.hpl_entity_classes_file_sub_path
+        area_settings_path = bpy.context.scene.hpl_parser.hpl_game_root_path + hpl_config.hpl_area_classes_file_sub_path
         global_settings_path = bpy.context.scene.hpl_parser.hpl_game_root_path + hpl_config.hpl_globals_file_sub_path
-        
-        xml_path = level_settings_path if sub_prop == 'LevelSettings' else entity_settings_path
+
+        settings_path = area_settings_path if is_area else entity_settings_path
+        xml_path = level_settings_path if sub_prop == 'LevelSettings' else settings_path
 
         entity_class_tree = xtree.fromstring(hpl_properties.load_def_file(xml_path))
         global_class_tree = xtree.fromstring(hpl_properties.load_def_file(global_settings_path))
@@ -215,8 +217,11 @@ class hpl_properties():
             var_dict = {**hpl_config.hpl_instance_general_vars_dict, **var_dict}
         return var_dict
 
-    def get_base_classes_from_entity_classes():
-        def_file = hpl_properties.load_def_file(bpy.context.scene.hpl_parser.hpl_game_root_path + hpl_config.hpl_entity_classes_file_sub_path)
+    def get_base_classes_from_entity_classes(is_area = False):
+
+        def_file = bpy.context.scene.hpl_parser.hpl_game_root_path + (hpl_config.hpl_area_classes_file_sub_path if is_area else hpl_config.hpl_entity_classes_file_sub_path)
+        def_file = hpl_properties.load_def_file(def_file)
+
         entity_baseclass_list = []
 
         if def_file:
@@ -225,7 +230,7 @@ class hpl_properties():
             for cls in classes:
                 entity_baseclass_list.append(cls.attrib['Name'])
 
-            return [*hpl_config.hpl_static_object_class_list, *entity_baseclass_list]
+            return  entity_baseclass_list if is_area else [*hpl_config.hpl_static_object_class_list, *entity_baseclass_list]
         else:
             return None
         
@@ -284,6 +289,7 @@ class hpl_properties():
 
         sel = hpl_config.hpl_outliner_selection if not sel else sel
         if not sel:
+            print('asdasd')
             return None
         
         sel_identifier = sel.bl_rna.identifier
@@ -293,8 +299,6 @@ class hpl_properties():
 
         entity_properties_type = entity_dictionary.get('EntityType', '')
         hpl_config.hpl_selection_state = False
-        #print('set FALSE state', hpl_config.hpl_selection_state)
-
         ### COLLECTION ###
         if sel_identifier == 'Collection':
 
@@ -304,7 +308,7 @@ class hpl_properties():
             if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
                 hpl_properties.set_entity_state(sel, hpl_entity_type.MOD.name)
                 return hpl_entity_type.MOD.name
-            ### ENTITY FOLDER ###
+            ### STATIC OBJECT FOLDER ###
             if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col]:
                 hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT_FOLDER.name)
                 return hpl_entity_type.STATIC_OBJECT_FOLDER.name
@@ -349,9 +353,14 @@ class hpl_properties():
                 ### EMPTY ###
                 elif sel_bl_type == 'EMPTY':
                     hpl_properties.update_hierarchy_bodies()
-                    if entity_properties_type == 'Body':
+                    if entity_properties_type == hpl_entity_type.BODY.name:
                         hpl_properties.set_entity_state(sel, hpl_entity_type.BODY.name)
                         return hpl_entity_type.BODY.name
+                    
+                    elif entity_properties_type == hpl_entity_type.AREA.name:
+                        hpl_properties.set_entity_state(sel, entity_properties_type)
+                        return entity_properties_type
+                    
                     elif entity_properties_type.endswith('_Joint'):
                         hpl_properties.set_entity_state(sel, entity_properties_type)
                         hpl_properties.check_for_circular_dependency()
@@ -374,25 +383,31 @@ class hpl_properties():
                 if sel.users_collection[0] in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children_recursive:
                     hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_INSTANCE.name)
                     return hpl_entity_type.ENTITY_INSTANCE.name
-                    
+
         return ''
     
     def update_outliner_selection(ent):
 
+        if not ent:
+            return
+        
         hpl_config.hpl_outliner_selection = ent
         hpl_config.hpl_ui_outliner_selection_name = ent.name
-        return
     
     def update_viewport_selection(ent):
 
+        if not ent:
+            return
+        
         hpl_config.hpl_viewport_selection = ent
         hpl_config.hpl_ui_viewport_selection_name = ent.name
-        return
                     
     def update_material_selection(ent):
 
+        if not ent:
+            return
+        
         hpl_config.hpl_ui_active_material_name = ent
-        return
     
     def update_selection():   
 
@@ -400,7 +415,7 @@ class hpl_properties():
             for window in bpy.context.window_manager.windows:
                 if window == hpl_config.main_window:
                     for area in window.screen.areas:
-
+                        # TODO: check for opened pref window on main display
                         if area.type == 'OUTLINER':
                             with bpy.context.temp_override(window=window, area=area):
                                 hpl_properties.update_outliner_selection(bpy.context.selected_ids[0]) if bpy.context.selected_ids else None         
@@ -572,6 +587,18 @@ class hpl_properties():
                                                 'EntityType': _type, 
                                                 'InstancerName': None,
                                             }
+        
+        elif _type == hpl_entity_type.AREA.name:
+            
+            area_type = bpy.context.scene.hpl_parser.hpl_area_classes_enum
+            typevars_dict = hpl_properties.get_properties(area_type, 'Vars', True)
+            hpl_properties.set_entity_custom_properties(typevars_dict, selection)
+            
+            selection['hplp_i_properties'] = { 
+                                                                        'EntityType': _type, 
+                                                                        'PropType' : area_type,
+                                                                        'InstancerName': None,
+                                                                    }
 
         elif _type == hpl_entity_type.ENTITY_INSTANCE.name:
 
@@ -668,7 +695,6 @@ class hpl_properties():
                                                                 'EntityType': 'MATERIAL',
                                                                 'InstancerName': None,
                                                             }
-        
 
     '''        
     def update_ui():

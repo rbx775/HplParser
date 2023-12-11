@@ -77,6 +77,7 @@ class hpl_entity_type(Enum):
     FOLDER = 8
     MAP = 9
     BODY = 10
+    AREA = 11
 
     SPHERE_SHAPE = 20
     BOX_SHAPE = 21
@@ -97,7 +98,7 @@ class hpl_entity_type(Enum):
 
 hpl_selection_type = ''
 hpl_selection_state = False
-hpl_selection_state_info = ''
+hpl_selection_inactive_reason = ''
 
 '''
 class hpl_entity_type(Enum):
@@ -140,6 +141,7 @@ class hpl_light_type(Enum):
         return self.value
 
 hpl_entity_baseclass_list = []
+hpl_area_baseclass_list = []
 
 hpl_static_object_class_list = ['Static_Object']
 
@@ -159,6 +161,7 @@ hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariabl
 hpl_dae_containers = {'library_images':'library_images','image':'image','init_from':'init_from'}
 
 hpl_entity_classes_file_sub_path = 'editor\\userclasses\\EntityClasses.def'
+hpl_area_classes_file_sub_path = 'editor\\userclasses\\AreaClasses.def'
 hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
 hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str]
@@ -349,7 +352,7 @@ hpl_light_flicker_properties_vars_dict = {'Flicker' :
         'FlickerOffPS'              : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
         'FlickerOffSound'           : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
         'FlickerOffColor'           : {'Type' : "Color",  'DefaultValue' : (0, 0, 0, 1), 'Description' : ""},
-        'FlickerOffRadius'          : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
+        'FlickerOffRadius'          : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
         'FlickerFade'               : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
         'FlickerOnFadeMinLength'    : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
         'FlickerOnFadeMaxLength'    : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
@@ -378,15 +381,15 @@ hpl_light_flicker_properties_vars_dict = {'Flicker' :
 hpl_point_light_properties_vars_dict = {'PointLight' :
     {
         'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1,'Min' : 0, 'Max' : 100, 'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1.0,'Min' : 0.0, 'Max' : 100.0, 'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
         'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
-        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
         'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
         'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
@@ -419,7 +422,7 @@ hpl_point_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **
 hpl_box_light_properties_vars_dict = {'BoxLight' :
     {
         'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1, 'Min' : 0, 'Max' : 100,  'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1.0, 'Min' : 0.0, 'Max' : 100.0,  'Description' : ""},
         'Size'                      : {'Type' : "Vector3",'DefaultValue' : (1, 1, 1), 'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
@@ -427,13 +430,13 @@ hpl_box_light_properties_vars_dict = {'BoxLight' :
         'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
         'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'BlendFunc'                 : {'Type' : "Enum",   'DefaultValue' : "Replace", 'EnumValues' : ['Replace', 'Add', 'Average'], 'Description' : ""},
         'GroundColor'               : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
         'SkyColor'                  : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Weight'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
-        'Bevel'                     : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
-        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
+        'Weight'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
+        'Bevel'                     : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
         'UseSphericalHarmonics'     : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
         'ProbeOffset'               : {'Type' : "Vector3",'DefaultValue' : (0, 0, 0), 'Description' : ""},
         'IrrSet'                    : {'Type' : "String", 'DefaultValue' : "Default",       'Description' : ""},
@@ -470,23 +473,23 @@ hpl_box_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hp
 hpl_spot_light_properties_vars_dict = {'SpotLight' :
     {
         'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1, 'Min' : 0, 'Max' : 100,          'Description' : ""},
+        'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1.0, 'Min' : 0.0, 'Max' : 100.0,          'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
         'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'NearClipPlane'             : {'Type' : "Float",  'DefaultValue' : 0.1,      'Description' : ""},
-        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0,        'Description' : ""},
-        'FOV'                       : {'Type' : "Float",  'DefaultValue' : 60,       'Description' : ""},
-        'Aspect'                    : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
-        'SpotFalloffPow'            : {'Type' : "Float",  'DefaultValue' : 1,        'Description' : ""},
+        'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
+        'FOV'                       : {'Type' : "Float",  'DefaultValue' : 60.0,       'Description' : ""},
+        'Aspect'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
+        'SpotFalloffPow'            : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'ShadowFadeRangeActive'     : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
-        'ShadowFadeRange'           : {'Type' : "Float",  'DefaultValue' : 0,       'Description' : ""},
+        'ShadowFadeRange'           : {'Type' : "Float",  'DefaultValue' : 0.0,       'Description' : ""},
         'ShadowCasterDistanceActive': {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
-        'ShadowCasterDistance'      : {'Type' : "Float",  'DefaultValue' : 0,       'Description' : ""},
+        'ShadowCasterDistance'      : {'Type' : "Float",  'DefaultValue' : 0.0,       'Description' : ""},
         'ShadowUpdatePriority'      : {'Type' : "Int",    'DefaultValue' : 10,       'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
         'GoboType'                  : {'Type' : "Enum", 'DefaultValue' : "Diffuse", 'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
@@ -535,4 +538,4 @@ hpl_mod_files = {   'main_init.cfg' : {
                     'WIPMod.cfg' : {    
                                     'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col + \'\\\\entry.hpc\'',
                                     },
-                  }
+                }

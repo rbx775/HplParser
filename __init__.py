@@ -50,7 +50,8 @@ from .hpl_object import (OBJECT_OT_add_box_shape,
                         OBJECT_OT_add_hinge_joint,
                         OBJECT_MT_ADD_HPL_SHAPE,
                         OBJECT_MT_ADD_HPL_JOINT,
-                        OBJECT_OT_add_body)
+                        OBJECT_OT_add_body,
+                        OBJECT_OT_add_area,)
 from .hpl_property_io import (HPL_OT_RESETPROPERTIES)
 from .hpl_entity_exporter import (HPL_OT_ENTITYEXPORTER)
 
@@ -101,6 +102,18 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
             hpl_property_io.hpl_properties.set_entity_type()
             bpy.context.scene.hpl_parser_entity_properties.clear()
             update_ui()
+    
+    def get_hpl_area_classes_enum(self):
+        return self.get("hpl_area_classes_enum", 0)
+
+    def set_hpl_area_classes_enum(self, value):
+        print('AREA:',value)
+        #if value != self['hpl_area_classes_enum']:
+        self['hpl_area_classes_enum'] = value
+        
+        hpl_property_io.hpl_properties.set_entity_type()
+        bpy.context.scene.hpl_parser_entity_properties.clear()
+        update_ui()
 
     def get_hpl_project_root_col(self):
         return self.get("hpl_project_root_col", 0)
@@ -523,6 +536,25 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_base_classes_enum, 
         set=set_hpl_base_classes_enum,
     )
+
+    def update_hpl_area_classes_enum(self, context):
+        if not hpl_config.hpl_area_baseclass_list:
+            hpl_config.hpl_area_baseclass_list = hpl_property_io.hpl_properties.get_base_classes_from_entity_classes(is_area=True)
+
+        data = []
+        for name in hpl_config.hpl_area_baseclass_list:
+            fdata = (name,name,'')
+            data.append(fdata)
+        return data
+
+    hpl_area_classes_enum: bpy.props.EnumProperty(
+        name='Area Types',
+        options={'LIBRARY_EDITABLE'},
+        description='Prop types for hpl areas',
+        items=update_hpl_area_classes_enum,
+        get=get_hpl_area_classes_enum, 
+        set=set_hpl_area_classes_enum,
+    )
     '''
     def update_hpl_handler_selection(self, context):
         if not hpl_property_io.hpl_properties.entity_baseclass_list:
@@ -582,7 +614,7 @@ def draw_custom_property_ui(props, ent, properties, layout):
     #row = box.row(align=False)
     current_group = None
     group_iterator = 0
-    var_list = [var for var in ent.items() if 'hplp_' in var[0]]
+    var_list = [var for var in ent.items() if 'hplp_v_' in var[0] or 'hplp_g_' in var[0]]
     for v, var in enumerate(var_list):
 
         if '_g_' in var[0]:
@@ -868,15 +900,6 @@ def draw_panel_3d_content(context, layout):
     else:
         col = layout.column(align=True)
         box = col.box()
-        #box.label(text='Project Resources')
-        #box.operator(HPL_OT_ASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
-        #box.prop(props, 'hpl_create_preview')
-        #col = layout.column(align=True)
-        #box = col.box()
-        #box.label(text='Project Settings')
-        #box = layout.box()
-
-        #hpl_ui_parser_settings_menu
         
         if not bpy.context.scene.hpl_parser.hpl_has_project_col:
             box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
@@ -894,18 +917,7 @@ def draw_panel_3d_content(context, layout):
                 box.label(text=f'Create a collection called \'maps\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'', icon= 'ERROR')
         else:
             box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
-        '''
-        col = layout.column(align=True)
-        box = col.box()
-        singleRow = box.row(align=True)
-        singleRow.prop(props, 'hpl_ui_tool_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_tool_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
-        singleRow.label(text='Tool Settings')
 
-        if props.hpl_ui_tool_settings_menu:
-            box.use_property_split = True
-            box.use_property_decorate = False
-            box.prop(bpy.context.scene.tool_settings, "use_transform_skip_children", text="Dont transform children")
-        '''
         col = layout.column(align=True)
         box = col.box()
         box.prop(props, 'hpl_external_script_hook', icon = "WORDWRAP_OFF") #'CONSOLE'
@@ -931,9 +943,6 @@ def draw_panel_3d_content(context, layout):
 
         if not hpl_config.hpl_outliner_selection:
             return
-
-        if hpl_config.hpl_selection_state:
-            pass
 
         if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
             box = col.box()
@@ -970,7 +979,7 @@ def draw_panel_3d_content(context, layout):
                 #col_color = bpy.data.collections[hpl_config.hpl_ui_outliner_selection_name].color_tag
                 box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
                 box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-                box.prop(props, "hpl_current_material", text='Material', expand=False)
+                #box.prop(props, "hpl_current_material", text='Material', expand=False)
                 singleRowbtn = box.row(align=True)
                 singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
                 #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
@@ -1030,6 +1039,15 @@ def draw_panel_3d_content(context, layout):
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a {hpl_config.hpl_selection_type.lower().replace("_"," ")}.', icon='OUTLINER_OB_LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+        elif hpl_config.hpl_selection_type == hpl_entity_type.AREA.name:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an area.', icon='SHADING_BBOX')
+            box.prop(props, "hpl_area_classes_enum", text='Area Type', expand=False)
+            singleRowbtn = box.row(align=True)
+            singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
+            #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
         
         #inactive
@@ -1261,14 +1279,17 @@ def register():
     bpy.utils.register_class(OBJECT_OT_add_hinge_joint)
     bpy.utils.register_class(OBJECT_MT_ADD_HPL_SHAPE)
     bpy.utils.register_class(OBJECT_MT_ADD_HPL_JOINT)
+    bpy.utils.register_class(OBJECT_OT_add_area)
     bpy.utils.register_class(OBJECT_OT_add_body)
     bpy.utils.register_class(HPL_OT_OpenUserPreferences)
     bpy.utils.register_class(HPLPropertyCollection)
 
     bpy.utils.register_manual_map(hpl_object.add_shape_manual_map)
+    bpy.types.VIEW3D_MT_add.append(hpl_object.add_area_button)
     bpy.types.VIEW3D_MT_add.append(hpl_object.add_body_button)
     bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_shape)
     bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_joint)
+    print('reg')
     bpy.utils.register_class(HPLSettingsPropertyGroup)
     
     bpy.types.Scene.hpl_parser_entity_properties = bpy.props.CollectionProperty(type=HPLPropertyCollection)
@@ -1300,11 +1321,13 @@ def unregister():
     bpy.utils.unregister_class(OBJECT_OT_add_hinge_joint)
     bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_SHAPE)
     bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_JOINT)
+    bpy.utils.unregister_class(OBJECT_OT_add_area)
     bpy.utils.unregister_class(OBJECT_OT_add_body)
     bpy.utils.unregister_class(HPL_OT_OpenUserPreferences)
     bpy.utils.unregister_class(HPLPropertyCollection)
 
     bpy.utils.unregister_manual_map(hpl_object.add_shape_manual_map)
+    bpy.types.VIEW3D_MT_add.remove(hpl_object.add_area_button)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.add_body_button)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_shape)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_joint)

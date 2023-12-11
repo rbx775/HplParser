@@ -37,8 +37,7 @@ Blender to HPL3 Engine Parser for Mod Creation.
    - [x] StaticObjects
       - [x] detail meshes
    - [x] Entities
-      - [x] all physical Entities
-      - [x] Lights
+   - [x] Lights
    - [ ] Areas
    - [ ] Particles
    - [ ] Sounds
@@ -47,8 +46,8 @@ Blender to HPL3 Engine Parser for Mod Creation.
    - [x] SolidDiffuse
    - [ ] ...
 1. Full model editor feature set
-   - [ ] StaticObjects
-   - [ ] Entities
+   - [x] StaticObjects
+   - [x] Entities
       - [ ] Animations
       - [ ] ProcAnimations
 

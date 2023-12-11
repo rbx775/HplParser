@@ -153,6 +153,30 @@ def write_hpm_main(map_col, _map_path, _id):
 '''
 ### AREA ### 
 # empty implementation
+'''
+<HPLMapTrack_Area ID="8EEB80E2D7B1D98FC546900AE39F38FA2D7D6A3A" MajorVersion="1" MinorVersion="1">
+    <Section Name="18063263218655078958">
+        <Objects>
+            <Area ID="268435462" Name="Trigger_1" CreStamp="1702295224" ModStamp="1702295241" WorldPos="0 0 0" Rotation="0 0 0" Scale="1 1 1" Active="true" Mesh="" UID="16 15 268435462" AreaType="PlayerStart">
+                <UserVariables>
+                    <Var ObjectId="268435462" Name="Note" Value="" />
+                    <Var ObjectId="268435462" Name="Crouching" Value="false" />
+                </UserVariables>
+            </Area>
+            <Area ID="268435463" Name="Trigger_2" CreStamp="1702295779" ModStamp="1702295787" WorldPos="0 -1 -1.5" Rotation="0 0 0" Scale="1 1 1" Active="true" Mesh="" UID="16 30 268435463" AreaType="Crawl">
+                <UserVariables>
+                    <Var ObjectId="268435463" Name="Note" Value="" />
+                    <Var ObjectId="268435463" Name="Crouch" Value="false" />
+                    <Var ObjectId="268435463" Name="AllowJump" Value="false" />
+                    <Var ObjectId="268435463" Name="AllowJumpAfterExit" Value="true" />
+                </UserVariables>
+            </Area>
+        </Objects>
+    </Section>
+</HPLMapTrack_Area>
+
+'''
+
 def write_hpm_area(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
@@ -160,7 +184,34 @@ def write_hpm_area(map_col, _map_path, _id):
     root = xtree.Element('HPLMapTrack_Area', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
-                        
+    objects = xtree.SubElement(section, 'Objects')     
+
+    _index = 0
+
+    areas = [area for area in map_col.objects if area.get('hplp_i_properties', {}).get('EntityType', '') == hpl_config.hpl_entity_type.AREA.name]
+
+    for area_entity in areas:
+
+            area = xtree.SubElement(objects, area_entity.get('hplp_i_properties', {}).get('EntityType', 'PointLight').title().replace('_',''), ID=str(root_id+_index))
+
+            general_properties(area, area_entity, root_id, _index, has_file_index=False)
+            #   Override Rotation, light entities seem to work in radians.
+            #area.set('Rotation', hpl_convert.convert_to_hpl_rotation_radians(tuple(a + b for a, b in zip(tuple(area_entity.rotation_euler), (-90,0,0)))))
+            
+            user_variables = xtree.SubElement(area, 'UserVariables')
+            vars = [item for item in area_entity.items() if 'hplp_v_' in item[0]]
+            for var in vars:
+                var_name = var[0].split('hplp_v_')[-1]
+                if var_name in hpm_config.hpm_entities_properties['Entity']:
+                    area.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                else:
+                    xml_var = xtree.SubElement(user_variables,'Var')
+                    xml_var.set('ObjectId', str(root_id+_index))
+                    xml_var.set('Name', var_name)
+                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+            area.set('AreaType', area_entity.get('hplp_i_properties', {}).get('PropType', ''))
+            _index = _index + 1
+
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
@@ -428,17 +479,18 @@ def write_hpm_light(map_col, _map_path, _id):
             light = xtree.SubElement(objects, light_entity.get('hplp_i_properties', {}).get('EntityType', 'PointLight').title().replace('_',''), ID=str(root_id+_index))
 
             general_properties(light, light_entity, root_id, _index, has_file_index=False)
-
+            #   Override Rotation, light entities seem to work in radians.
+            light.set('Rotation', hpl_convert.convert_to_hpl_rotation_radians(tuple(a + b for a, b in zip(tuple(light_entity.rotation_euler), (-90,0,0)))))
+            
             vars = [item for item in light_entity.items() if 'hplp_v_' in item[0]]
             for var in vars:
                 var_name = var[0].split('hplp_v_')[-1]
-                #if var_name in hpm_config.hpm_entities_properties['Entity']:
-                #else:
-                light.set(var_name, str(var[1]))
-                #xml_var = xtree.SubElement(objects,'Var')
-                light.set('ObjectId', str(root_id+_index))
-                light.set('Name', var_name)
-                light.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+
+                #   Spotlight FOV needs to be converted to radians
+                if var_name == 'FOV':
+                    light.set(var_name, str(round(var[1] * (math.pi / 180), 4)))
+                else:
+                    light.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
             _index = _index + 1
     
     # TODO: move xtree creation to main loop, return root
@@ -527,8 +579,8 @@ def write_hpm():
             _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
             if container == '':
                 write_hpm_main(map_col, _map_path, id)
-            #elif container == '_Area':
-            #    write_hpm_area(_map_path, id, container)
+            elif container == '_Area':
+                write_hpm_area(map_col, _map_path, id)
             #elif container == '_Billboard':
             #    write_hpm_billboard(_map_path, id, container)
             #elif container == '_Compound':
