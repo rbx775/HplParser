@@ -279,29 +279,29 @@ def add_shape_capsule(self, context):
     capsule_shape.location = bpy.context.scene.cursor.location
 
 def add_area(self, context):
-
-    box_empty = bpy.data.objects.new( "empty", None )
-    box_empty.empty_display_size = 1
-    box_empty.empty_display_type = 'CUBE'
-    box_empty.name = 'Area'
-
-    box_empty.location = bpy.context.scene.cursor.location
-
-    # Link the object into the scene.
-    bpy.context.collection.objects.link(box_empty)
-
-    bpy.ops.object.select_all(action='DESELECT')
-    #box_empty['hpl_internal_type'] = 'Joint_Slider'
-
-    box_empty['hplp_i_properties'] = {
+        # Create an empty mesh and the object.
+    mesh = bpy.data.meshes.new('Area')
+    area = bpy.data.objects.new("Area", mesh)
+    #box_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeBox'
+    
+    area['hplp_i_properties'] = {
                                         'EntityType': hpl_entity_type.AREA.name,
                                         'InstancerName': None,
                                     }
-    bpy.context.view_layer.depsgraph.update()
-    bpy.context.view_layer.objects.active = box_empty
-    box_empty.select_set(True)
-    #box_empty.location = bpy.context.scene.cursor.location
-    #update_viewport()
+
+    # Link the object into the scene.
+    bpy.context.collection.objects.link(area)
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.context.view_layer.objects.active = area
+    area.select_set(True)
+
+    # Construct the bmesh and assign it to the blender mesh.
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bm.to_mesh(mesh)
+    bm.free()
+    area.location = bpy.context.scene.cursor.location
+    #object_data_add(context, mesh, operator=self)
     
 
 '''
@@ -354,8 +354,9 @@ def add_entity(self, context, _type):
         add_joint_hinge(self, context)
     elif _type == 'area':
         add_area(self, context)
-    print('listener skipped')
+
     hpl_config.hpl_skip_scene_listener = False
+    hpl_property_io.hpl_properties.update_selection()
 
 class OBJECT_MT_display_presets(Menu):
     bl_label = "Object Display Presets"
@@ -454,6 +455,9 @@ class OBJECT_OT_add_area(Operator, AddObjectHelper):
         add_entity(self, context, _type='area')
         return {'FINISHED'}
 
+##################
+### DRAWING UI ###
+##################
 class OBJECT_MT_ADD_HPL_SHAPE(bpy.types.Menu):
     bl_idname = "OBJECT_MT_ADD_HPL_SHAPE"
     bl_label = "HPL Shape"

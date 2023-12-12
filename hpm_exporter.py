@@ -36,8 +36,6 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     def execute(self, context):
         run_python_hook()
 
-        #hpl_file_system.create_mod(bpy.context.scene.hpl_parser.hpl_game_root_path + 'mods\\' + bpy.context.scene.hpl_parser.hpl_project_root_col)
-        #return {'FINISHED'}
         if hpl_file_system.mod_check() != 1:
             hpl_file_system.mod_init()
             return {'CANCELLED'}
@@ -88,7 +86,7 @@ def general_properties(spatial_general, obj, _id, _index, has_file_index = True)
     spatial_general.set('CreStamp', str(0))
     spatial_general.set('ModStamp', str(0))
     spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location(obj.location)))
-    spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
+    spatial_general.set('Rotation', hpl_convert.convert_to_hpl_rotation(obj.rotation_euler))
     spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
     if has_file_index:
         spatial_general.set('FileIndex', str(_index))
@@ -143,39 +141,7 @@ def write_hpm_main(map_col, _map_path, _id):
     user.set('RegistrationTimestamp', str(0))
                         
     xtree.indent(root, space="    ", level=0)
-    xtree.ElementTree(root).write(_map_path) 
-'''
-<HPLMapTrack_Area ID="C4547C63F553509279840CC3D26496E43E0CA576" MajorVersion="1" MinorVersion="1">
-    <Section Name="9347656469469383509">
-        <Objects />
-    </Section>
-</HPLMapTrack_Area>
-'''
-### AREA ### 
-# empty implementation
-'''
-<HPLMapTrack_Area ID="8EEB80E2D7B1D98FC546900AE39F38FA2D7D6A3A" MajorVersion="1" MinorVersion="1">
-    <Section Name="18063263218655078958">
-        <Objects>
-            <Area ID="268435462" Name="Trigger_1" CreStamp="1702295224" ModStamp="1702295241" WorldPos="0 0 0" Rotation="0 0 0" Scale="1 1 1" Active="true" Mesh="" UID="16 15 268435462" AreaType="PlayerStart">
-                <UserVariables>
-                    <Var ObjectId="268435462" Name="Note" Value="" />
-                    <Var ObjectId="268435462" Name="Crouching" Value="false" />
-                </UserVariables>
-            </Area>
-            <Area ID="268435463" Name="Trigger_2" CreStamp="1702295779" ModStamp="1702295787" WorldPos="0 -1 -1.5" Rotation="0 0 0" Scale="1 1 1" Active="true" Mesh="" UID="16 30 268435463" AreaType="Crawl">
-                <UserVariables>
-                    <Var ObjectId="268435463" Name="Note" Value="" />
-                    <Var ObjectId="268435463" Name="Crouch" Value="false" />
-                    <Var ObjectId="268435463" Name="AllowJump" Value="false" />
-                    <Var ObjectId="268435463" Name="AllowJumpAfterExit" Value="true" />
-                </UserVariables>
-            </Area>
-        </Objects>
-    </Section>
-</HPLMapTrack_Area>
-
-'''
+    xtree.ElementTree(root).write(_map_path)
 
 def write_hpm_area(map_col, _map_path, _id):
 
@@ -195,8 +161,8 @@ def write_hpm_area(map_col, _map_path, _id):
             area = xtree.SubElement(objects, area_entity.get('hplp_i_properties', {}).get('EntityType', 'PointLight').title().replace('_',''), ID=str(root_id+_index))
 
             general_properties(area, area_entity, root_id, _index, has_file_index=False)
-            #   Override Rotation, light entities seem to work in radians.
-            #area.set('Rotation', hpl_convert.convert_to_hpl_rotation_radians(tuple(a + b for a, b in zip(tuple(area_entity.rotation_euler), (-90,0,0)))))
+            #   Override Scale, with dimension.
+            area.set('Scale', hpl_convert.convert_to_hpl_vec3(area_entity.dimensions))
             
             user_variables = xtree.SubElement(area, 'UserVariables')
             vars = [item for item in area_entity.items() if 'hplp_v_' in item[0]]
@@ -215,7 +181,7 @@ def write_hpm_area(map_col, _map_path, _id):
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
-### BILLBOARD ### 
+### BILLBOARD ###
 # empty implementation
 def write_hpm_billboard(map_col, _map_path, _id):
 
@@ -496,69 +462,6 @@ def write_hpm_light(map_col, _map_path, _id):
     # TODO: move xtree creation to main loop, return root
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
-
-'''
-### Write all *.ent files ###
-def write_entity_files(obj_col, _ent_path):
-
-    if hpl_config.hpl_detail_mesh_identifier in obj_col.name:
-        return
-    
-    if not any([item for item in obj_col.items() if hpl_config.hpl_entity_type_identifier in item[0]]):
-        return
-    
-    root_id = random.randint(100000000, 999999999)
-    
-    entity = xtree.Element('Entity')
-    model_data = xtree.SubElement(entity, "ModelData")
-    entities = xtree.SubElement(model_data, 'Entities')
-    mesh = xtree.SubElement(model_data, 'Mesh')
-    bones = xtree.SubElement(model_data, 'Bones')
-    shapes = xtree.SubElement(model_data, 'Shapes')
-    bodies = xtree.SubElement(model_data, 'Bodies')
-    joints = xtree.SubElement(model_data, 'Joints')
-    animations = xtree.SubElement(model_data, 'Animations')
-    proc_animations = xtree.SubElement(model_data, 'ProcAnimations')
-    #user_variables = xtree.SubElement(entity, 'UserVariables')
-
-    _Id = 0
-    
-    for obj in obj_col.objects:
-        if not obj.is_instancer:
-
-            sub_mesh = xtree.SubElement(mesh, 'Entity', ID=str(root_id+_Id))
-            
-            #xtree.SubElement(file_index, 'File', Id=str(_Id), Path=get_object_path(obj))
-
-            general_properties(sub_mesh, obj, root_id, _Id)
-            
-            #sub_mesh.set('ID', str(root_id+_Id))
-            #sub_mesh.set('Name', str(obj.name))
-            #sub_mesh.set('CreStamp', str(0))
-            #sub_mesh.set('ModStamp', str(0))
-            #sub_mesh.set('WorldPos', str(tuple(obj.location)).translate(str.maketrans({'(': '', ')': ''})))
-            #sub_mesh.set('Rotation', str(tuple(obj.rotation_euler)).translate(str.maketrans({'(': '', ')': ''})))
-            #sub_mesh.set('Scale', str(tuple(obj.scale)).translate(str.maketrans({'(': '', ')': ''})))
-            
-            mesh_data = obj.data
-            mesh_data.calc_loop_triangles()
-            tri_count = len(mesh_data.loop_triangles)
-            sub_mesh.set('TriCount', str(tri_count))
-            sub_mesh.set('Material', str(obj.material_slots[0].name) if list(obj.material_slots) else '') #TODO: check if available first
-
-    user_defined_variables = xtree.SubElement(entity, 'UserDefinedVariables')
-    user_defined_variables.set('EntityType', obj_col[hpl_config.hpl_entity_type_identifier]) #TODO: check if available first
-    vars = [item for item in obj_col.items() if 'hpl_parser_var_' in item[0]]
-    for var in vars:
-        var_name = var[0].split('hpl_parser_var_')[-1]
-        xml_var = xtree.SubElement(user_defined_variables,'Var')
-        xml_var.set('Name', var_name)
-        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-    _Id = _Id + 1
-                        
-    xtree.indent(entity, space="    ", level=0)
-    xtree.ElementTree(entity).write(_ent_path+obj_col.name+'.ent')
-'''
 
 def write_hpm():
     # Eventhough we are working with context overrides \

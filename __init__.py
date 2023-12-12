@@ -52,6 +52,7 @@ from .hpl_object import (OBJECT_OT_add_box_shape,
                         OBJECT_MT_ADD_HPL_JOINT,
                         OBJECT_OT_add_body,
                         OBJECT_OT_add_area,)
+from .hpl_operator_callback import (HPL_AREA_CALLBACK, HPL_NODE_CALLBACK)
 from .hpl_property_io import (HPL_OT_RESETPROPERTIES)
 from .hpl_entity_exporter import (HPL_OT_ENTITYEXPORTER)
 
@@ -59,8 +60,8 @@ bl_info = {
     "name" : "hpl_parser",
     "author" : "Christian Friedrich",
     "description" : "",
-    "blender" : (3, 60, 0),
-    "version" : (0, 2, 0),
+    "blender" : (3, 6),
+    "version" : (0, 5, 0),
     "location" : "",
     "warning" : "",
 	"location": "View3D > Properties Panel",
@@ -101,19 +102,18 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
             
             hpl_property_io.hpl_properties.set_entity_type()
             bpy.context.scene.hpl_parser_entity_properties.clear()
-            update_ui()
+            update_scene_ui()
     
     def get_hpl_area_classes_enum(self):
         return self.get("hpl_area_classes_enum", 0)
 
     def set_hpl_area_classes_enum(self, value):
-        print('AREA:',value)
         #if value != self['hpl_area_classes_enum']:
         self['hpl_area_classes_enum'] = value
         
         hpl_property_io.hpl_properties.set_entity_type()
         bpy.context.scene.hpl_parser_entity_properties.clear()
-        update_ui()
+        update_scene_ui()
 
     def get_hpl_project_root_col(self):
         return self.get("hpl_project_root_col", 0)
@@ -162,7 +162,10 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         self['set_hpl_map_root_col'] = value
         return
 
+    hpl_area_callback_active : bpy.props.BoolProperty(name="Area Callback Active", default=False)
+    hpl_node_callback_active : bpy.props.BoolProperty(name="Node Callback Active", default=False)
     hpl_ui_parser_settings_menu : bpy.props.BoolProperty(default=False)
+    hpl_ui_tools_menu : bpy.props.BoolProperty(default=False)
     hpl_ui_tool_settings_menu : bpy.props.BoolProperty(default=False)
     hpl_has_project_col : bpy.props.BoolProperty(default=False)
     hpl_has_maps_col : bpy.props.BoolProperty(default=False)
@@ -653,73 +656,6 @@ def draw_custom_property_ui(props, ent, properties, layout):
                 #if 'Dir' in item.name:
                 #    row.prop(item, f'{item.type}_dir_property', text='')
     
-    '''
-    for group in hpl_config.hpl_ui_var_dict:
-        active = [var for var in hpl_config.hpl_ui_var_dict[group] if 'Active' in var]
-
-        layout.use_property_split = False
-        layout.use_property_decorate = True
-        box = layout.box()
-        row = box.row(align=False)
-        row.prop(ent, f'["{group}"]',
-            icon = "DOWNARROW_HLT" if ent[group] else "RIGHTARROW",
-            icon_only = True, emboss = False,
-        )
-        if active and is_level:
-            row.prop(ent, f'["{active[0]}"]', icon_only=False, text=group.rsplit('_')[-1])
-        else:
-            row.label(text=group.rsplit('_')[-1])
-        layout.use_property_split = True
-        layout.use_property_decorate = False
-        
-        if ent[group]:
-            box = layout.box()
-            row = box.row(align=False)
-            for var in hpl_config.hpl_ui_var_dict[group]:
-                if 'Active' in var and is_level:
-                    continue
-                var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[15:].replace('_',' '))
-                singleRow = box.row(align=False)
-                singleRow.prop(ent, f'["{var}"]', icon_only=True, text=var_ui_name, expand=False)
-                if active:
-                    singleRow.enabled = ent[f"{active[0]}"]
-    '''
-
-    '''
-    for i, item in enumerate(properties):
-        if item.type == 'group':
-            # Add some space after the last variable of an opened group
-            if current_group:
-                if current_group.bool_property:
-                    box.separator()
-            
-            box = layout.box()
-            current_group = item
-            current_group_state = True
-            row = box.row(align=False)
-            row.prop(current_group, 'bool_property', icon = "DOWNARROW_HLT" if current_group.bool_property else "RIGHTARROW", icon_only = True, emboss = False)
-            #row.label(text='', icon='SEQUENCE_COLOR_0'+str((group_iterator % 7) + 1)) #COLLECTION_COLOR_0
-            if 'Active' in properties[i+1].name and 'Active' != properties[i+1].name:
-                row.prop(properties[i+1], 'bool_property', icon_only=False, text=''+current_group.name.rsplit('_')[-1])
-                current_group_state = properties[i+1].bool_property
-            else:
-                row.label(text=''+current_group.name.rsplit('_')[-1])
-            group_iterator = group_iterator + 1
-
-        if current_group.bool_property:
-
-            if 'Active' in item.name and 'Active' != item.name:
-                continue
-
-            row = box.row()
-            row.use_property_split = True
-            row.use_property_decorate = False
-
-            row.prop(item, f'{item.type}_property', text=item.name, icon_only=False if item.type == 'enum' else True, expand=True if item.type == 'enum' else False)
-            row.enabled = current_group_state
-            if 'Dir' in item.name:
-                row.prop(item, f'{item.type}_dir_property', text='')
-    '''
 ### PROPERTY COLLECTION ###
 class HPLPropertyCollectionEnums(bpy.types.PropertyGroup):
     enum_item: bpy.props.StringProperty()
@@ -890,6 +826,10 @@ def draw_panel_3d_content(context, layout):
     layout.use_property_split = True
     layout.use_property_decorate = False
     
+    #col = layout.column(align=True)
+    #box = col.box()
+    #box.operator(SCENE_SELECTION_LISTENER_POST_OT_run.bl_idname, icon = "SHADING_BBOX", text="Register Selection Listener")
+
     col = layout.column(align=True)
     if not bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
         box = col.box()
@@ -901,7 +841,7 @@ def draw_panel_3d_content(context, layout):
         col = layout.column(align=True)
         box = col.box()
         
-        if not bpy.context.scene.hpl_parser.hpl_has_project_col:
+        if not bpy.context.scene.hpl_parser.hpl_has_project_col and bpy.context.scene.hpl_parser.hpl_project_root_col:
             box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
             return
 
@@ -918,6 +858,20 @@ def draw_panel_3d_content(context, layout):
         else:
             box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
 
+        col = layout.column(align=True)
+        box = col.box()
+        singleRow = box.row(align=True)
+        singleRow.prop(props, 'hpl_ui_tools_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_tools_menu else "RIGHTARROW", icon_only = True, emboss = False)
+        singleRow.label(text='HPL Tools')
+        if props.hpl_ui_tools_menu:
+            #singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
+            singleRow = box.row(align=True)
+            singleRow.scale_y = 2
+            
+            singleRow.operator(HPL_AREA_CALLBACK.bl_idname, emboss=True, depress=bpy.context.scene.hpl_parser.hpl_area_callback_active, icon = "SHADING_BBOX", text="Draw Area")
+            singleRow.separator()
+            singleRow.operator(HPL_NODE_CALLBACK.bl_idname, emboss=True, depress=bpy.context.scene.hpl_parser.hpl_node_callback_active, icon = "GP_SELECT_POINTS", text="Draw Nodes")
+        
         col = layout.column(align=True)
         box = col.box()
         box.prop(props, 'hpl_external_script_hook', icon = "WORDWRAP_OFF") #'CONSOLE'
@@ -1062,8 +1016,8 @@ def draw_panel_3d_content(context, layout):
 class HPL_PT_3D_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'HPL'
-    bl_label = "HPL Parser 0.4"
+    bl_category = 'HPL Parser'
+    bl_label = "HPL Parser 0.5"
     bl_idname = "HPL_PT_CREATE"
 
     @classmethod
@@ -1078,10 +1032,6 @@ class HPL_PT_3D_CREATE(bpy.types.Panel):
 
     def draw(self, context):
         draw_panel_3d_content(context, self.layout)
-
-    #persistent handler for later asset import
-    
-    #@persistent
 
 def draw_panel_mat_content(context, layout):
     
@@ -1155,6 +1105,7 @@ class HPL_PT_MAT_CREATE(bpy.types.Panel):
     def draw(self, context):
         draw_panel_mat_content(context, self.layout)
 
+
 class HPL_OT_OpenUserPreferences(bpy.types.Operator):
     bl_idname = "hpl_parser.open_user_preferences"
     bl_label = "Open Addon Settings"
@@ -1165,7 +1116,7 @@ class HPL_OT_OpenUserPreferences(bpy.types.Operator):
         bpy.ops.preferences.addon_expand(module="HplParser")
         return {'FINISHED'}
 
-def update_ui():
+def update_scene_ui():
 
     #   Update temporary UI
     return
@@ -1214,10 +1165,7 @@ def update_ui():
                 exec(f'item.{_type}_dir_property = {_value}')
 
 #   We use the DepsGraphs post_update handler to update and initialize entities in the background.
-def scene_selection_listener_pre(self, context):
-    return
-
-#   We use the DepsGraphs post_update handler to update and initialize entities in the background.
+@persistent
 def scene_selection_listener_post(self, context):
     
     #   Has the Project folder been renamed through outliner?
@@ -1233,14 +1181,14 @@ def scene_selection_listener_post(self, context):
 
     #   Check if the outliner selection has been deleted.
     try:
-        #  Do some arbitrary call to see if hpl_outliner_selection is even VALID. NONE != VALID
+        #  Do some arbitrary call to see if hpl_outliner_selection is even VALID. Because NONE != VALID
         hpl_config.hpl_outliner_selection.get('hplp_i_properties', {})
     except:
         hpl_config.hpl_outliner_selection = bpy.context.scene.collection
 
     hpl_property_io.hpl_properties.update_selection()
 
-    update_ui()
+    update_scene_ui()
 
     #   Check if the project root collection exists.
     if not bpy.context.view_layer.active_layer_collection.collection.children:
@@ -1251,91 +1199,80 @@ def scene_selection_listener_post(self, context):
         if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
             bpy.context.scene.hpl_parser.hpl_has_maps_col = True
 
-    #if not hpl_file_system.mod_check():
-    #    hpl_file_system.mod_init()
-        #bpy.context.scene.hpl_parser.hpl_has_project_col = True
-#class CUSTOM_objectCollection(bpy.props.PropertyGroup):
-    #name: StringProperty() -> Instantiated by default
-    #obj_type: bpy.props.StringProperty()
-    #obj_id: bpy.props.IntProperty()
+class SCENE_SELECTION_LISTENER_POST_OT_run(bpy.types.Operator):
+    bl_idname = "object.scene_selection_listener_post_run"
+    bl_label = "Run Scene Selection Listener Post"
+
+    def execute(self, context):
+        bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
+        return {'FINISHED'}
+    
+classes = (
+    HPL_PT_3D_CREATE,
+    HPL_PT_MAT_CREATE,
+    SCENE_SELECTION_LISTENER_POST_OT_run,
+    HPL_OT_ENTITYEXPORTER,
+    HPM_OT_HPMEXPORTER,
+    HPL_OT_ASSETIMPORTER,
+    HPL_OT_INITASSETIMPORTER,
+    HPL_OT_RESETPROPERTIES,
+    HPL_OT_CREATE_MOD_PROMPT,
+    HPL_OT_OPEN_MOD_FOLDER,
+    OBJECT_OT_add_box_shape,
+    OBJECT_OT_add_sphere_shape,
+    OBJECT_OT_add_cylinder_shape,
+    OBJECT_OT_add_capsule_shape,
+    OBJECT_OT_add_screw_joint,
+    OBJECT_OT_add_slider_joint,
+    OBJECT_OT_add_ball_joint,
+    OBJECT_OT_add_hinge_joint,
+    OBJECT_MT_ADD_HPL_SHAPE,
+    OBJECT_MT_ADD_HPL_JOINT,
+    OBJECT_OT_add_area,
+    OBJECT_OT_add_body,
+    HPL_AREA_CALLBACK,
+    HPL_NODE_CALLBACK,
+    HPL_OT_OpenUserPreferences,
+    HPLPropertyCollection,
+    HPLSettingsPropertyGroup,
+)
+
+def register_scene_selection_listener_post():
+    bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
 
 def register():
-    bpy.utils.register_class(HPL_PT_3D_CREATE)
-    bpy.utils.register_class(HPL_PT_MAT_CREATE)
-    bpy.utils.register_class(HPL_OT_ENTITYEXPORTER)
-    bpy.utils.register_class(HPM_OT_HPMEXPORTER)
-    bpy.utils.register_class(HPL_OT_ASSETIMPORTER)
-    bpy.utils.register_class(HPL_OT_INITASSETIMPORTER)
-    bpy.utils.register_class(HPL_OT_RESETPROPERTIES)
-    bpy.utils.register_class(HPL_OT_CREATE_MOD_PROMPT)
-    bpy.utils.register_class(HPL_OT_OPEN_MOD_FOLDER)
-    bpy.utils.register_class(OBJECT_OT_add_box_shape)
-    bpy.utils.register_class(OBJECT_OT_add_sphere_shape)
-    bpy.utils.register_class(OBJECT_OT_add_cylinder_shape)
-    bpy.utils.register_class(OBJECT_OT_add_capsule_shape)
-    bpy.utils.register_class(OBJECT_OT_add_screw_joint)
-    bpy.utils.register_class(OBJECT_OT_add_slider_joint)
-    bpy.utils.register_class(OBJECT_OT_add_ball_joint)
-    bpy.utils.register_class(OBJECT_OT_add_hinge_joint)
-    bpy.utils.register_class(OBJECT_MT_ADD_HPL_SHAPE)
-    bpy.utils.register_class(OBJECT_MT_ADD_HPL_JOINT)
-    bpy.utils.register_class(OBJECT_OT_add_area)
-    bpy.utils.register_class(OBJECT_OT_add_body)
-    bpy.utils.register_class(HPL_OT_OpenUserPreferences)
-    bpy.utils.register_class(HPLPropertyCollection)
-
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    
     bpy.utils.register_manual_map(hpl_object.add_shape_manual_map)
     bpy.types.VIEW3D_MT_add.append(hpl_object.add_area_button)
     bpy.types.VIEW3D_MT_add.append(hpl_object.add_body_button)
     bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_shape)
     bpy.types.VIEW3D_MT_add.append(hpl_object.menu_hpl_joint)
-    print('reg')
-    bpy.utils.register_class(HPLSettingsPropertyGroup)
-    
+
     bpy.types.Scene.hpl_parser_entity_properties = bpy.props.CollectionProperty(type=HPLPropertyCollection)
     bpy.types.Scene.hpl_parser = bpy.props.PointerProperty(type=HPLSettingsPropertyGroup)
-    bpy.app.handlers.depsgraph_update_pre.append(scene_selection_listener_pre)
-    bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
 
     hpl_preferences.register()
 
+    bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
+    
     hpl_config.is_texconv_available = os.path.isfile(os.path.dirname(os.path.realpath(__file__))+hpl_config.texconv_subpath)
-
+    
 def unregister():
-    bpy.utils.unregister_class(HPL_PT_3D_CREATE)
-    bpy.utils.unregister_class(HPL_PT_MAT_CREATE)
-    bpy.utils.unregister_class(HPL_OT_ENTITYEXPORTER)
-    bpy.utils.unregister_class(HPM_OT_HPMEXPORTER)
-    bpy.utils.unregister_class(HPL_OT_ASSETIMPORTER)
-    bpy.utils.unregister_class(HPL_OT_INITASSETIMPORTER)
-    bpy.utils.unregister_class(HPL_OT_RESETPROPERTIES)
-    bpy.utils.unregister_class(HPL_OT_CREATE_MOD_PROMPT)
-    bpy.utils.unregister_class(HPL_OT_OPEN_MOD_FOLDER)
-    bpy.utils.unregister_class(OBJECT_OT_add_box_shape)
-    bpy.utils.unregister_class(OBJECT_OT_add_sphere_shape)
-    bpy.utils.unregister_class(OBJECT_OT_add_cylinder_shape)
-    bpy.utils.unregister_class(OBJECT_OT_add_capsule_shape)
-    bpy.utils.unregister_class(OBJECT_OT_add_screw_joint)
-    bpy.utils.unregister_class(OBJECT_OT_add_slider_joint)
-    bpy.utils.unregister_class(OBJECT_OT_add_ball_joint)
-    bpy.utils.unregister_class(OBJECT_OT_add_hinge_joint)
-    bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_SHAPE)
-    bpy.utils.unregister_class(OBJECT_MT_ADD_HPL_JOINT)
-    bpy.utils.unregister_class(OBJECT_OT_add_area)
-    bpy.utils.unregister_class(OBJECT_OT_add_body)
-    bpy.utils.unregister_class(HPL_OT_OpenUserPreferences)
-    bpy.utils.unregister_class(HPLPropertyCollection)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
 
     bpy.utils.unregister_manual_map(hpl_object.add_shape_manual_map)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.add_area_button)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.add_body_button)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_shape)
     bpy.types.VIEW3D_MT_add.remove(hpl_object.menu_hpl_joint)
-    bpy.utils.unregister_class(HPLSettingsPropertyGroup)
+
     del bpy.types.Scene.hpl_parser
     del bpy.types.Scene.hpl_parser_entity_properties
+
     hpl_preferences.unregister()
-    bpy.app.handlers.depsgraph_update_pre.clear()
     bpy.app.handlers.depsgraph_update_post.clear()
 
 if __name__ == "__main__":

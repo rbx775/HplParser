@@ -292,11 +292,9 @@ def hpl_export_objects(op):
     entity_collection = bpy.context.scene.hpl_parser.hpl_folder_entities_col
     root = bpy.context.scene.hpl_parser.hpl_game_root_path + '\\'
     
+    #TODO: Focused preferences window breaks this. Fix it.
     #   Using context to loop through collections to get their state. (enabled/ disabled)
     viewlayer_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children[entity_collection].children
-    #print(list(bpy.context.view_layer.layer_collection.children['DemoProject'].children))
-    #for col in list(bpy.context.view_layer.layer_collection.children['DemoProject'].children):
-    #    print(col.name)
     viewlayer_collections_list = [col.name for col in viewlayer_collections_list if not col.exclude]
 
     for col_name in viewlayer_collections_list:

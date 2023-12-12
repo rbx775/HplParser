@@ -279,9 +279,8 @@ class hpl_properties():
 
         if ent.hide_render:
             return 
-        # if for collections
+
         hpl_config.hpl_selection_state = True
-        #print('set TRUE state', hpl_config.hpl_selection_state)
         return
     
     ### SELECTION RULESET ###
@@ -289,7 +288,6 @@ class hpl_properties():
 
         sel = hpl_config.hpl_outliner_selection if not sel else sel
         if not sel:
-            print('asdasd')
             return None
         
         sel_identifier = sel.bl_rna.identifier
@@ -350,16 +348,16 @@ class hpl_properties():
                         hpl_properties.set_entity_state(sel, entity_properties_type)
                         return entity_properties_type
                 
+                    elif entity_properties_type == hpl_entity_type.AREA.name:
+                        hpl_properties.set_entity_state(sel, entity_properties_type)
+                        return entity_properties_type
+                    
                 ### EMPTY ###
                 elif sel_bl_type == 'EMPTY':
                     hpl_properties.update_hierarchy_bodies()
                     if entity_properties_type == hpl_entity_type.BODY.name:
                         hpl_properties.set_entity_state(sel, hpl_entity_type.BODY.name)
                         return hpl_entity_type.BODY.name
-                    
-                    elif entity_properties_type == hpl_entity_type.AREA.name:
-                        hpl_properties.set_entity_state(sel, entity_properties_type)
-                        return entity_properties_type
                     
                     elif entity_properties_type.endswith('_Joint'):
                         hpl_properties.set_entity_state(sel, entity_properties_type)
@@ -576,10 +574,9 @@ class hpl_properties():
 
         selection = hpl_config.hpl_outliner_selection if not selection else selection
         _type = hpl_config.hpl_selection_type if not _type else _type
-        #print('type',_type)
 
         if _type == hpl_entity_type.MAP.name:
-            #print('MAP SETTINGS')
+
             mapvars_dict = hpl_properties.get_properties('LevelSettings', 'TypeVars')
             hpl_properties.set_entity_custom_properties(mapvars_dict, selection)
             
