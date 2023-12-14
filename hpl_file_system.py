@@ -70,7 +70,7 @@ def create_mod(mod_path):
     package_folder_path = os.path.dirname(os.path.abspath(__file__))
     documents_folder_path = os.path.expanduser('~/Documents')+'HPL3\\'
 
-    #   WIPMod.cfg in user documents is needed to point the HPL Level editor to the actual mod.
+    #   WIPMod.cfg in user documents is needed to point the HPL Level editor to the mod.
     recursive_mkdir(documents_folder_path)
     if not os.path.isfile(documents_folder_path + 'WIPMod.cfg'):
         shutil.copy(package_folder_path+'\\UserFiles\\WIPMod.cfg', documents_folder_path)

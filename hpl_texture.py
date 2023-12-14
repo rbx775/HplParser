@@ -13,17 +13,18 @@ class HPL_TEXTURE():
 
         for tex in exported_textures:
             #hpl_texture.HPL_TEXTURE.convert_texture(exported_textures[tex], root+relative_path)
-
+            print('hpl_config.texture_dict[tex]', hpl_config.texture_dict[tex], 'hpl_config.texture_format_dict[tex]', hpl_config.texture_format_dict[tex], 'root + relative_path[:-1]',root + relative_path[:-1])
             FNULL = open(os.devnull, 'w')
             exe_path = os.path.dirname(os.path.realpath(__file__)) + hpl_config.texconv_subpath
             args = f'\"{exe_path}\" -r \"{hpl_config.texture_dict[tex]}\" -ft dds -f {hpl_config.texture_format_dict[tex]} -y -o \"{root + relative_path[:-1]}\"' #R8_UNORM BC1_UNORM
-            
+            print('args',args)
             p = subprocess.call(args, shell=False)
             if p != 0:
                 hpl_entity_exporter.add_warning_message(' Error converting Texture, bad format? ', 'Texture', hpl_config.texture_dict[tex])
             else:
                 exported_textures[tex] = relative_path + os.path.basename(hpl_config.texture_dict[tex]).split('.')[0] + '.dds'
 
+        #print('exported_textures',exported_textures)
         return exported_textures
                     
         #subprocess.call(args, stdout=FNULL, stderr=FNULL, shell=False)exported_textures

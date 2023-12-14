@@ -86,7 +86,7 @@ def write_material_file(mat, root, relative_path):
         mat_var.set('Value', hpl_convert.convert_to_hpl_vec2(mat[variable]) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else str(mat[variable]))
 
     xtree.indent(material, space="    ", level=0)
-    xtree.ElementTree(material).write(root + relative_path + mat.name+'.mat')
+    xtree.ElementTree(material).write(os.path.join(root, relative_path, mat.name) +'.mat')
 
 ### Write all *.ent files ###
 def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, transpose_dict):
@@ -137,10 +137,15 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
 
         entity_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
         #entity_type = #obj[hpl_config.hpl_internal_type_identifier] if any([var for var in obj.items() if hpl_config.hpl_internal_type_identifier in var[0]]) else None
-        if not entity_type:
+        
+        #if not entity_type:
+        #    continue
+
+        if entity_type == hpl_entity_type.AREA.name:
             continue
 
-        if entity_type.endswith('_SHAPE'):
+        if not entity_type:
+
             sub_mesh = xtree.SubElement(mesh, 'SubMesh')
             general_properties(sub_mesh, obj)
 
@@ -153,6 +158,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
                 sub_mesh.set(var_name, str(var[1]))
             
         elif entity_type.endswith('_SHAPE'):
+
             shape = xtree.SubElement(shapes, 'Shape')
             general_properties(shape, obj)
 
@@ -163,8 +169,8 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             shape.set('RelativeTranslation', hpl_convert.convert_to_hpl_vec3(relative_translation))
             shape.set('RelativeRotation', hpl_convert.convert_to_hpl_vec3(relative_rotation))
             shape.set('RelativeScale', hpl_convert.convert_to_hpl_vec3(relative_scale))
-            shape_type = obj.get('hplp_i_properties', {}).get('ShapeType')
-            shape.set('ShapeType', str(hpl_config.hpl_shape_type(shape_type).name).title())
+            shape_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
+            shape.set('ShapeType', str(shape_type.split('_SHAPE')[0].title()))
 
         elif entity_type == hpl_entity_type.BODY.name:
 
@@ -234,7 +240,7 @@ def get_export_objects(export_collection):
     for obj in export_collection.objects:
         entity_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
         if obj.type == 'MESH':
-            if not entity_type.endswith('_SHAPE'):
+            if not entity_type.endswith('_SHAPE') and entity_type != hpl_entity_type.AREA.name:
                 if not obj.data.uv_layers:
                     add_warning_message(' has no UVs, faulty export. ', export_collection.name, obj.name)
                 if not obj.material_slots:
@@ -257,6 +263,8 @@ def get_export_objects(export_collection):
             continue
         if entity_type.endswith('_SHAPE'):
             continue
+        if entity_type == hpl_entity_type.AREA.name:
+            continue
         export_objects['dae'].append(obj)
         export_objects['mat'].append(obj.material_slots[0].material.name if obj.material_slots else None)
 
@@ -274,8 +282,9 @@ def is_valid_export_collection(col):
         return False
     elif hpl_config.hpl_detail_mesh_identifier in col.name:
         return False
-    elif col.exclude:
-        return False
+    #TODO: Write proper exclude feature
+    #elif col.exclude:
+    #    return False
     elif not col.objects:
         return False
     elif bpy.context.scene.hpl_parser.hpl_folder_maps_col == col.name:
@@ -288,23 +297,41 @@ def hpl_export_objects(op):
     #   we need the selection for the DAE Exporter at the end.    
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
+
     root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
-    entity_collection = bpy.context.scene.hpl_parser.hpl_folder_entities_col
+    map_collection_name = bpy.context.scene.hpl_parser.hpl_folder_maps_col
+    entity_collection_name = bpy.context.scene.hpl_parser.hpl_folder_entities_col
+    static_object_collection_name = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
     root = bpy.context.scene.hpl_parser.hpl_game_root_path + '\\'
     
-    #TODO: Focused preferences window breaks this. Fix it.
+    #TODO: Focused preferences window breaks this. Fix needed.
     #   Using context to loop through collections to get their state. (enabled/ disabled)
-    viewlayer_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children[entity_collection].children
-    viewlayer_collections_list = [col.name for col in viewlayer_collections_list if not col.exclude]
+    viewlayer_entity_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children[entity_collection_name].children if entity_collection_name else []
+    viewlayer_entity_collections_list = [col.name for col in viewlayer_entity_collections_list if not col.exclude]
 
-    for col_name in viewlayer_collections_list:
+    viewlayer_static_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children[static_object_collection_name].children if static_object_collection_name else []
+    viewlayer_static_collections_list = [col.name for col in viewlayer_static_collections_list if not col.exclude]
+    #   Get unique meshes in map collections for a single static_object export each.
+    unique_map_static_objects = [map_col.name for map_col in bpy.data.collections[map_collection_name].children] if map_collection_name else []
+
+    for col_name in [*viewlayer_entity_collections_list, *viewlayer_static_collections_list, *unique_map_static_objects]:
+
+        if not is_valid_export_collection(bpy.data.collections[col_name]):
+            continue
+
+        is_map = True if bpy.data.collections[col_name] in list(bpy.data.collections[map_collection_name].children) else False
+        is_static = True if bpy.data.collections[col_name] in list(bpy.data.collections[static_object_collection_name].children) else False
+
+        is_static_object = is_static or is_map
 
         parent_list = []
         transpose_dict = {}
 
+
         bpy.context.view_layer.objects.active = None
         export_collection = bpy.data.collections[col_name]
         export_objects = get_export_objects(export_collection)
+        print(export_objects)
 
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -321,7 +348,7 @@ def hpl_export_objects(op):
             #obj.rotation_euler[2] = obj.rotation_euler[2] + math.radians(180)
             #obj.location[2] = -obj.location[2]
 
-        relative_path = 'mods\\'+root_collection+'\\'+entity_collection#+export_collection.name+'\\'
+        relative_path = 'mods\\'+root_collection+'\\'+static_object_collection_name+'\\' if is_static_object else 'mods\\'+root_collection+'\\'+entity_collection_name+'\\'
 
         if not os.path.exists(root + relative_path):
             os.mkdir(root + relative_path)
@@ -330,32 +357,11 @@ def hpl_export_objects(op):
         if os.path.isfile(root+relative_path+col_name+'.msh'):
             os.remove(root+relative_path+col_name+'.msh')
         
-        bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = True,\
+        bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = False,\
                                 selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                 export_global_forward_selection = 'Y', export_global_up_selection = 'Z',\
                                 apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                 triangulate = False) #-Y, Z
-
-        '''        
-        profile_COMMON
-        library_images
-        # Inject necessary custom variables into the *.dae file
-        dae_file = xtree.fromstring(load_xml_file(root + relative_path + col_name+'.dae'))
-        #TODO: Better way to get xml namespace
-        namespace = next(iter(dae_file)).tag.rsplit('}')[0][1:]
-        vs = dae_file.find(".//{%s}visual_scene" % namespace)
-        
-        vs.set('id',col_name)
-        vs.set('name',col_name)
-        for obj in export_objects:
-            node = xtree.SubElement(vs,'node')
-            node.set('name',obj.name)
-            node.set('id',obj.name)
-            node.set('ids',obj.name)
-        
-        xtree.indent(dae_file, space="    ", level=0)
-        xtree.ElementTree(dae_file).write(root + relative_path + col_name+'.dae')
-        '''
 
         dae_file = xtree.fromstring(load_xml_file(root+relative_path+col_name+'.dae'))
         #TODO: Better way to get xml namespace.
@@ -380,8 +386,8 @@ def hpl_export_objects(op):
             #obj.location[2] = -obj.location[2]
 
         #bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
-
-        write_entity_file(export_objects['ent'], export_collection, root, relative_path, triangles, transpose_dict)
+        if not is_static_object:
+            write_entity_file(export_objects['ent'], export_collection, root, relative_path, triangles, transpose_dict)
 
         bpy.ops.object.select_all(action='DESELECT')
         #   Eventhough we are working with context overrides,
@@ -391,6 +397,8 @@ def hpl_export_objects(op):
         
     bpy.context.view_layer.objects.active = act_obj
 
+    return 
+
 def send_warning_messages(op):
     if hpl_config.hpl_export_warnings:
         for obj in hpl_config.hpl_export_warnings:
@@ -398,11 +406,14 @@ def send_warning_messages(op):
 
 def hpl_export_materials(op):
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    relative_path = 'mods\\'+bpy.context.scene.hpl_parser.hpl_project_root_col+bpy.context.scene.hpl_parser.hpl_folder_entities_col#+export_collection.name+'\\'
+    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
+    entity_collection_name = bpy.context.scene.hpl_parser.hpl_folder_entities_col
+
+    relative_path = os.path.join('mods', root_collection, entity_collection_name)
 
     for mat in bpy.data.materials:
-        if mat.users > 0 and mat.get('hplp_i_properties', {}):
-            write_material_file(mat, root, relative_path)
+        if mat.users > 0 and mat.get('hplp_i_properties', {}) and bpy.context.scene.hpl_parser.hpl_export_textures:
+            write_material_file(mat, root, relative_path+'\\')
 
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()

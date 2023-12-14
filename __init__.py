@@ -1167,7 +1167,6 @@ def update_scene_ui():
 #   We use the DepsGraphs post_update handler to update and initialize entities in the background.
 @persistent
 def scene_selection_listener_post(self, context):
-    
     #   Has the Project folder been renamed through outliner?
     #if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'} and hpl_config.hpl_invoke_mod_dialogue != {'CANCELLED'}:
     #    hpl_file_system.mod_init()

@@ -43,9 +43,11 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         hpl_file_system.edit_wip_mod()
         
         hpl_config.hpl_export_warnings = {}
-        write_hpm()
-        hpl_entity_exporter.hpl_export_objects(self)
-        hpl_entity_exporter.hpl_export_materials(self)
+        if bpy.context.scene.hpl_parser.hpl_export_entities:
+            hpl_entity_exporter.hpl_export_objects(self)
+            hpl_entity_exporter.hpl_export_materials(self)
+        if bpy.context.scene.hpl_parser.hpl_export_maps:
+            write_hpm()
         hpl_entity_exporter.send_warning_messages(self)
         return {'FINISHED'}
 
@@ -485,9 +487,9 @@ def write_hpm():
             elif container == '_Area':
                 write_hpm_area(map_col, _map_path, id)
             #elif container == '_Billboard':
-            #    write_hpm_billboard(_map_path, id, container)
+            #    write_hpm_billboard(map_col, _map_path, id)
             #elif container == '_Compound':
-            #    write_hpm_compound(_map_path, id, container)
+            #    write_hpm_compound(map_col, _map_path, id)
             elif container == '_StaticObjectBatches':
                 write_hpm_static_object_batches(map_col, _map_path, id)
             elif container == '_StaticObject':

@@ -5,8 +5,11 @@ from . import hpl_property_io
 class HPL_MATERIAL():
 
     def find_textures(node, tex_node):
+        drive = os.path.splitdrive(bpy.data.filepath)[0]
         if node.type == 'TEX_IMAGE':
-            hpl_config.texture_dict[tex_node] = node.image.filepath
+            if not hasattr(node.image, 'filepath'):
+                return
+            hpl_config.texture_dict[tex_node] = bpy.path.abspath(node.image.filepath)
         
         if node.name == 'Principled BSDF':
             for t in hpl_config.texture_dict:

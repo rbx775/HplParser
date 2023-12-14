@@ -4,6 +4,7 @@ from typing import Dict
 from enum import Enum
 
 hpl_invoke_mod_dialogue = 1
+hpl_icon_value = 0
 hpl_xml_typevars = 'TypeVars'
 hpl_xml_inherit_attribute = 'InheritsFrom'
 
