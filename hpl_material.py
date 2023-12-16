@@ -5,7 +5,6 @@ from . import hpl_property_io
 class HPL_MATERIAL():
 
     def find_textures(node, tex_node):
-        drive = os.path.splitdrive(bpy.data.filepath)[0]
         if node.type == 'TEX_IMAGE':
             if not hasattr(node.image, 'filepath'):
                 return

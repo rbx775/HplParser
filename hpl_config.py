@@ -30,20 +30,7 @@ hpl_previous_scene_collection = []
 hpl_shape_types = ['box','cylinder','capsule','sphere']
 
 hpl_mod_init_files = {'main_init.cfg' : {'Directories' : '','Variables' : '', 'StartMap' : ''}, 'main_settings' : 'main_settings.cfg', 'main_menu' : 'main_menu.cfg'}
-'''
-class HPLConfig:
-    def __init__(self):
-        self._hpl_outliner_selection = None
 
-    @property
-    def hpl_outliner_selection(self):
-        return self._hpl_outliner_selection
-
-    @hpl_outliner_selection.setter
-    def hpl_outliner_selection(self, value):
-        self._hpl_outliner_selection = value
-        # You can add additional code here to be executed when the value is set
-'''
 hpl_outliner_selection = None
 hpl_previous_outliner_selection = None
 hpl_viewport_selection = None
@@ -517,6 +504,7 @@ hpl_joint_identifier = 'Joint'
 hpl_body_identifier = 'Body'
 
 hpl_export_warnings = {}
+hpl_export_queue = {}
 main_window = None
 
 texconv_subpath = "\\tools\\texconv.exe"

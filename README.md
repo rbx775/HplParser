@@ -1,4 +1,4 @@
-# HPL Parser - Alpha 0.4
+# HPL Parser - Alpha 0.5
 Blender to HPL3 Engine Parser for Mod Creation.
 
 > [!NOTE]
@@ -7,7 +7,7 @@ Blender to HPL3 Engine Parser for Mod Creation.
 
 | Platform  | Game | Blender Versions |
 | :---         |     :---      |         :--- |
-| Windows  | [Amnesia: The Bunker](https://store.steampowered.com/app/1944430/Amnesia_The_Bunker/)  |      [3.6x - 4.1](https://builder.blender.org/download/daily/)
+| Windows  | [Amnesia: The Bunker](https://store.steampowered.com/app/1944430/Amnesia_The_Bunker/)  |      [3.6x](https://builder.blender.org/download/daily/)
 
 <details>
    

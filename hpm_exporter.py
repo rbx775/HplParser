@@ -43,9 +43,9 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         hpl_file_system.edit_wip_mod()
         
         hpl_config.hpl_export_warnings = {}
-        if bpy.context.scene.hpl_parser.hpl_export_entities:
-            hpl_entity_exporter.hpl_export_objects(self)
-            hpl_entity_exporter.hpl_export_materials(self)
+        #if bpy.context.scene.hpl_parser.hpl_export_entities:
+        hpl_entity_exporter.hpl_export_objects(self)
+        hpl_entity_exporter.hpl_export_materials(self)
         if bpy.context.scene.hpl_parser.hpl_export_maps:
             write_hpm()
         hpl_entity_exporter.send_warning_messages(self)
@@ -79,6 +79,21 @@ def load_map_file(file_path):
         #TODO: build xml handler that ignores quotation segments
         return map_file
     return ''
+
+def unique_static_object_properties(spatial_general, obj_name, _id, _index, has_file_index = True):
+
+    spatial_general.set('ID', str(_id + _index))
+    spatial_general.set('Name', str(obj_name))
+    spatial_general.set('CreStamp', str(0))
+    spatial_general.set('ModStamp', str(0))
+    #spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location((0,0,0))))
+    #spatial_general.set('Rotation', hpl_convert.convert_to_hpl_rotation((0,0,0)))
+    #spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3((1,1,1)))
+    spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3((0,0,0)))
+    spatial_general.set('Rotation', hpl_convert.convert_to_hpl_rotation((0,0,0)))
+    spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3((1,1,1)))
+    if has_file_index:
+        spatial_general.set('FileIndex', str(_index))
 
 
 def general_properties(spatial_general, obj, _id, _index, has_file_index = True):
@@ -196,11 +211,14 @@ def write_hpm_billboard(map_col, _map_path, _id):
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
-def get_object_name_path(obj_name):
-    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj_name
+def get_object_name_path(obj_name, is_entity=True):
+    sub_folder = bpy.context.scene.hpl_parser.hpl_folder_entities_col if is_entity else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
+    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col, sub_folder, obj_name)
     
-def get_object_path(obj):
-    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.instance_collection.name
+def get_object_path(obj, is_entity=True):
+    sub_folder = bpy.context.scene.hpl_parser.hpl_folder_entities_col if is_entity else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
+    #return 'mods' + bpy.context.scene.hpl_parser.hpl_project_root_col + sub_folder + obj.instance_collection.name
+    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col, sub_folder, obj.instance_collection.name)
 
 ### STATIC_OBJECTS BATCHES ###
 def write_hpm_static_object_batches(map_col, _map_path, _id):
@@ -218,50 +236,46 @@ def write_hpm_static_objects(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
     
+    unique_object = hpl_config.hpl_export_queue.get('Map_Static_Objects', {}).get(map_col.name,{}).get('dae', None)
+
+    
+    _number_of_files = len([obj for obj in map_col.objects if obj.is_instancer and obj.get('hplp_i_properties', {}).get('PropType', None) == 'Static_Object' ])
+    _number_of_files = _number_of_files + 1 if unique_object else _number_of_files
+
+    
     root = xtree.Element('HPLMapTrack_StaticObject', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
-    file_index = xtree.SubElement(section, 'FileIndex_StaticObjects', NumOfFiles=str(len(map_col.objects))) #TODO: Get count, 
+    file_index = xtree.SubElement(section, 'FileIndex_StaticObjects', NumOfFiles=str(_number_of_files)) #TODO: Get count, 
     objects = xtree.SubElement(section, 'Objects')
     _index = 0
-    
+
     for obj in map_col.objects:
         if obj.is_instancer:
-            #if obj.instance_collection['hpl_entity_type'] == 'StaticObject':
-            if obj.get('hplp_i_properties', {}).get('PropType', None) == 'Static_Object':
+            if obj.get('hplp_i_properties', {}).get('PropType', None) == 'Static_Object' :
             
                 static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-                #user_variables = xtree.SubElement(entity, 'UserVariables')
-                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.dae')
+                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj, entity=False)+'.dae')
 
                 general_properties(static_object, obj, root_id, _index)
-
-                '''
-                static_object.set('Collides', )
-                static_object.set('CastShadows', )
-                static_object.set('IsOccluder', )
-                static_object.set('ColorMul', )
-                static_object.set('CulledByDistance', )
-                static_object.set('CulledByFog', )
-                static_object.set('IllumColor', )
-                static_object.set('IllumBrightness', )
-                static_object.set('UID', )
-                '''
-                #Collides="true" CastShadows="true" IsOccluder="true" ColorMul="1 1 1 1" CulledByDistance="true" CulledByFog="true" IllumColor="1 1 1 1" IllumBrightness="1" UID="16 7715 268437172"
-                '''
-                vars = [item for item in obj.items() if 'hpl_parser_var_' in item[0]]
-
-                for var in vars:
-                    var_name = var[0].split('hpl_parser_var_')[-1]
-                    if var_name in hpm_config.hpm_entities_properties['Entity']:
-                        entity.set(var_name, str(var[1]))
-                    else:
-                        xml_var = xtree.SubElement(user_variables,'Var')
-                        xml_var.set('ObjectId', str(root_id+_index))
-                        xml_var.set('Name', var_name)
-                        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
-                '''
                 _index = _index + 1
+
+    if unique_object:
+
+        static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
+        xtree.SubElement(file_index, 'File', Id=str(_index), Path='mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/static_objects/'+map_col.name+'.dae')
+
+        unique_static_object_properties(static_object, map_col.name, root_id, _index)
+
+        static_object.set('Collides', "true")
+        static_object.set('CastShadows', "true")
+        static_object.set('IsOccluder', "true")
+        static_object.set('ColorMul', "1 1 1 1")
+        static_object.set('CulledByDistance', "true")
+        static_object.set('CulledByFog', "true")
+        static_object.set('IllumColor', "1 1 1 1")
+        static_object.set('IllumBrightness', "1")
+        static_object.set('UID', "16 11 268435463")
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
@@ -270,11 +284,13 @@ def write_hpm_static_objects(map_col, _map_path, _id):
 def write_hpm_entity(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
+
+    _number_of_files = len([obj for obj in map_col.objects if obj.is_instancer and obj.get('hplp_i_properties', {}).get('PropType', None) != 'Static_Object' ])
     
     root = xtree.Element('HPLMapTrack_Entity', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
-    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(len(map_col.objects)))
+    file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(_number_of_files))
     objects = xtree.SubElement(section, 'Objects')
 
     entity_files = list(set([obj.get('hplp_i_properties', {}).get('InstancerName', None) for obj in map_col.objects if obj.is_instancer]))
