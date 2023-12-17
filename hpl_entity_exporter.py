@@ -347,6 +347,7 @@ def hpl_export_objects(op):
             for obj in hpl_config.hpl_export_queue[queue_type][col_name]['ent']:
                 transpose_dict[obj] = obj.matrix_world.copy()
 
+            #   Change scene context and object settings for export.
             for obj in hpl_config.hpl_export_queue[queue_type][col_name]['dae']:
                 tri_mod = obj.modifiers.new("_Triangulate", 'TRIANGULATE')
                 tri_mod.keep_custom_normals = True
@@ -362,7 +363,7 @@ def hpl_export_objects(op):
             if not os.path.exists(root + relative_path):
                 os.mkdir(root + relative_path)
 
-            # Delete HPL *.msh file. This will be recreated once the Level Editor or game is launched.
+            #   Delete HPL *.msh file. This will be recreated once the Level Editor or game is launched.
             if os.path.isfile(root+relative_path+col_name+'.msh'):
                 os.remove(root+relative_path+col_name+'.msh')
             
@@ -371,53 +372,92 @@ def hpl_export_objects(op):
                                     export_global_forward_selection = 'Y', export_global_up_selection = 'Z',\
                                     apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                     triangulate = False) #-Y, Z
-
+            
+            sel_count = len(bpy.context.selected_objects)
             dae_file = xtree.fromstring(load_xml_file(root+relative_path+col_name+'.dae'))
+            
             #TODO: Better way to get xml namespace.
             namespace = next(iter(dae_file)).tag.rsplit('}')[0][1:]
             #   Get 'true' triangle count for *.ent file.
             triangles = [tri.attrib['count'] for tri in dae_file.findall(".//{%s}triangles" % namespace)]
 
-            #   Inject blender material name, so the user is not reliant on the diffuse texture name.
-            for m, mat in enumerate(dae_file.findall(".//{%s}diffuse" % namespace)):
-                for entries in mat:
-                    if entries.tag.rsplit('}')[-1] == 'texture':
-                        entries.attrib['texture'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][m].material_slots[0].material.name+'-sampler'
+            ######################
+            ### DAE INJECTIONS ###
+            ######################
+            #   Inject blender material name, so the user is not reliant on the diffuse texture name.            
+            effects = dae_file.findall(".//{%s}effect" % namespace)
+            for e, effect in enumerate(effects):
+                
+                for np in effect.findall(".//{%s}newparam" % namespace):
 
-            '''
-            <diffuse>
-                <texture texture="Lamp_01-sampler" texcoord="UVMap" />
-            </diffuse>
-            '''
+                    id = np.attrib['sid']
+                    np.attrib['sid'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][e].material_slots[0].material.name + '-' + id.split('-')[-1]
+                    for init in np.findall(".//{%s}init_from" % namespace):
+                        init.text = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][e].material_slots[0].material.name
 
-            #   Inject blender material name, for map unique static objects.
-            for m, img in enumerate(dae_file.findall(".//{%s}image" % namespace)):
-                for entries in img:
-                    entries.text = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][m].material_slots[0].material.name+'.jpg'
+                    for init in np.findall(".//{%s}source" % namespace):
+                        init.text = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][e].material_slots[0].material.name + '-surface'
+
+                for tex in effect.findall(".//{%s}texture" % namespace):
+                    tex.attrib['texture'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][e].material_slots[0].material.name + '-sampler'
+
+                images = dae_file.findall(".//{%s}image" % namespace)
+                for i, img in enumerate(images):
+                    img.attrib['id'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name
+                    img.attrib['name'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name
+                    img.find(".//{%s}init_from" % namespace).text = '../'+hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name + '.png'
+
+            #   Inject corrected matrix values for unique map static objects.
+            if queue_type == 'Map_Static_Objects':
+                matrices = dae_file.findall(".//{%s}matrix" % namespace)
+                for matrix in matrices:
+
+                    coord_list = [float(coord) for coord in matrix.text.split(' ')]
                     
-            for m, img in enumerate(dae_file.findall(".//{%s}image" % namespace)):
-                for entries in img:
-                    entries.text = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][m].material_slots[0].material.name+'.jpg'
-            '''
-            <library_images>
-                <image id="Image0001" name="Image0001">
-                    <init_from>../walls/ab_exterior_wall_cap_door_only.jpg</init_from>
-                </image>
-            </library_images>
-            '''
+                    #   Create 4x4 matrix
+                    matrix_4x4 = [coord_list[i:i+4] for i in range(0, len(coord_list), 4)]
+
+                    #   Rotation
+                    #   Swap the Y and Z rows in the 3x3 submatrix
+                    matrix_4x4[1][0:3], matrix_4x4[2][0:3] = matrix_4x4[2][0:3], matrix_4x4[1][0:3]
+
+                    #   Swap the Y and Z columns
+                    for row in matrix_4x4:
+                        row[1], row[2] = row[2], row[1]
+                    
+                    #   -Y and -Z rotation axis
+                    for i in range(1, 3):
+                        for j in range(3):
+                            matrix_4x4[i][j] = -matrix_4x4[i][j]
+
+                    #   Rotate X by 1 pi radians.
+                    rot180x = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]
+                    for i in range(3):
+                        matrix_4x4[i][0:3] = [sum(a*b for a, b in zip(matrix_4x4[i][0:3], row)) for row in rot180x]
+
+                    #   Position
+                    #   Swap the Y and Z of the Position
+                    matrix_4x4[1][3], matrix_4x4[2][3] = matrix_4x4[2][3], matrix_4x4[1][3]
+
+                    #   -X Position
+                    matrix_4x4[0][3] = -matrix_4x4[0][3]
+
+                    matrix.text = ' '.join([str(coord) for row in matrix_4x4 for coord in row])
+
             xtree.indent(dae_file, space="    ", level=0)
             xtree.ElementTree(dae_file).write(root + relative_path + col_name+'.dae')
 
+            #bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
+            if queue_type == 'Entities':
+                write_entity_file(hpl_config.hpl_export_queue[queue_type][col_name]['ent'], export_collection, root, relative_path, triangles, transpose_dict)
+
+            #   Revert object changes we had to make for export.
             for o, obj in enumerate(hpl_config.hpl_export_queue[queue_type][col_name]['dae']):
                 obj.modifiers.remove(obj.modifiers.get("_Triangulate"))
                 obj.parent = parent_list.pop(0)
 
                 #obj.rotation_euler[2] = obj.rotation_euler[2] - math.radians(180)
                 #obj.location[2] = -obj.location[2]
-
-            #bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
-            if queue_type == 'Entities':
-                write_entity_file(hpl_config.hpl_export_queue[queue_type][col_name]['ent'], export_collection, root, relative_path, triangles, transpose_dict)
 
             bpy.ops.object.select_all(action='DESELECT')
             #   Eventhough we are working with context overrides,
