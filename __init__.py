@@ -889,9 +889,9 @@ def draw_panel_3d_content(context, layout):
         singleRow.prop(props, 'hpl_export_maps', expand=False)
 
         layout.use_property_split = True
-        col = layout.column(align=True)
-        box = col.box()
-        box.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
+        #col = layout.column(align=True)
+        #box = col.box()
+        #box.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
 
         col = layout.column(align=True)
 
@@ -922,21 +922,32 @@ def draw_panel_3d_content(context, layout):
         elif hpl_config.hpl_selection_type == hpl_entity_type.MAP.name:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a map.', icon='HOME')
+
+            box.use_property_split = False
+            box.use_property_decorate = True
+
+            singleRow = box.row(align=True)
+            singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_GroupExportUniqueStaticObject"]', icon = "DOWNARROW_HLT" if hpl_config.hpl_outliner_selection['hplp_s_GroupExportUniqueStaticObject'] else "RIGHTARROW", icon_only = True, emboss = False)
+            singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_ExportUniqueStaticObject"]', icon_only=False, text='Submesh to Static Object')
+
+            box.use_property_split = True
+            box.use_property_decorate = False
+
             singleRowbtn = box.row(align=True)
-            singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
+            singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
         elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY.name:
             if hpl_config.hpl_selection_state:
                 box = col.box()
                 col_color = hpl_config.hpl_ui_outliner_selection_color_tag
-                #col_color = bpy.data.collections[hpl_config.hpl_ui_outliner_selection_name].color_tag
+                
                 box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
                 box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-                #box.prop(props, "hpl_current_material", text='Material', expand=False)
+                
                 singleRowbtn = box.row(align=True)
                 singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
-                #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
+                
                 draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
             else:
                 box = col.box()
@@ -954,6 +965,33 @@ def draw_panel_3d_content(context, layout):
         elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name and not hpl_config.hpl_selection_state:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in a level collection, ignored for export.', icon='INFO')
+
+        elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT.name:
+            if hpl_config.hpl_selection_state:
+                box = col.box()
+                col_color = hpl_config.hpl_ui_outliner_selection_color_tag
+                
+                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+                #box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+                
+                #singleRowbtn = box.row(align=True)
+                #singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
+                
+                #draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+            else:
+                box = col.box()
+                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_folder_static_objects_col}\", therefore ignored for export.', icon='INFO') 
+
+
+        elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
+            box = col.box()
+            instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+            col_color = bpy.data.collections[instance_of].color_tag #hpl_config.hpl_ui_outliner_selection_color_tag
+            #box.label(text=f'{hpl_config.hpl_ui_outliner_selection_prop_type}', icon='SEQUENCE_COLOR_09' if col_color == 'NONE' else 'SEQUENCE_'+col_color) 
+            box.label(text=f'\"{instance_of}\" is of type Static_Object', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
 
         elif hpl_config.hpl_selection_type == hpl_entity_type.BODY.name:
             box = col.box()

@@ -66,6 +66,8 @@ class hpl_entity_type(Enum):
     MAP = 9
     BODY = 10
     AREA = 11
+    STATIC_OBJECT = 12
+    STATIC_OBJECT_INSTANCE = 13
 
     SPHERE_SHAPE = 20
     BOX_SHAPE = 21
@@ -154,6 +156,21 @@ hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
 hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str]
 hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color', 'color3', 'color4'] 
+
+hpl_static_object_map_vars_dict = {'General' :
+    {
+        'CulledByDistance'      : {'Type' : "Bool",       'DefaultValue' : True,  'Description' : "Disable if the entity should be always rendered, no matter the distance."},
+        'CulledByFog'           : {'Type' : "Bool",       'DefaultValue' : True,  'Description' : "Disable if the entity should be always rendered, even if fog occludes it."},
+    },
+    'Static Object' : {
+        'Collides'              : {'Type' : "Bool",   'DefaultValue' : True,                  'Description' : ""},
+        'CastShadows'           : {'Type' : "Bool",   'DefaultValue' : True,                  'Description' : ""},
+        'IsOccluder'            : {'Type' : "Bool",   'DefaultValue' : True,                  'Description' : ""},
+        'ColorMul'              : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0),  'Description' : ""},
+        'IllumColor'            : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0),  'Description' : ""},
+        'IllumBrightness'       : {'Type' : "Float",  'DefaultValue' : 1.0,                   'Description' : ""},
+    }
+}
 
 hpl_instance_general_vars_dict = {'General' :
     {

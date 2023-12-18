@@ -153,8 +153,11 @@ class hpl_properties():
 
     def get_properties(sub_prop, variable_type, is_area = False):
 
-        if sub_prop == 'None' or sub_prop == 'Static_Object':
+        if sub_prop == 'None':
             return {}
+        
+        if sub_prop == 'Static_Object':
+            pass
         
         var_dict = {}
         level_settings_path = os.path.dirname(os.path.realpath(__file__))+'\\'+'fake_level_settings.def'
@@ -230,7 +233,7 @@ class hpl_properties():
             for cls in classes:
                 entity_baseclass_list.append(cls.attrib['Name'])
 
-            return  entity_baseclass_list if is_area else [*hpl_config.hpl_static_object_class_list, *entity_baseclass_list]
+            return entity_baseclass_list
         else:
             return None
         
@@ -324,10 +327,15 @@ class hpl_properties():
                     hpl_properties.set_entity_state(sel, hpl_entity_type.MAP.name)
                     return hpl_entity_type.MAP.name
                 
-            #   Check if the entity is inside project collection
+            #   Check if the entity is inside entity collection
             if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col].children if col == sel]):
                 hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY.name)
                 return hpl_entity_type.ENTITY.name
+            
+            #   Check if the entity is inside entity collection
+            if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col].children if col == sel]):
+                hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT.name)
+                return hpl_entity_type.STATIC_OBJECT.name
             
         ### OBJECT ###
         if sel_identifier == 'Object':
@@ -378,10 +386,24 @@ class hpl_properties():
                     
             #   Instance
             else:
-                if sel.users_collection[0] in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children_recursive:
-                    hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_INSTANCE.name)
-                    return hpl_entity_type.ENTITY_INSTANCE.name
 
+                instance_type = sel.instance_type
+
+                if instance_type == 'COLLECTION':
+
+                    origin = sel.instance_collection
+                    user = sel.users_collection[0]
+
+                    if user in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children_recursive:
+                        if origin in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col].children_recursive:
+                            #if entity_properties_type == hpl_entity_type.ENTITY_INSTANCE.name:
+                            hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_INSTANCE.name)
+                            return hpl_entity_type.ENTITY_INSTANCE.name
+                        
+                        if origin in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col].children_recursive:
+                            #if entity_properties_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
+                            hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT_INSTANCE.name)
+                            return hpl_entity_type.STATIC_OBJECT_INSTANCE.name
         return ''
     
     def update_outliner_selection(ent):
@@ -506,70 +528,6 @@ class hpl_properties():
                     id_props.update(description=value['Description'])
                 ent.property_overridable_library_set(f'["{variable_name}"]', True)
                 
-        
-        '''
-    def initialize_editor_vars(ent, var_dict):
-        hpl_properties.reset_editor_vars(ent)
-        group_dict = {}
-        if var_dict:
-            for group in var_dict:                
-                ent[hpl_config.hpl_dropdown_identifier+'_'+group] = False
-                var_list = []
-                for var in var_dict[group]:
-                    is_color = False
-                    var_value = var['DefaultValue'] if 'DefaultValue' in var else ''
-                    #check for oddities in EntityClasses.def
-                    var_type = var['type'].lower() if 'type' in var else var['Type'].lower()
-                    variable = hpl_config.hpl_variable_identifier+'_'+var['Name']
-                    
-                    #Variable Conversion
-                    if var_type == 'float':
-                        #check for oddities in EntityClasses.def
-                        if 'f' in var_value:
-                            var_value = var_value[:-1]
-                    if var_type == 'color':
-                        is_color = True
-                    if var_type == 'bool':
-                        if var_value == 'false':
-                            var_value = None
-                    
-                    #Variable Assignment, some types needs to be evaluated differently \ 
-                    #since there are no direct counterparts in blender.
-                    #Because variables are created at runtime - we can not use bpy.types.
-                    if var_type == 'string':
-                        ent[variable] = var_value
-                    elif is_color:
-                        color = (float(i) for i in var['DefaultValue'].split(' '))
-                        ent[variable] = mathutils.Vector(color)
-                    elif var_type == 'function':
-                        ent[variable] = 'hpl_function'
-                    elif 'vec' in var_type:
-                        vec = (float(i) for i in var['DefaultValue'].split(' '))
-                        ent[variable] = mathutils.Vector(vec)
-                    elif var_type == 'enum':
-                        ent[variable] = 'hpl_enum'
-                    elif var_type == 'file':
-                        ent[variable] = 'hpl_file'
-                    else:
-                        ent[variable] = eval(var_type)(var_value)
-                        
-                    id_props = ent.id_properties_ui(variable)
-                    
-                    #Some variable properties can only be set after creation
-                    if is_color:
-                        id_props.update(subtype='COLOR', min=0, max=1)
-                    if 'Max' in var:
-                        if var_type == 'int':
-                            id_props.update(min=int(var['Min']),max=int(var['Max']))
-                        if var_type == 'float':
-                            id_props.update(min=float(var['Min']),max=float(var['Max']))
-                    if 'Description' in var:
-                        id_props.update(description=var['Description'])
-                    ent.property_overridable_library_set(f'["{variable}"]', True)
-                    var_list.append(variable)
-                group_dict[group] = var_list
-        '''
-    
     def set_entity_type(selection = None, _type = ''):
 
         selection = hpl_config.hpl_outliner_selection if not selection else selection
@@ -596,6 +554,29 @@ class hpl_properties():
                                                                         'PropType' : area_type,
                                                                         'InstancerName': None,
                                                                     }
+            
+        elif _type == hpl_entity_type.STATIC_OBJECT.name:
+            selection['hplp_i_properties'] = { 
+                                    'EntityType': _type,
+                                    }
+
+            
+        elif _type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
+
+            collection_ent = hpl_properties.get_collection_instance_is_of(selection)
+            
+            staticobjectsvars_dict = hpl_config.hpl_static_object_map_vars_dict
+
+            if not selection.name.endswith('_Instance'):
+                selection.name = collection_ent.name + '_Instance'
+
+            hpl_properties.set_entity_custom_properties(staticobjectsvars_dict, selection)   
+                        
+            selection['hplp_i_properties'] = { 
+                                                'EntityType': _type, 
+                                                'PropType' : 'Static_Object',
+                                                'InstancerName': collection_ent.name,
+                                            }
 
         elif _type == hpl_entity_type.ENTITY_INSTANCE.name:
 

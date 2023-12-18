@@ -252,10 +252,10 @@ def write_hpm_static_objects(map_col, _map_path, _id):
 
     for obj in map_col.objects:
         if obj.is_instancer:
-            if obj.get('hplp_i_properties', {}).get('PropType', None) == 'Static_Object' :
+            if obj.get('hplp_i_properties', {}).get('EntityType', None) == hpl_config.hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
             
                 static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj, entity=False)+'.dae')
+                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj, is_entity=False)+'.dae')
 
                 general_properties(static_object, obj, root_id, _index)
                 _index = _index + 1

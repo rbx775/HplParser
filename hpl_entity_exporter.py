@@ -281,6 +281,7 @@ def has_valid_export_object(col):
 
 def is_valid_export_collection(col):
     
+    print('col', col.name, col.exclude)
     if col.exclude:
         return False
 
@@ -324,6 +325,8 @@ def hpl_export_objects(op):
     filtered_entity_collections = {col.name : {} for col in list(filter(is_valid_export_collection, viewlayer_entity_collections_list))}
     filtered_static_collections = {col.name : {} for col in list(filter(is_valid_export_collection, viewlayer_static_collections_list))}
     filtered_map_static_objects = {col.name : {} for col in list(filter(is_valid_export_collection, unique_map_static_objects_list))}
+
+    print(viewlayer_static_collections_list)
 
     hpl_config.hpl_export_queue = {
         'Entities': filtered_entity_collections,
@@ -408,7 +411,7 @@ def hpl_export_objects(op):
                     img.find(".//{%s}init_from" % namespace).text = '../'+hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name + '.png'
 
             #   Inject corrected matrix values for unique map static objects.
-            if queue_type == 'Map_Static_Objects':
+            if queue_type != 'Entities':
                 matrices = dae_file.findall(".//{%s}matrix" % namespace)
                 for matrix in matrices:
 
