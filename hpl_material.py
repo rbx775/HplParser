@@ -4,11 +4,31 @@ from . import hpl_property_io
 
 class HPL_MATERIAL():
 
+    def set_texture_to_node(node, png, filepath):
+        if node.image:
+            node.image = png #bpy.data.images.get(filepath.rsplit('\\')[-1])
+            node.image.filepath = filepath
+            node.image.reload()
+
+    def exr_to_png(exr_path):
+
+        png = bpy.data.images.load(exr_path)
+        png.file_format = 'PNG'
+        png_path = os.path.join(os.path.dirname(exr_path), '_convert_to_png', os.path.basename(exr_path))
+        png_path = png_path.replace('.exr', '.png')
+        png.save_render(png_path)
+        
+        return png, png_path
+
     def find_textures(node, tex_node):
         if node.type == 'TEX_IMAGE':
             if not hasattr(node.image, 'filepath'):
                 return
-            hpl_config.texture_dict[tex_node] = bpy.path.abspath(node.image.filepath)
+            filepath = bpy.path.abspath(node.image.filepath)
+            if 'exr' in filepath:
+                png, filepath = HPL_MATERIAL.exr_to_png(filepath)
+                HPL_MATERIAL.set_texture_to_node(node, png, filepath)
+            hpl_config.texture_dict[tex_node] = filepath
         
         if node.name == 'Principled BSDF':
             for t in hpl_config.texture_dict:
@@ -124,7 +144,7 @@ class HPL_MATERIAL():
 
             HPL_MATERIAL.hpl_create_shader_for_mat(mat.node_tree.links, mat.node_tree.nodes, mat_vars, mat_file)
 
-            for obj in [obj for obj in col.all_objects if obj.type == 'MESH']:
+            for obj in [obj for obj in col.all_objects[:] if obj.type == 'MESH']:
                 #Eventhough all materials are purged from the file, objects still can have material slots.
                 for i in range(len(obj.material_slots)):
                     bpy.ops.object.material_slot_remove({'object': obj})

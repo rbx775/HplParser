@@ -39,16 +39,17 @@ def add_body(self, context):
     #body_empty['hpl_internal_type'] = 'Body'
     #hpl_config.hpl_var_dict = hpl_config.hpl_body_properties_vars_dict
 
-    body_empty['hplp_i_properties'] = {
-                                        'EntityType': hpl_entity_type.BODY.name,
-                                        'InstancerName': None,
-                                    }
-    
     #hpl_property_io.hpl_properties.initialize_editor_vars(body_empty)
     bpy.context.view_layer.objects.active = body_empty
     body_empty.select_set(True)
     var_dict = hpl_config.hpl_body_properties_vars_dict
     hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, body_empty)
+
+    body_empty['hplp_i_properties'] = {
+                                        'EntityType': hpl_entity_type.BODY.name,
+                                        'InstancerName': None,
+                                    }
+    
     update_viewport()
 
 def add_joint_screw(self, context):
@@ -63,20 +64,18 @@ def add_joint_screw(self, context):
     # Link the object into the scene.
     bpy.context.collection.objects.link(screw_empty)
     bpy.ops.object.select_all(action='DESELECT')
-    #screw_empty['hpl_internal_type'] = 'Joint_Screw'
+
+    bpy.context.view_layer.depsgraph.update()
+    bpy.context.view_layer.objects.active = screw_empty
+    screw_empty.select_set(True)
+    var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
+    hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, screw_empty)
     
     screw_empty['hplp_i_properties'] = {
                                         'EntityType': hpl_entity_type.SCREW_JOINT.name,
                                         'InstancerName': None,
                                     }
     
-    #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    #hpl_property_io.hpl_properties.initialize_editor_vars(screw_empty)
-    bpy.context.view_layer.depsgraph.update()
-    bpy.context.view_layer.objects.active = screw_empty
-    screw_empty.select_set(True)
-    var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_screw_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, screw_empty)
     update_viewport()
 
 def add_joint_slider(self, context):
@@ -92,19 +91,17 @@ def add_joint_slider(self, context):
     bpy.context.collection.objects.link(arrow_empty)
 
     bpy.ops.object.select_all(action='DESELECT')
-    #arrow_empty['hpl_internal_type'] = 'Joint_Slider'
 
-    arrow_empty['hplp_i_properties'] = {
-                                        'EntityType': hpl_entity_type.SLIDER_JOINT.name,
-                                        'InstancerName': None,
-                                    }
-    #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    #hpl_property_io.hpl_properties.initialize_editor_vars(arrow_empty)
     bpy.context.view_layer.depsgraph.update()
     bpy.context.view_layer.objects.active = arrow_empty
     arrow_empty.select_set(True)
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_slider_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, arrow_empty)
+
+    arrow_empty['hplp_i_properties'] = {
+                                        'EntityType': hpl_entity_type.SLIDER_JOINT.name,
+                                        'InstancerName': None,
+                                    }
     update_viewport()
 
 def add_joint_ball(self, context):
@@ -120,19 +117,17 @@ def add_joint_ball(self, context):
     bpy.context.collection.objects.link(sphere_empty)
     
     bpy.ops.object.select_all(action='DESELECT')
-    #sphere_empty['hpl_internal_type'] = 'Joint_Ball'
+
+    bpy.context.view_layer.depsgraph.update()
+    bpy.context.view_layer.objects.active = sphere_empty
+    sphere_empty.select_set(True)
+    var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
+    hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, sphere_empty)
 
     sphere_empty['hplp_i_properties'] = {
                                         'EntityType': hpl_entity_type.BALL_JOINT.name,
                                         'InstancerName': None,
                                     }
-    #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
-    #hpl_property_io.hpl_properties.initialize_editor_vars(sphere_empty)
-    bpy.context.view_layer.depsgraph.update()
-    bpy.context.view_layer.objects.active = sphere_empty
-    sphere_empty.select_set(True)
-    var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_ball_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict**hpl_config.hpl_collider_properties_vars_dict}
-    hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, sphere_empty)
     update_viewport()
 
 def add_joint_hinge(self, context):
@@ -149,19 +144,16 @@ def add_joint_hinge(self, context):
     bpy.context.collection.objects.link(circle_empty)
     bpy.ops.object.select_all(action='DESELECT')
 
-    #circle_empty['hpl_internal_type'] = 'Joint_Hinge'
-    
-    circle_empty['hplp_i_properties'] = {
-                                        'EntityType': hpl_entity_type.HINGE_JOINT.name,
-                                        'InstancerName': None,
-                                    }
-    #hpl_config.hpl_var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
-    #hpl_property_io.hpl_properties.initialize_editor_vars(circle_empty)
     bpy.context.view_layer.depsgraph.update()
     bpy.context.view_layer.objects.active = circle_empty
     circle_empty.select_set(True)
     var_dict = {**hpl_config.hpl_joint_base_properties_vars_dict, **hpl_config.hpl_joint_hinge_properties_vars_dict, **hpl_config.hpl_joint_sound_properties_vars_dict, **hpl_config.hpl_collider_properties_vars_dict}
     hpl_property_io.hpl_properties.set_entity_custom_properties(var_dict, circle_empty)
+    
+    circle_empty['hplp_i_properties'] = {
+                                        'EntityType': hpl_entity_type.HINGE_JOINT.name,
+                                        'InstancerName': None,
+                                    }
     update_viewport()
     
 def add_shape_box(self, context):

@@ -2,6 +2,7 @@
 import dataclasses
 from typing import Dict
 from enum import Enum
+import math
 
 hpl_invoke_mod_dialogue = 1
 hpl_icon_value = 0
@@ -12,6 +13,9 @@ hpl_sub_folders = {'config' : 'config', 'entities' : 'entities', 'particles' : '
                     'script' : 'script'}
 
 hpl_asset_filetypes = {'geometry' : '.dae', 'material' : '.mat', 'entity' : '.ent'}
+
+hpl_previous_scene_object_count = math.inf
+hpl_previous_scene_collection_count = math.inf
 
 #TODO: rename prefixes to cfg instead of hpl. Create new hpl_environments.py and use env as prefix for global variables.
 hpl_asset_material_files = {}
@@ -46,6 +50,12 @@ hpl_ui_active_material_name = ''
 hpl_ui_outliner_selection_color_tag = ''
 hpl_ui_outliner_selection_instancer_name = ''
 hpl_ui_outliner_selection_prop_type = ''
+hpl_ui_folder_entities_col = ''
+hpl_ui_folder_maps_col = ''
+hpl_ui_folder_static_objects_col = ''
+hpl_ui_folder_project_root_col = ''
+
+hpl_valid_operational_folders = True
 
 @dataclasses.dataclass
 class EntityTypeData:
@@ -68,6 +78,7 @@ class hpl_entity_type(Enum):
     AREA = 11
     STATIC_OBJECT = 12
     STATIC_OBJECT_INSTANCE = 13
+    MATERIAL = 14
 
     SPHERE_SHAPE = 20
     BOX_SHAPE = 21
@@ -89,19 +100,6 @@ class hpl_entity_type(Enum):
 hpl_selection_type = ''
 hpl_selection_state = False
 hpl_selection_inactive_reason = ''
-
-'''
-class hpl_entity_type(Enum):
-    MAP = 1
-    ENTITY = 2
-    ENTITY_INSTANCE = 3
-    BODY = 4
-    SHAPE = 5
-    SUBMESH = 6
-    LIGHT = 7
-    MATERIAL = 8
-    JOINT = 9
-'''
 hpl_selection_entity_type = None
 
 class hpl_shape_type(Enum):
@@ -150,11 +148,15 @@ hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariabl
 
 hpl_dae_containers = {'library_images':'library_images','image':'image','init_from':'init_from'}
 
+hpl_joint_identifier_dict = {'BALL_JOINT' : 'JointBall', 'HINGE_JOINT' : 'JointHinge', 'SLIDER_JOINT' : 'JointSlider', 'SCREW_JOINT' : 'JointScrew'}
+hpl_light_identifier_dict = {'POINT_LIGHT' : 'PointLight', 'SPOT_LIGHT' : 'SpotLight', 'BOX_LIGHT' : 'BoxLight'}
+
+
 hpl_entity_classes_file_sub_path = 'editor\\userclasses\\EntityClasses.def'
 hpl_area_classes_file_sub_path = 'editor\\userclasses\\AreaClasses.def'
 hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
 hpl_hpm_sub_path = 'mods\\maps\\'
-hpl_common_variable_types = [bool, int, float, str]
+hpl_common_variable_types = [bool, int, float, str, list]
 hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color', 'color3', 'color4'] 
 
 hpl_static_object_map_vars_dict = {'General' :
@@ -186,107 +188,107 @@ hpl_instance_general_vars_dict = {'General' :
 hpl_body_properties_vars_dict = {'Body' : 
     {
         'Material'                  : {'Type' : "String", 'DefaultValue' : "Default", 'Description' : ""},
-        'Mass'                      : {'Type' : "Float",  'DefaultValue' : "0",       'Description' : ""}, 
-        'LinearDamping'             : {'Type' : "Float",  'DefaultValue' : "0.1",     'Description' : ""},
-        'AngularDamping'            : {'Type' : "Float",  'DefaultValue' : "0.1",     'Description' : ""},
-        'MaxAngularSpeed'           : {'Type' : "Int",    'DefaultValue' : "20",      'Description' : ""},
-        'MaxLinearSpeed'            : {'Type' : "Int",    'DefaultValue' : "20",      'Description' : ""},
-        'BuoyancyDensityMul'        : {'Type' : "Int",    'DefaultValue' : "1",       'Description' : ""},
-        'BlocksLight'               : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
-        'BlocksSound'               : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
-        'ContinuousCollision'       : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
-        'CanAttachCharacter'        : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
-        'PushedByCharacterGravity'  : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
-        'CollideCharacter'          : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
-        'CollideNonCharacter'       : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
-        'Volatile'                  : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
-        'UseSurfaceEffects'         : {'Type' : "Bool",   'DefaultValue' : "true",    'Description' : ""},
-        'HasGravity'                : {'Type' : "Bool",   'DefaultValue' : "false",   'Description' : ""},
+        'Mass'                      : {'Type' : "Float",  'DefaultValue' : 0.0,       'Description' : ""}, 
+        'LinearDamping'             : {'Type' : "Float",  'DefaultValue' : 0.1,     'Description' : ""},
+        'AngularDamping'            : {'Type' : "Float",  'DefaultValue' : 0.1,     'Description' : ""},
+        'MaxAngularSpeed'           : {'Type' : "Int",    'DefaultValue' : 20,      'Description' : ""},
+        'MaxLinearSpeed'            : {'Type' : "Int",    'DefaultValue' : 20,      'Description' : ""},
+        'BuoyancyDensityMul'        : {'Type' : "Int",    'DefaultValue' : 1,       'Description' : ""},
+        'BlocksLight'               : {'Type' : "Bool",   'DefaultValue' : True,    'Description' : ""},
+        'BlocksSound'               : {'Type' : "Bool",   'DefaultValue' : False,   'Description' : ""},
+        'ContinuousCollision'       : {'Type' : "Bool",   'DefaultValue' : True,    'Description' : ""},
+        'CanAttachCharacter'        : {'Type' : "Bool",   'DefaultValue' : False,   'Description' : ""},
+        'PushedByCharacterGravity'  : {'Type' : "Bool",   'DefaultValue' : False,   'Description' : ""},
+        'CollideCharacter'          : {'Type' : "Bool",   'DefaultValue' : True,    'Description' : ""},
+        'CollideNonCharacter'       : {'Type' : "Bool",   'DefaultValue' : True,    'Description' : ""},
+        'Volatile'                  : {'Type' : "Bool",   'DefaultValue' : False,   'Description' : ""},
+        'UseSurfaceEffects'         : {'Type' : "Bool",   'DefaultValue' : True,    'Description' : ""},
+        'HasGravity'                : {'Type' : "Bool",   'DefaultValue' : False,   'Description' : ""},
     }
 }
 
 ###BASE
 hpl_joint_base_properties_vars_dict = {'JointBase' :
     {
-        'LimitStepCount'     : {'Type' : "Int",   'DefaultValue' : "0",      'Description' : ""},
-        'Stiffness'          : {'Type' : "Int",   'DefaultValue' : "0",      'Description' : ""},
-        'StickyMinLimit'     : {'Type' : "Bool",  'DefaultValue' : "false",  'Description' : ""},
-        'StickyMaxLimit'     : {'Type' : "Bool",  'DefaultValue' : "false",  'Description' : ""},
-        'CollideBodies'      : {'Type' : "Bool",  'DefaultValue' : "true",   'Description' : ""},
-        'Breakable'          : {'Type' : "Bool",  'DefaultValue' : "false",  'Description' : ""},
-        'BreakForce'         : {'Type' : "Int",   'DefaultValue' : "0",      'Description' : ""},
+        'LimitStepCount'     : {'Type' : "Int",   'DefaultValue' : 0,      'Description' : ""},
+        'Stiffness'          : {'Type' : "Int",   'DefaultValue' : 0,      'Description' : ""},
+        'StickyMinLimit'     : {'Type' : "Bool",  'DefaultValue' : False,  'Description' : ""},
+        'StickyMaxLimit'     : {'Type' : "Bool",  'DefaultValue' : False,  'Description' : ""},
+        'CollideBodies'      : {'Type' : "Bool",  'DefaultValue' : True,   'Description' : ""},
+        'Breakable'          : {'Type' : "Bool",  'DefaultValue' : False,  'Description' : ""},
+        'BreakForce'         : {'Type' : "Int",   'DefaultValue' : 0,      'Description' : ""},
     }
 }
 
 ###BALL
 hpl_joint_ball_properties_vars_dict = {'BallParams' :
     {
-        'MaxConeAngle'   : {'Type' : "Int",   'DefaultValue' : "0",  'Description' : ""},
-        'MaxTwistAngle'  : {'Type' : "Int",   'DefaultValue' : "0",  'Description' : ""},
+        'MaxConeAngle'   : {'Type' : "Int",   'DefaultValue' : 0,  'Description' : ""},
+        'MaxTwistAngle'  : {'Type' : "Int",   'DefaultValue' : 0,  'Description' : ""},
     }
 }
 
 ###HINGE
 hpl_joint_hinge_properties_vars_dict = {'HingeParams' :
     {
-        'MinAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
-        'MaxAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+        'MinAngle' : {'Type' : "Int", 'DefaultValue' : 0, 'Description' : ""},
+        'MaxAngle' : {'Type' : "Int", 'DefaultValue' : 0, 'Description' : ""},
     }
 }
 
 ###SLIDE
 hpl_joint_slider_properties_vars_dict = {'SlideParams' : 
     {
-        'MinDistance' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
-        'MaxDistance' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+        'MinDistance' : {'Type' : "Int", 'DefaultValue' : 0, 'Description' : ""},
+        'MaxDistance' : {'Type' : "Int", 'DefaultValue' : 0, 'Description' : ""},
     }
 }
 
 ###SCREW
 hpl_joint_screw_properties_vars_dict = {'ScrewParams' :
     {
-        'MinAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
-        'MaxAngle' : {'Type' : "Int", 'DefaultValue' : "0", 'Description' : ""},
+        'MinAngle' : {'Type' : "Int", 'DefaultValue' : 0, 'Description' : ""},
+        'MaxAngle' : {'Type' : "Int", 'DefaultValue' : 0, 'Description' : ""},
     }
 }
 
 ###SOUND
 hpl_joint_sound_properties_vars_dict = {'JointSounds' :
     {
-        'MoveType'           : {'Type' : "bb",    'DefaultValue' : "Linear", 'Description' : ""},
+        'MoveType'           : {'Type' : "Enum",  'DefaultValue' : "Linear", 'EnumValues' : [['Linear', 'Angular'], 'Linear'], 'Description' : ""},
         'MoveSound'          : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
-        'MinMoveSpeed'       : {'Type' : "Float", 'DefaultValue' : "0.1",    'Description' : ""},
-        'MinMoveFreq'        : {'Type' : "Float", 'DefaultValue' : "0.95",   'Description' : ""},
-        'MinMoveFreqSpeed'   : {'Type' : "Float", 'DefaultValue' : "0.2",    'Description' : ""},
-        'MinMoveVolume'      : {'Type' : "Float", 'DefaultValue' : "0.01",   'Description' : ""},
-        'MaxMoveSpeed'       : {'Type' : "Float", 'DefaultValue' : "2",      'Description' : ""},
-        'MaxMoveFreq'        : {'Type' : "Float", 'DefaultValue' : "1.1",    'Description' : ""},
-        'MaxMoveFreqSpeed'   : {'Type' : "Float", 'DefaultValue' : "0.7",    'Description' : ""},
-        'MaxMoveVolume'      : {'Type' : "Float", 'DefaultValue' : "0.8",    'Description' : ""},
-        'MiddleMoveSpeed'    : {'Type' : "Float", 'DefaultValue' : "0.5",    'Description' : ""},
-        'MiddleMoveVolume'   : {'Type' : "Float", 'DefaultValue' : "0.5",    'Description' : ""},
+        'MinMoveSpeed'       : {'Type' : "Float", 'DefaultValue' : 0.1,      'Description' : ""},
+        'MinMoveFreq'        : {'Type' : "Float", 'DefaultValue' : 0.95,     'Description' : ""},
+        'MinMoveFreqSpeed'   : {'Type' : "Float", 'DefaultValue' : 0.2,      'Description' : ""},
+        'MinMoveVolume'      : {'Type' : "Float", 'DefaultValue' : 0.01,     'Description' : ""},
+        'MaxMoveSpeed'       : {'Type' : "Float", 'DefaultValue' : 2.0,      'Description' : ""},
+        'MaxMoveFreq'        : {'Type' : "Float", 'DefaultValue' : 1.1,      'Description' : ""},
+        'MaxMoveFreqSpeed'   : {'Type' : "Float", 'DefaultValue' : 0.7,      'Description' : ""},
+        'MaxMoveVolume'      : {'Type' : "Float", 'DefaultValue' : 0.8,      'Description' : ""},
+        'MiddleMoveSpeed'    : {'Type' : "Float", 'DefaultValue' : 0.5,      'Description' : ""},
+        'MiddleMoveVolume'   : {'Type' : "Float", 'DefaultValue' : 0.5,      'Description' : ""},
         'BreakSound'         : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
         'MinLimitSound'      : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
-        'MinLimitMinSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
-        'MinLimitMaxSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
+        'MinLimitMinSpeed'   : {'Type' : "Float", 'DefaultValue' : 0.0,      'Description' : ""},
+        'MinLimitMaxSpeed'   : {'Type' : "Float", 'DefaultValue' : 0.0,      'Description' : ""},
         'MaxLimitSound'      : {'Type' : "File",  'DefaultValue' : "",       'Description' : ""},
-        'MaxLimitMinSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
-        'MaxLimitMaxSpeed'   : {'Type' : "Float", 'DefaultValue' : "0",      'Description' : ""},
+        'MaxLimitMinSpeed'   : {'Type' : "Float", 'DefaultValue' : 0.0,      'Description' : ""},
+        'MaxLimitMaxSpeed'   : {'Type' : "Float", 'DefaultValue' : 0.0,      'Description' : ""},
     }
 }
 
 ###SUBMESH
 hpl_submesh_properties_vars_dict = {'General' :
     {
-        'Static'            : {'Type':"Bool",      'DefaultValue':"True",      'Description':""},
+        'Static'            : {'Type':"Bool",      'DefaultValue': True,      'Description':""},
     }
 }
 
 ###COLLIDER
 hpl_collider_properties_vars_dict = {'General' :
     {
-        'ConnectedParentBodyID' : {'Type' : "String", 'DefaultValue' : "", 'Description' : ""},
-        'ConnectedChildBodyID'  : {'Type' : "String", 'DefaultValue' : "", 'Description' : ""},
+        'ConnectedParentBodyID' : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
+        'ConnectedChildBodyID'  : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
     }
 }
 
@@ -309,7 +311,7 @@ hpl_material_properties_sd_vars_dict = {'SolidDiffuse' :
         'SwayFreq'                  : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
         'SwayAmplitude'             : {'Type' : "Float",    'DefaultValue' : 0.1,  'Description' : ""},
         'SwaySpeed'                 : {'Type' : "Float",    'DefaultValue' : 1.0,    'Description' : ""},
-        'SwayOctaveMuls'            : {'Type' : "Vector3",  'DefaultValue' : (0.125, 0.25, 1), 'Description' : ""},
+        'SwayOctaveMuls'            : {'Type' : "Vector3",  'DefaultValue' : (0.125, 0.25, 1.0), 'Description' : ""},
         'SwayForceFieldMul'         : {'Type' : "Float",    'DefaultValue' : 0.3,  'Description' : ""},
         'SwayForceFieldMax'         : {'Type' : "Float",    'DefaultValue' : 0.6,  'Description' : ""},
         'SwayYFreqMul'              : {'Type' : "Float",    'DefaultValue' : 0.0,    'Description' : ""},
@@ -356,7 +358,7 @@ hpl_light_flicker_properties_vars_dict = {'Flicker' :
         'FlickerOffMaxLength'       : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
         'FlickerOffPS'              : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
         'FlickerOffSound'           : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-        'FlickerOffColor'           : {'Type' : "Color",  'DefaultValue' : (0, 0, 0, 1), 'Description' : ""},
+        'FlickerOffColor'           : {'Type' : "Color",  'DefaultValue' : (0.0, 0.0, 0.0, 1.0), 'Description' : ""},
         'FlickerOffRadius'          : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
         'FlickerFade'               : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
         'FlickerOnFadeMinLength'    : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
@@ -366,26 +368,9 @@ hpl_light_flicker_properties_vars_dict = {'Flicker' :
     }
 }
 
-# <PointLight ID="268435459" Name="Light_Point_1" CreStamp="1701906917" ModStamp="1701906931" WorldPos="9.75 4 0" 
-# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
-# ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
-# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" 
-# FlickerOnMaxLength="0" FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" 
-# FlickerOffPS="" FlickerOffSound="" FlickerOffColor="0 0 0 1" FlickerOffRadius="0" 
-# FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
-# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" 
-# CastSpecularLight="true" Brightness="1" Static="false" 
-# CulledByDistance="true" CulledByFog="true" FalloffPow="1" ConnectedLightMaskID="4294967295" 
-# UID="16 30 268435459" />
-
-# <PointLight ID="268435459" Name="Light_Point_1" CreStamp="1701906917" ModStamp="1701906931" WorldPos="9.75 4 0" 
-# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
-# ShadowsAffectDynamic="true"
-# UID="16 30 268435459" />
- 
 hpl_point_light_properties_vars_dict = {'PointLight' :
     {
-        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0), 'Description' : ""},
         'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1.0,'Min' : 0.0, 'Max' : 100.0, 'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
@@ -396,7 +381,7 @@ hpl_point_light_properties_vars_dict = {'PointLight' :
         'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-        'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
+        'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : [['Diffuse', 'Specular', 'DiffuseSpecular'], "Diffuse"], 'Description' : ""},
         'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
         'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
         'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
@@ -405,48 +390,33 @@ hpl_point_light_properties_vars_dict = {'PointLight' :
 }
 hpl_point_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hpl_point_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
 
-# <BoxLight ID="268435457" Name="Light_Box_2" CreStamp="1702178696" ModStamp="1702178696" WorldPos="2 0 0" 
-# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
-# ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
-# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" 
-# FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" 
-# FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
-# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" 
-# Static="false" CulledByDistance="true" CulledByFog="true" BlendFunc="0" Size="1 1 1" GroundColor="1 1 1 0" 
-# SkyColor="1 1 1 0" Weight="1" Bevel="0" FalloffPow="0" UseSphericalHarmonics="false" ProbeOffset="0 0 0" 
-# ConnectedLightMaskID="4294967295" UID="16 14 268435457" />
-
-# <BoxLight ID="268435457" Name="Light_Box_2" CreStamp="1702178696" ModStamp="1702178696" WorldPos="2 0 0" 
-# Rotation="0 0 0" Scale="1 1 1"
-# UID="16 14 268435457" />
-
 # TODO: 'Hidden' boolean override property. Some properties are hidden in the editor, but seem to get set elsewhere.
 # TODO: 'UIName' override property. i.e. 'Ground Color' -> 'AmbientGroundColor' or 'BlendFunc' -> 'BlendFunction'
 # TODO: Convert in hpm_exporter -> hpl_radius = Radius * (math.pi / 180)
 # TODO: rework box light
 hpl_box_light_properties_vars_dict = {'BoxLight' :
     {
-        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0), 'Description' : ""},
         'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1.0, 'Min' : 0.0, 'Max' : 100.0,  'Description' : ""},
-        'Size'                      : {'Type' : "Vector3",'DefaultValue' : (1, 1, 1), 'Description' : ""},
+        'Size'                      : {'Type' : "Vector3",'DefaultValue' : (1.0, 1.0, 1.0), 'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
+        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
         'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
-        'BlendFunc'                 : {'Type' : "Enum",   'DefaultValue' : "Replace", 'EnumValues' : ['Replace', 'Add', 'Average'], 'Description' : ""},
-        'GroundColor'               : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
-        'SkyColor'                  : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'BlendFunc'                 : {'Type' : "Enum",   'DefaultValue' : "Replace", 'EnumValues' : [['Replace', 'Add', 'Average'], "Replace"], 'Description' : ""},
+        'GroundColor'               : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0), 'Description' : ""},
+        'SkyColor'                  : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0), 'Description' : ""},
         'Weight'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
         'Bevel'                     : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
         'FalloffPow'                : {'Type' : "Float",  'DefaultValue' : 0.0,        'Description' : ""},
         'UseSphericalHarmonics'     : {'Type' : "Bool",   'DefaultValue' : False,    'Description' : ""},
-        'ProbeOffset'               : {'Type' : "Vector3",'DefaultValue' : (0, 0, 0), 'Description' : ""},
+        'ProbeOffset'               : {'Type' : "Vector3",'DefaultValue' : (0.0, 0.0, 0.0), 'Description' : ""},
         'IrrSet'                    : {'Type' : "String", 'DefaultValue' : "Default",       'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-        'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
+        'GoboType'                  : {'Type' : "Enum",   'DefaultValue' : "Diffuse",'EnumValues' : [['Diffuse', 'Specular', 'DiffuseSpecular'], "Diffuse"], 'Description' : ""},
         'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
         'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
         'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
@@ -456,33 +426,16 @@ hpl_box_light_properties_vars_dict = {'BoxLight' :
 
 hpl_box_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hpl_box_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
 
-# <SpotLight ID="268435458" Name="Light_Spot_1" CreStamp="1702178701" ModStamp="1702178701" WorldPos="0 0 1.5" 
-# Rotation="0.785398 -2.35619 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
-# ShadowsAffectDynamic="true" Radius="0" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
-# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" 
-# FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" 
-# FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
-# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" 
-# Static="false" CulledByDistance="true" CulledByFog="true" FalloffPow="1" FOV="1.0472" Aspect="1" NearClipPlane="0.1" 
-# SpotFalloffPow="1" ShadowFadeRange="-1" ShadowCasterDistance="-1" ShadowUpdatePriority="10" 
-# ConnectedLightMaskID="4294967295" UID="16 13 268435458" />
-
-# <SpotLight ID="268435458" Name="Light_Spot_1" CreStamp="1702178701" ModStamp="1702178701" WorldPos="0 0 1.5" 
-# Rotation="0.785398 -2.35619 0" Scale="1 1 1" 
-# ShadowFadeRange="-1" ShadowCasterDistance="-1"
-# UID="16 13 268435458" />
-
-
 # TODO: rework spot light
 # TODO: fov_radians = Radius * (math.pi / 180)
 hpl_spot_light_properties_vars_dict = {'SpotLight' :
     {
-        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1, 1, 1, 1), 'Description' : ""},
+        'DiffuseColor'              : {'Type' : "Color",  'DefaultValue' : (1.0, 1.0, 1.0, 1.0), 'Description' : ""},
         'Brightness'                : {'Type' : "Float",  'DefaultValue' : 1.0, 'Min' : 0.0, 'Max' : 100.0,          'Description' : ""},
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
+        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
         'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
@@ -497,7 +450,7 @@ hpl_spot_light_properties_vars_dict = {'SpotLight' :
         'ShadowCasterDistance'      : {'Type' : "Float",  'DefaultValue' : 0.0,       'Description' : ""},
         'ShadowUpdatePriority'      : {'Type' : "Int",    'DefaultValue' : 10,       'Description' : ""},
         'Gobo'                      : {'Type' : "String", 'DefaultValue' : "",       'Description' : ""},
-        'GoboType'                  : {'Type' : "Enum", 'DefaultValue' : "Diffuse", 'EnumValues' : ['Diffuse', 'Specular', 'DiffuseSpecular'], 'Description' : ""},
+        'GoboType'                  : {'Type' : "Enum", 'DefaultValue' : "Diffuse", 'EnumValues' : [['Diffuse', 'Specular', 'DiffuseSpecular'], "Diffuse"], 'Description' : ""},
         'GoboAnimMode'              : {'Type' : "String", 'DefaultValue' : "None",   'Description' : ""},
         'GoboAnimFrameTime'         : {'Type' : "Int",    'DefaultValue' : 1,        'Description' : ""},
         'GoboAnimStartTime'         : {'Type' : "Int",    'DefaultValue' : 0,        'Description' : ""},
@@ -505,6 +458,8 @@ hpl_spot_light_properties_vars_dict = {'SpotLight' :
     }
 }
 hpl_spot_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **hpl_spot_light_properties_vars_dict, **hpl_light_flicker_properties_vars_dict}
+
+hpl_hierarchy_enums_list = ['hplp_e_ConnectedChildBodyID', 'hplp_e_ConnectedParentBodyID', 'hplp_v_ConnectedChildBodyID', 'hplp_v_ConnectedParentBodyID']
 
 hpl_detail_mesh_identifier = '_detailmesh'
 hpl_variable_identifier = 'hpl_parser_var'

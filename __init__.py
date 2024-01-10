@@ -13,6 +13,7 @@
 
 import bpy
 import bpy.props
+import bpy.types
 from bpy.app.handlers import persistent
 import bpy.utils.previews
 from glob import glob
@@ -20,11 +21,6 @@ import os
 import re
 import random
 from mathutils import Vector, Matrix
-from bpy.types import (
-    Operator,
-    Panel,
-    UIList,
-)
 import dataclasses
 
 #from bpy.props import FloatVectorProperty
@@ -53,7 +49,7 @@ from .hpl_object import (OBJECT_OT_add_box_shape,
                         OBJECT_OT_add_body,
                         OBJECT_OT_add_area,)
 from .hpl_operator_callback import (HPL_AREA_CALLBACK, HPL_NODE_CALLBACK)
-from .hpl_property_io import (HPL_OT_RESETPROPERTIES)
+from .hpl_property_io import (HPL_OT_RESETPROPERTIES, HPL_OT_RESETMATERIALPROPERTIES)
 from .hpl_entity_exporter import (HPL_OT_ENTITYEXPORTER)
 
 bl_info = {
@@ -97,12 +93,14 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     def set_hpl_base_classes_enum(self, value):
 
-        if value != self['hpl_base_classes_enum']:
-            self['hpl_base_classes_enum'] = value
-            
-            hpl_property_io.hpl_properties.set_entity_type()
-            bpy.context.scene.hpl_parser_entity_properties.clear()
-            update_scene_ui()
+        #self['hpl_base_classes_enum'] = value
+
+        #if value != self['hpl_base_classes_enum']:
+        self['hpl_base_classes_enum'] = value
+        
+        hpl_property_io.hpl_properties.set_entity_type()
+        bpy.context.scene.hpl_parser_entity_properties.clear()
+        update_scene_ui()
     
     def get_hpl_area_classes_enum(self):
         return self.get("hpl_area_classes_enum", 0)
@@ -195,9 +193,17 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
                                         set=set_hpl_game_root_path,
                                         update=update_hpl_game_root_path)
     
-    hpl_external_script_hook: bpy.props.StringProperty(name="Python Hook",
+    hpl_python_hook_active_pre : bpy.props.BoolProperty(name="", default=True)
+    
+    hpl_external_script_hook_pre: bpy.props.StringProperty(name="Python Hook Pre",
                                         description='Python command to run before exporting.\ni.e.: \'bpy.ops.text.run_script()\'',
                                         )
+    hpl_python_hook_active_post : bpy.props.BoolProperty(name="", default=True)
+
+    hpl_external_script_hook_post: bpy.props.StringProperty(name="Python Hook Post",
+                                        description='Python command to run after exporting.\ni.e.: \'bpy.ops.text.run_script()\'',
+                                        )
+    
     
     hpl_create_preview: bpy.props.BoolProperty(name="Create Asset Thumbnails",
                                         description="Renders preview Images for every asset, very slow. Can take up to two hours",
@@ -225,138 +231,16 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
     
     hpl_current_material: bpy.props.EnumProperty(
+        default=0,
         name='',
         options={'LIBRARY_EDITABLE'},
         items=update_hpl_current_material,
         get=get_hpl_current_material,
         set=set_hpl_current_material,
-    )  
-    
-    def get_hpl_enum_prop0(self):
-        var = hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[0]]
-        enum_index = 0
-        for i, val in enumerate(list(hpl_config.hpl_ui_enum_dict.values())[0]):
-            if val == var:
-                enum_index = i
-        return enum_index
-
-    def set_hpl_enum_prop0(self, value):
-        self['hpl_enum_prop0'] = value
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[0]] = list(hpl_config.hpl_ui_enum_dict.values())[0][value]
-        
-    def update_hpl_enum_prop0(self, context):
-        data = []
-        for var in list(hpl_config.hpl_ui_enum_dict.values())[0]:
-            data.append((var,var,''))
-        return data
-    
-    hpl_enum_prop0: bpy.props.EnumProperty(
-        name='',
-        options={'LIBRARY_EDITABLE'},
-        items=update_hpl_enum_prop0,
-        get=get_hpl_enum_prop0,
-        set=set_hpl_enum_prop0,
-    )     
-
-    def get_hpl_enum_prop1(self):
-        var = hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[1]]
-        enum_index = 0
-        for i, val in enumerate(list(hpl_config.hpl_ui_enum_dict.values())[1]):
-            if val == var:
-                enum_index = i
-        return enum_index
-
-    def set_hpl_enum_prop1(self, value):
-        self['hpl_enum_prop1'] = value
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[1]] = list(hpl_config.hpl_ui_enum_dict.values())[1][value]
-        
-    def update_hpl_enum_prop1(self, context):
-        data = []
-        for var in list(hpl_config.hpl_ui_enum_dict.values())[1]:
-            data.append((var,var,''))
-        return data
-    
-    hpl_enum_prop1: bpy.props.EnumProperty(
-        name='',
-        options={'LIBRARY_EDITABLE'},
-        items=update_hpl_enum_prop1,
-        get=get_hpl_enum_prop1,
-        set=set_hpl_enum_prop1,
-    )                
-    def get_hpl_enum_prop2(self):
-        var = hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[2]]
-        enum_index = 0
-        for i, val in enumerate(list(hpl_config.hpl_ui_enum_dict.values())[2]):
-            if val == var:
-                enum_index = i
-        return enum_index
-
-    def set_hpl_enum_prop2(self, value):
-        self['hpl_enum_prop2'] = value
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[2]] = list(hpl_config.hpl_ui_enum_dict.values())[2][value]
-        
-    def update_hpl_enum_prop2(self, context):
-        data = []
-        for var in list(hpl_config.hpl_ui_enum_dict.values())[2]:
-            data.append((var,var,''))
-        return data
-    
-    hpl_enum_prop2: bpy.props.EnumProperty(
-        name='',
-        options={'LIBRARY_EDITABLE'},
-        items=update_hpl_enum_prop2,
-        get=get_hpl_enum_prop2,
-        set=set_hpl_enum_prop2,
-    )                
-    def get_hpl_enum_prop3(self):
-        var = hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[3]]
-        enum_index = 0
-        for i, val in enumerate(list(hpl_config.hpl_ui_enum_dict.values())[3]):
-            if val == var:
-                enum_index = i
-        return enum_index
-
-    def set_hpl_enum_prop3(self, value):
-        self['hpl_enum_prop3'] = value
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[3]] = list(hpl_config.hpl_ui_enum_dict.values())[3][value]
-        
-    def update_hpl_enum_prop3(self, context):
-        data = []
-        for var in list(hpl_config.hpl_ui_enum_dict.values())[3]:
-            data.append((var,var,''))
-        return data
-    
-    hpl_enum_prop3: bpy.props.EnumProperty(
-        name='',
-        options={'LIBRARY_EDITABLE'},
-        items=update_hpl_enum_prop3,
-        get=get_hpl_enum_prop3,
-        set=set_hpl_enum_prop3,
-    )
-    ### Possible File String for file types
-
-    def get_hpl_file_prop3(self):
-        #var = hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[3]]
-        #enum_index = 0
-        #for i, val in enumerate(list(hpl_config.hpl_ui_enum_dict.values())[3]):
-        #    if val == var:
-        #        enum_index = i
-        return self.get("get_hpl_file_prop3", '')
-
-    def set_hpl_file_prop3(self, value):
-        self['hpl_file_prop3'] = value
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_enum_variable_identifier+'_'+list(hpl_config.hpl_ui_enum_dict.keys())[3]] = list(hpl_config.hpl_ui_enum_dict.values())[3][value]
-    
-    hpl_file_prop3: bpy.props.StringProperty(
-        name='',
-        subtype='FILE_PATH',
-        options={'LIBRARY_EDITABLE'},
-        get=get_hpl_file_prop3,
-        set=set_hpl_file_prop3,
     )
 
     def get_hpl_joint_set_child(self):
-        var = [var for var in hpl_config.hpl_outliner_selection.items() if var[0] == hpl_config.hpl_variable_identifier+'_ConnectedChildBodyID']
+        var = hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedChildBodyID')
         for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
             if body == var[0][1]:
                 return b
@@ -365,14 +249,12 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         
     def set_hpl_joint_set_child(self, value):
         
-        if any([var for var in hpl_config.hpl_outliner_selection.items() if var[0] == hpl_config.hpl_variable_identifier+'_ConnectedChildBodyID']):
-            if not hpl_config.hpl_outliner_selection[hpl_config.hpl_variable_identifier+'_ConnectedChildBodyID']:
-                child = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[1]
-                hpl_config.hpl_outliner_selection[hpl_config.hpl_variable_identifier+'_ConnectedChildBodyID'] = child
+        if not hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedChildBodyID'):
+            child = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[1]
+            hpl_config.hpl_outliner_selection['hplp_v_ConnectedChildBodyID'] = child
 
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_variable_identifier+'_ConnectedChildBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
-        self['hpl_joint_set_parent'] = value
-
+        hpl_config.hpl_outliner_selection['hplp_v_ConnectedChildBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
+        self['hpl_joint_set_child'] = value
         hpl_property_io.hpl_properties.check_for_circular_dependency()
 
     def update_hpl_joint_set_child(self, context):
@@ -380,6 +262,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return (list(zip(data, data, [''] * len(data))))
     
     hpl_joint_set_child: bpy.props.EnumProperty(
+        default=0,
         name='Set Joint Child',
         options={'LIBRARY_EDITABLE'},
         description='Should be the name of your Amnesia mod. All map collections go in here',
@@ -389,7 +272,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     )
     
     def get_hpl_joint_set_parent(self):
-        var = [var for var in hpl_config.hpl_outliner_selection.items() if var[0] == hpl_config.hpl_variable_identifier+'_ConnectedParentBodyID']
+        var = [var for var in hpl_config.hpl_outliner_selection.items() if var[0] == 'hplp_v_ConnectedParentBodyID']
         for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
             if body == var[0][1]:
                 return b
@@ -398,12 +281,11 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     def set_hpl_joint_set_parent(self, value):
 
-        if any([var for var in hpl_config.hpl_outliner_selection.items() if var[0] == hpl_config.hpl_variable_identifier+'_ConnectedParentBodyID']):
-            if not hpl_config.hpl_outliner_selection[hpl_config.hpl_variable_identifier+'_ConnectedParentBodyID']:
-                parent = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[0]
-                hpl_config.hpl_outliner_selection[hpl_config.hpl_variable_identifier+'_ConnectedParentBodyID'] = parent
+        if not hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedParentBodyID'):
+            parent = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[0]
+            hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = parent
 
-        hpl_config.hpl_outliner_selection[hpl_config.hpl_variable_identifier+'_ConnectedParentBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
+        hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
         self['hpl_joint_set_parent'] = value
         hpl_property_io.hpl_properties.check_for_circular_dependency()
 
@@ -412,6 +294,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return (list(zip(data, data, [''] * len(data))))
     
     hpl_joint_set_parent: bpy.props.EnumProperty(
+        default=0,
         name='Set Joint Parent',
         options={'LIBRARY_EDITABLE'},
         description='Should be the name of your Amnesia mod. All map collections go in here',
@@ -428,6 +311,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
     
     hpl_startup_map_col: bpy.props.EnumProperty(
+        default=0,
         name='Startup Map',
         options={'LIBRARY_EDITABLE'},
         description='The map that will be loaded when the game starts',
@@ -445,6 +329,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
     
     hpl_folder_maps_col: bpy.props.EnumProperty(
+        default=0,
         name='Entity Folder',
         options={'LIBRARY_EDITABLE'},
         description='The folder that the exporter will export entities to',
@@ -462,6 +347,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
     
     hpl_folder_entities_col: bpy.props.EnumProperty(
+        default=0,
         name='Entity Folder',
         options={'LIBRARY_EDITABLE'},
         description='The folder that the exporter will export entities to',
@@ -479,6 +365,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
     
     hpl_folder_static_objects_col: bpy.props.EnumProperty(
+        default=0,
         name='Static Objects Folder',
         options={'LIBRARY_EDITABLE'},
         description='The folder that the exporter will export static objects to',
@@ -513,6 +400,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
 
     hpl_map_root_col: bpy.props.EnumProperty(
+        default=0,
         name='Project Name',
         options={'LIBRARY_EDITABLE'},
         description='Should be the name of your Amnesia mod. All map collections go in here',
@@ -532,6 +420,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
 
     hpl_base_classes_enum: bpy.props.EnumProperty(
+        default=0,
         name='Entity Types',
         options={'LIBRARY_EDITABLE'},
         description='Prop types for hpl entities',
@@ -551,6 +440,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return data
 
     hpl_area_classes_enum: bpy.props.EnumProperty(
+        default=0,
         name='Area Types',
         options={'LIBRARY_EDITABLE'},
         description='Prop types for hpl areas',
@@ -607,18 +497,16 @@ def check_for_game_exe(root):
 
 def draw_custom_property_ui(props, ent, properties, layout):
 
-    #box = layout.box()
-    #row = box.row(align=False)
-    #row.operator(HPL_OT_RESETPROPERTIES.bl_idname, icon = "EXPORT")
-
     layout.use_property_split = False
     layout.use_property_decorate = True
     
-    #row = box.row(align=False)
     current_group = None
     group_iterator = 0
     var_list = [var for var in ent.items() if 'hplp_v_' in var[0] or 'hplp_g_' in var[0]]
     for v, var in enumerate(var_list):
+
+        var_name = var[0][7:]
+        var_name_spaced = re.sub(r'(?<!^)(?=[A-Z])', ' ', var_name)
 
         if '_g_' in var[0]:
             # Add some space after the last variable of an opened group
@@ -634,10 +522,11 @@ def draw_custom_property_ui(props, ent, properties, layout):
             row.prop(ent, f'["{current_group[0]}"]', icon = "DOWNARROW_HLT" if current_group[1] else "RIGHTARROW", icon_only = True, emboss = False)
             #row.label(text='', icon='SEQUENCE_COLOR_0'+str((group_iterator % 7) + 1)) #COLLECTION_COLOR_0
             if var_list[v+1][0][7:].replace('_','') == current_group[0][7:]+'Active':
-                row.prop(ent, f'["{var_list[v+1][0]}"]', icon_only=False, text=current_group[0].rsplit('_')[-1])
+                row.prop(ent, f'["{var_list[v+1][0]}"]', icon_only=False, text=var_name_spaced)
                 current_group_state = var_list[v+1][1]
             else:
-                row.label(text=current_group[0].rsplit('_')[-1])
+                row.label(text=var_name_spaced)
+                
             group_iterator = group_iterator + 1
             continue
 
@@ -648,13 +537,16 @@ def draw_custom_property_ui(props, ent, properties, layout):
                     continue
 
                 row = box.row()
-                row.use_property_split = True
                 row.use_property_decorate = False
+                row.use_property_split = True
                 
-                row.prop(ent, f'["{var[0]}"]', text=var[0][7:], icon_only=True, expand=True if 'color' in var[0] else False)
+                if type(var[1]) == list:
+                    var_name = 'hplp_e_' + var[0][7:]
+                    item = properties.get(var_name)
+                    row.prop(item, 'enum_property', text=var_name_spaced, expand=False)
+                else:
+                    row.prop(ent, f'["{var[0]}"]', text=var_name_spaced, icon_only=True, expand=True if 'color' in var[0] else False)
                 row.enabled = current_group_state
-                #if 'Dir' in item.name:
-                #    row.prop(item, f'{item.type}_dir_property', text='')
     
 ### PROPERTY COLLECTION ###
 class HPLPropertyCollectionEnums(bpy.types.PropertyGroup):
@@ -717,23 +609,50 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
         hpl_property_io.hpl_properties.update_selection_properties_by_tag(self.name, self.group_of, self.float_property)
 
     float_property: bpy.props.FloatProperty(get=get_hpl_float_property, set=set_hpl_float_property)
+    '''
+        def get_hpl_joint_set_parent(self):
+        var = [var for var in hpl_config.hpl_outliner_selection.items() if var[0] == 'hplp_v_ConnectedParentBodyID']
+        for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
+            if body == var[0][1]:
+                return b
+                
+        return self.get("hpl_joint_set_parent", 0)
 
+    def set_hpl_joint_set_parent(self, value):
+
+        if not hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedParentBodyID'):
+            parent = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[0]
+            hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = parent
+
+        hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
+        self['hpl_joint_set_parent'] = value
+        hpl_property_io.hpl_properties.check_for_circular_dependency()
+    '''
+    
     def get_hpl_enum_property(self):
         return self.get("enum_property", 0)
 
     def set_hpl_enum_property(self, value):
         self['enum_property'] = value
-        hpl_property_io.hpl_properties.update_selection_properties_by_tag(self.name, self.group_of, self.enum_property)
+        hpl_config.hpl_outliner_selection['hplp_v_'+self.name[7:]] = [eval(self.enum_items), self.enum_property]
+        if self.name in hpl_config.hpl_hierarchy_enums_list:
+            hpl_property_io.hpl_properties.check_for_circular_dependency()
 
     enum_items: bpy.props.StringProperty()
 
-    def update_enum_items(self, context): 
-        return [(item, item, '') for item in eval(self.enum_items[1:-1])]
+    def update_enum_items(self, context):
+        if self.name in hpl_config.hpl_hierarchy_enums_list:
+            hpl_property_io.hpl_properties.update_hierarchy_bodies()
+            return [(item, item, '') for item in list(hpl_config.hpl_joint_set_current_dict)]            
+        else:
+            return [(item, item, '') for item in eval(self.enum_items[1:-1])]
     
     enum_property: bpy.props.EnumProperty(
+        default=0,
         items=update_enum_items,
         get=get_hpl_enum_property,
         set=set_hpl_enum_property,
+        #options={'ENUM_FLAG'},
         name='',
     )
 
@@ -825,7 +744,6 @@ def draw_panel_3d_content(context, layout):
     wm = context.window_manager
     layout.use_property_split = True
     layout.use_property_decorate = False
-    
     #col = layout.column(align=True)
     #box = col.box()
     #box.operator(SCENE_SELECTION_LISTENER_POST_OT_run.bl_idname, icon = "SHADING_BBOX", text="Register Selection Listener")
@@ -854,7 +772,7 @@ def draw_panel_3d_content(context, layout):
             
         if bpy.context.scene.hpl_parser.hpl_project_root_col:
             if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-                box.label(text=f'Create a collection called \'maps\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\'', icon= 'ERROR')
+                box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{hpl_config.hpl_ui_folder_project_root_col}\'', icon= 'ERROR')
         else:
             box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
 
@@ -874,7 +792,16 @@ def draw_panel_3d_content(context, layout):
         
         col = layout.column(align=True)
         box = col.box()
-        box.prop(props, 'hpl_external_script_hook', icon = "WORDWRAP_OFF") #'CONSOLE'
+        
+        singleRow = box.row(align=True)
+        
+        layout.template_list("TEXT_UL_list", "", bpy.data, "texts", bpy.data.texts, "active_index", rows=2)
+        singleRow.prop(props, 'hpl_external_script_hook_pre', icon = "WORDWRAP_OFF") #'CONSOLE'
+        singleRow.prop(props, 'hpl_python_hook_active_pre')
+        singleRow = box.row(align=True)
+        singleRow.prop(props, 'hpl_external_script_hook_post', icon = "WORDWRAP_OFF") #'CONSOLE'
+        singleRow.prop(props, 'hpl_python_hook_active_post')
+        
         singleRow = box.row(align=True)
         singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
         singleRow.scale_y = 2
@@ -907,15 +834,19 @@ def draw_panel_3d_content(context, layout):
             box.prop(props, "hpl_folder_entities_col", text='Entities Folder', expand=False)
             box.prop(props, "hpl_folder_static_objects_col", text='Static Objects Folder', expand=False)
 
-        elif hpl_config.hpl_outliner_selection.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+        if not hpl_config.hpl_valid_operational_folders:
+            box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_col}\" and fix folders.', icon='ERROR')
+            return
+
+        elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_maps_col:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All levels go in here.', icon='FILE_FOLDER')
 
-        elif hpl_config.hpl_outliner_selection.name == bpy.context.scene.hpl_parser.hpl_folder_entities_col:
+        elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_entities_col:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All entities go in here.', icon='FILE_FOLDER')
 
-        elif hpl_config.hpl_outliner_selection.name == bpy.context.scene.hpl_parser.hpl_folder_static_objects_col:
+        elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_static_objects_col:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All static objects go in here.', icon='FILE_FOLDER')
 
@@ -923,15 +854,15 @@ def draw_panel_3d_content(context, layout):
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a map.', icon='HOME')
 
-            box.use_property_split = False
-            box.use_property_decorate = True
+            #box.use_property_split = False
+            #box.use_property_decorate = True
 
-            singleRow = box.row(align=True)
-            singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_GroupExportUniqueStaticObject"]', icon = "DOWNARROW_HLT" if hpl_config.hpl_outliner_selection['hplp_s_GroupExportUniqueStaticObject'] else "RIGHTARROW", icon_only = True, emboss = False)
-            singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_ExportUniqueStaticObject"]', icon_only=False, text='Submesh to Static Object')
+            #singleRow = box.row(align=True)
+            #singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_GroupExportUniqueStaticObject"]', icon = "DOWNARROW_HLT" if hpl_config.hpl_outliner_selection['hplp_s_GroupExportUniqueStaticObject'] else "RIGHTARROW", icon_only = True, emboss = False)
+            #singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_ExportUniqueStaticObject"]', icon_only=False, text='Submesh to Static Object')
 
-            box.use_property_split = True
-            box.use_property_decorate = False
+            #box.use_property_split = True
+            #box.use_property_decorate = False
 
             singleRowbtn = box.row(align=True)
             singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
@@ -951,7 +882,7 @@ def draw_panel_3d_content(context, layout):
                 draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
             else:
                 box = col.box()
-                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col}\", therefore ignored for export.', icon='INFO') 
+                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_project_root_col}\", therefore ignored for export.', icon='INFO') 
 
         elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name:
             box = col.box()
@@ -963,7 +894,7 @@ def draw_panel_3d_content(context, layout):
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
         elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name and not hpl_config.hpl_selection_state:
-            box = col.box()
+            box = col.box() 
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in a level collection, ignored for export.', icon='INFO')
 
         elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT.name:
@@ -972,15 +903,9 @@ def draw_panel_3d_content(context, layout):
                 col_color = hpl_config.hpl_ui_outliner_selection_color_tag
                 
                 box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
-                #box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-                
-                #singleRowbtn = box.row(align=True)
-                #singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
-                
-                #draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
             else:
                 box = col.box()
-                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_folder_static_objects_col}\", therefore ignored for export.', icon='INFO') 
+                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_static_objects_col}\", therefore ignored for export.', icon='INFO') 
 
 
         elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
@@ -988,7 +913,6 @@ def draw_panel_3d_content(context, layout):
             instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             col_color = bpy.data.collections[instance_of].color_tag #hpl_config.hpl_ui_outliner_selection_color_tag
-            #box.label(text=f'{hpl_config.hpl_ui_outliner_selection_prop_type}', icon='SEQUENCE_COLOR_09' if col_color == 'NONE' else 'SEQUENCE_'+col_color) 
             box.label(text=f'\"{instance_of}\" is of type Static_Object', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
@@ -1005,6 +929,11 @@ def draw_panel_3d_content(context, layout):
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+            if hpl_config.hpl_joint_set_warning:
+                col = layout.column(align=True)
+                box = col.box()
+                row_label = box.row()
+                row_label.label(text='Circular Dependency', icon='ERROR')
 
         elif hpl_config.hpl_selection_type.endswith('_SHAPE'):
             box = col.box()
@@ -1019,7 +948,6 @@ def draw_panel_3d_content(context, layout):
             box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
-        #inactive
         elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
             box = col.box()
             box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a deactivated submesh, it will only be used by blender.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
@@ -1041,15 +969,15 @@ def draw_panel_3d_content(context, layout):
             singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
             #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-        
-        #inactive
-        #elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
-        #    box = col.box()
-        #    box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a inactive point light.', icon='LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-        #    box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
-        #    box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-        #    draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
+class TEXT_UL_list(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        text = item
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(text=text.name, icon='TEXT')
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon='TEXT')
 
 class HPL_PT_3D_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
@@ -1069,7 +997,8 @@ class HPL_PT_3D_CREATE(bpy.types.Panel):
         pass
 
     def draw(self, context):
-        draw_panel_3d_content(context, self.layout)
+        if validate_operational_folder_collections():
+            draw_panel_3d_content(context, self.layout)
 
 def draw_panel_mat_content(context, layout):
     
@@ -1078,12 +1007,23 @@ def draw_panel_mat_content(context, layout):
     wm = context.window_manager
     layout.use_property_split = True
     layout.use_property_decorate = False
+
+    properties = scene.hpl_parser_entity_properties
+    
+    label_text = hpl_config.hpl_active_material.name if hpl_config.hpl_active_material else 'No HPL material found' 
+    label_icon = 'MATERIAL_DATA' if hpl_config.hpl_active_material else 'ERROR'
+
     
     col = layout.column(align=True)
     box = col.box()
-    box.label(text='Material Settings')
+    box.label(text= label_text, icon=label_icon)
     
     if hpl_config.hpl_active_material:
+    
+        box.operator(HPL_OT_RESETMATERIALPROPERTIES.bl_idname, icon = "EXPORT")
+        draw_custom_property_ui(props, hpl_config.hpl_active_material, properties, layout)
+        return
+    
         for group in hpl_config.hpl_mat_ui_var_dict:
 
             layout.use_property_split = False
@@ -1126,7 +1066,7 @@ def draw_panel_mat_content(context, layout):
 class HPL_PT_MAT_CREATE(bpy.types.Panel):
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'UI'
-    bl_category = 'HPL'
+    bl_category = 'HPL Parser'
     bl_label = "HPL Material"
     bl_idname = "HPL_PT_MAT_CREATE"
 
@@ -1157,7 +1097,19 @@ class HPL_OT_OpenUserPreferences(bpy.types.Operator):
 def update_scene_ui():
 
     #   Update temporary UI
+    
+    entity_enums = hpl_property_io.hpl_properties.get_enum_entity_properties()
+    for key, value in entity_enums.items():
+
+        item = bpy.context.scene.hpl_parser_entity_properties.add() #VARIABLE
+
+        item.name = 'hplp_e_' + key.split('hplp_v_')[-1]
+
+        item.enum_items = str(value[0])
+        item.enum_property = value[1]
+
     return
+
     entity_dictionary = hpl_property_io.hpl_properties.get_var_from_entity_properties()
     entity_vars = entity_dictionary.get('Vars', {})
     entity_groups = entity_dictionary.get('GroupStates', {})
@@ -1202,26 +1154,65 @@ def update_scene_ui():
             if 'Dir' in key:
                 exec(f'item.{_type}_dir_property = {_value}')
 
+def hpl_context_update():
+    #   Get Object count
+    hpl_config.hpl_previous_scene_object_count = len(bpy.data.objects)
+    hpl_config.hpl_previous_scene_collection_count = len(bpy.data.collections)
+
+def validate_operational_folder_collections():
+
+    if not bpy.context.scene.hpl_parser.hpl_project_root_col:
+        return False
+    if not bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+        return False
+    if not bpy.context.scene.hpl_parser.hpl_folder_entities_col:
+        return False
+    if not bpy.context.scene.hpl_parser.hpl_folder_static_objects_col:
+        return False
+    return True
+
+@persistent
+def scene_selection_listener_pre(self, context):
+    
+    #   Check if an object has been deleted.
+    if hpl_config.hpl_previous_scene_object_count > len(bpy.data.objects):
+        pass
+    if hpl_config.hpl_previous_scene_collection_count > len(bpy.data.collections):
+        pass
+
+    hpl_config.hpl_valid_operational_folders = validate_operational_folder_collections()
+    hpl_context_update()
+    return
+
 #   We use the DepsGraphs post_update handler to update and initialize entities in the background.
 @persistent
 def scene_selection_listener_post(self, context):
-    #   Has the Project folder been renamed through outliner?
-    #if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'} and hpl_config.hpl_invoke_mod_dialogue != {'CANCELLED'}:
-    #    hpl_file_system.mod_init()
+
+    if not hpl_config.hpl_valid_operational_folders:
+        hpl_config.hpl_outliner_selection = bpy.data.collections.get('DemoProject')
+        hpl_config.hpl_selection_type = hpl_entity_type.MOD.name
+        return
+
+    #   Check if the outliner selection is VALID.
+    #   Do some arbitrary call to see if hpl_outliner_selection is even VALID. NONE != VALID
+    try:
+        sel = hpl_config.hpl_outliner_selection
+    except ReferenceError as e:
+        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
+    #   Check if the outliner selection is NONE.
+    if not hpl_config.hpl_outliner_selection:
+        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
 
     #   Skip scene selection evaluation if we create a new Object from hpl_object.py.
     if hpl_config.hpl_skip_scene_listener:
         return
-    
+
+    #   Has the Project folder been renamed through outliner?
+    #if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'} and hpl_config.hpl_invoke_mod_dialogue != {'CANCELLED'}:
+    #    hpl_file_system.mod_init()
+
     #   Save window type for later check in file browsers.
     hpl_config.main_window = bpy.context.window
-
-    #   Check if the outliner selection has been deleted.
-    try:
-        #  Do some arbitrary call to see if hpl_outliner_selection is even VALID. Because NONE != VALID
-        hpl_config.hpl_outliner_selection.get('hplp_i_properties', {})
-    except:
-        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
 
     hpl_property_io.hpl_properties.update_selection()
 
@@ -1236,23 +1227,18 @@ def scene_selection_listener_post(self, context):
         if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
             bpy.context.scene.hpl_parser.hpl_has_maps_col = True
 
-class SCENE_SELECTION_LISTENER_POST_OT_run(bpy.types.Operator):
-    bl_idname = "object.scene_selection_listener_post_run"
-    bl_label = "Run Scene Selection Listener Post"
+    hpl_context_update()
 
-    def execute(self, context):
-        bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
-        return {'FINISHED'}
-    
 classes = (
+    TEXT_UL_list,
     HPL_PT_3D_CREATE,
     HPL_PT_MAT_CREATE,
-    SCENE_SELECTION_LISTENER_POST_OT_run,
     HPL_OT_ENTITYEXPORTER,
     HPM_OT_HPMEXPORTER,
     HPL_OT_ASSETIMPORTER,
     HPL_OT_INITASSETIMPORTER,
     HPL_OT_RESETPROPERTIES,
+    HPL_OT_RESETMATERIALPROPERTIES,
     HPL_OT_CREATE_MOD_PROMPT,
     HPL_OT_OPEN_MOD_FOLDER,
     OBJECT_OT_add_box_shape,
@@ -1274,9 +1260,6 @@ classes = (
     HPLSettingsPropertyGroup,
 )
 
-def register_scene_selection_listener_post():
-    bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
-
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -1292,6 +1275,7 @@ def register():
 
     hpl_preferences.register()
 
+    bpy.app.handlers.depsgraph_update_pre.append(scene_selection_listener_pre)
     bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
     
     hpl_config.is_texconv_available = os.path.isfile(os.path.dirname(os.path.realpath(__file__))+hpl_config.texconv_subpath)
@@ -1310,6 +1294,7 @@ def unregister():
     del bpy.types.Scene.hpl_parser_entity_properties
 
     hpl_preferences.unregister()
+    bpy.app.handlers.depsgraph_update_pre.clear()
     bpy.app.handlers.depsgraph_update_post.clear()
 
 if __name__ == "__main__":

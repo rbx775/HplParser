@@ -80,10 +80,10 @@ def write_material_file(mat, root, relative_path):
     for var in vars:
         var_name = var[0].split('_')[-1]
         mat_var = xtree.SubElement(specific_variables,'Var')
-        mat_var.set('Name', var_name)
+        mat_var.set('Name', hpl_convert.convert_variable_to_hpl(var_name))
         variable = str(var[0])
         #mat_var.set('Value', str(tuple(mat[variable])).translate(str.maketrans({'(': '', ')': ''})) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else str(mat[variable]))
-        mat_var.set('Value', hpl_convert.convert_to_hpl_vec2(mat[variable]) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else str(mat[variable]))
+        mat_var.set('Value', hpl_convert.convert_to_hpl_vec2(mat[variable]) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(mat[variable]))
 
     xtree.indent(material, space="    ", level=0)
     xtree.ElementTree(material).write(os.path.join(root, relative_path, mat.name) +'.mat')
@@ -144,7 +144,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
         if entity_type == hpl_entity_type.AREA.name:
             continue
 
-        if not entity_type:
+        if entity_type == hpl_entity_type.SUBMESH.name or not entity_type:
 
             sub_mesh = xtree.SubElement(mesh, 'SubMesh')
             general_properties(sub_mesh, obj)
@@ -154,8 +154,20 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
 
             vars = [var for var in obj.items() if var[0].startswith('hplp_v_')]
             for var in vars:
-                var_name = var[0].split('_')[-1]                    
-                sub_mesh.set(var_name, str(var[1]))
+                var_name = var[0].split('hplp_v_')[-1]
+                sub_mesh.set(var_name, hpl_convert.convert_variable_to_hpl(var[1]))
+
+        elif entity_type.endswith('_LIGHT'):
+
+            #   <PointLight ID="15" Name="Light_Point_1" CreStamp="1703187910" ModStamp="1703187910" WorldPos="1 0 2" Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" Static="false" CulledByDistance="true" CulledByFog="true" FalloffPow="1" ConnectedLightMaskID="4294967295" />
+
+            light = xtree.SubElement(entities, hpl_config.hpl_light_identifier_dict.get(obj.get('hplp_i_properties', {}).get('EntityType', ''),'PointLight'))
+            general_properties(light, obj)
+
+            vars = [var for var in obj.items() if var[0].startswith('hplp_v_')]
+            for var in vars:
+                var_name = var[0].split('hplp_v_')[-1]
+                light.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             
         elif entity_type.endswith('_SHAPE'):
 
@@ -166,8 +178,8 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             relative_rotation = tuple(map(lambda i, j: i - j, obj.rotation_euler, id_dict[obj]['Parent'].rotation_euler if id_dict[obj]['Parent'] else (0, 0, 0)))
             relative_scale = (1, 1, 1) #TODO: Investigate relative scale
 
-            shape.set('RelativeTranslation', hpl_convert.convert_to_hpl_vec3(relative_translation))
-            shape.set('RelativeRotation', hpl_convert.convert_to_hpl_vec3(relative_rotation))
+            shape.set('RelativeTranslation', hpl_convert.convert_to_hpl_vec3((0,0,0)))
+            shape.set('RelativeRotation', hpl_convert.convert_to_hpl_vec3((0,0,0)))
             shape.set('RelativeScale', hpl_convert.convert_to_hpl_vec3(relative_scale))
             shape_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
             shape.set('ShapeType', str(shape_type.split('_SHAPE')[0].title()))
@@ -180,7 +192,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             vars = [var for var in obj.items() if var[0].startswith('hplp_v_')]
             for var in vars:
                 var_name = var[0].split('_')[-1]                    
-                body.set(var_name, str(var[1]))
+                body.set(var_name, hpl_convert.convert_variable_to_hpl(var[1]))
             
             children = xtree.SubElement(body, 'Children') #TODO: Check if there are children
             for child_ent in id_dict[obj]['Children']:
@@ -190,13 +202,17 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
                     shape = xtree.SubElement(body, 'Shape')
                     shape.set('ID', str(id_dict[child_ent]['ID']))
                     continue
-                
-                child = xtree.SubElement(children, 'Child')
-                child.set('ID', str(id_dict[child_ent]['ID']))
+                if not child_ent.get('hplp_i_properties', {}).get('EntityType', '').endswith('_JOINT'):
+
+                    child = xtree.SubElement(children, 'Child')
+                    child.set('ID', str(id_dict[child_ent]['ID']))
             
         elif entity_type.endswith('_JOINT'):
 
-            joint = xtree.SubElement(joints, obj.get('hplp_i_properties', {}).get('EntityType'))
+            prop_type = obj.get('hplp_i_properties', {}).get('EntityType')
+            prop_type = hpl_config.hpl_joint_identifier_dict.get(prop_type, prop_type)
+            joint = xtree.SubElement(joints, prop_type)
+
             #joint = xtree.SubElement(joints, obj[hpl_config.hpl_internal_type_identifier].replace('_',''))
             general_properties(joint, obj)
 
@@ -204,12 +220,14 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             for var in vars:
                 var_name = var[0].split('_')[-1]
                 if (var_name == 'ConnectedChildBodyID') or (var_name == 'ConnectedParentBodyID'):
-                    joint.set(var_name,str(id_dict[obj['hplp_v_'+var_name]]['ID']))
+                    relation = bpy.context.scene.objects[obj['hplp_v_'+var_name][1]]
+                    joint.set(var_name, str(id_dict[relation]['ID']))
                 else:
-                    joint.set(var_name, str(var[1]))
+                    joint.set(var_name, hpl_convert.convert_variable_to_hpl(var[1]))
 
     user_defined_variables = xtree.SubElement(entity, 'UserDefinedVariables')
     prop_type = obj_col.get('hplp_i_properties', {}).get('PropType', None)
+    
     user_defined_variables.set('EntityType', str(prop_type)) #  entity_type = prop_type in blender
     vars = [var for var in obj_col.items() if var[0].startswith('hplp_v_')]
     for var in vars:
@@ -220,7 +238,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
         xml_var = xtree.SubElement(user_defined_variables,'Var')
         xml_var.set('ObjectId', str(root_id))
         xml_var.set('Name', var_name)
-        xml_var.set('Value', hpl_convert.convert_to_hpl_vec2(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+        xml_var.set('Value', hpl_convert.convert_to_hpl_vec2(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
     _Id = _Id + 1
                         
     xtree.indent(entity, space="    ", level=0)
@@ -233,11 +251,11 @@ def add_warning_message(warning_msg, export_collection_name, obj_name):
         hpl_config.hpl_export_warnings[export_collection_name] = []
     hpl_config.hpl_export_warnings[export_collection_name].append(obj_name + warning_msg)
 
-def get_export_objects(export_collection):
+def get_export_objects(export_collection, is_map_static_object = False):
 
     export_objects = {'dae':[], 'ent':[], 'mat':[]}
 
-    for obj in export_collection.objects:
+    for obj in export_collection.objects[:]:
         entity_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
         if obj.type == 'MESH':
             if not entity_type.endswith('_SHAPE') and entity_type != hpl_entity_type.AREA.name:
@@ -247,7 +265,7 @@ def get_export_objects(export_collection):
                     add_warning_message(' has no material applied, faulty export. ', export_collection.name, obj.name)
                 elif not obj.material_slots[0].material:
                     add_warning_message(' has empty material slot, faulty export. ', export_collection.name, obj.name)
-        if obj.is_instancer:
+        if obj.is_instancer and not is_map_static_object:
             add_warning_message(' is an instancer, possible faulty export. ', export_collection.name, obj.name)
             continue
 
@@ -281,7 +299,6 @@ def has_valid_export_object(col):
 
 def is_valid_export_collection(col):
     
-    print('col', col.name, col.exclude)
     if col.exclude:
         return False
 
@@ -301,7 +318,67 @@ def is_valid_export_collection(col):
         return False
     return True
 
+def hide_scene_entities(vl_collections, scene_collections, vl_objects, scene_objects):
+    
+    for col in vl_collections['exclude']:
+        col.exclude = True
+        
+    for col in vl_collections['hide_viewport']:
+        col.hide_viewport = True
+        
+    for col in scene_collections:
+        col.hide_viewport = True
+    
+    for obj in vl_objects:
+        obj.hide_set(True)
+    
+    for obj in scene_objects:
+        obj.hide_viewport = True
+        
+def unhide_scene_entities():
+
+    def get_collections(vl_collection, vl_collections):
+        vl_collections.append(vl_collection)
+        for child in vl_collection.children:
+            get_collections(child, vl_collections)
+
+    all_vl_collections = []
+    get_collections(bpy.context.view_layer.layer_collection, all_vl_collections)
+    
+    vl_collections = {'exclude': [], 'hide_viewport': []}
+    
+    for col in all_vl_collections:
+        if col.exclude:
+            col.exclude = False
+            vl_collections['exclude'].append(col)
+        if col.hide_viewport:
+            col.hide_viewport = False
+            vl_collections['hide_viewport'].append(col)
+    
+    scene_collections = []
+            
+    for col in bpy.context.scene.collection.children_recursive:
+        if col.hide_viewport:
+            col.hide_viewport = False
+            scene_collections.append(col)
+
+    scene_objects = []
+    vl_objects = []
+        
+    for obj in bpy.context.scene.objects:
+        if obj.hide_viewport:
+            obj.hide_viewport = False
+            scene_objects.append(obj)
+        if obj.hide_get():
+            obj.hide_set(False)
+            vl_objects.append(obj)
+
+    return vl_collections, scene_collections, vl_objects, scene_objects
+
 def hpl_export_objects(op):
+
+    #   Get scene and viewlayer visibility states and unhide everything.
+    unhidden_vl_collections, unhidden_scene_collections, unhidden_vl_objects, unhidden_scene_objects = unhide_scene_entities()
     
     #   Eventhough we are working with context overrides \
     #   we need the selection for the DAE Exporter at the end.    
@@ -326,8 +403,6 @@ def hpl_export_objects(op):
     filtered_static_collections = {col.name : {} for col in list(filter(is_valid_export_collection, viewlayer_static_collections_list))}
     filtered_map_static_objects = {col.name : {} for col in list(filter(is_valid_export_collection, unique_map_static_objects_list))}
 
-    print(viewlayer_static_collections_list)
-
     hpl_config.hpl_export_queue = {
         'Entities': filtered_entity_collections,
         'Static_Objects': filtered_static_collections,
@@ -336,14 +411,12 @@ def hpl_export_objects(op):
 
     for queue_type in hpl_config.hpl_export_queue:
         for col_name in hpl_config.hpl_export_queue[queue_type]:
-
             parent_list = []
             transpose_dict = {}
 
-
             bpy.context.view_layer.objects.active = None
             export_collection = bpy.data.collections[col_name]
-            hpl_config.hpl_export_queue[queue_type][col_name] = get_export_objects(export_collection)
+            hpl_config.hpl_export_queue[queue_type][col_name] = get_export_objects(export_collection, True if queue_type == 'Map_Static_Objects' else False)
 
             bpy.ops.object.select_all(action='DESELECT')
 
@@ -356,10 +429,8 @@ def hpl_export_objects(op):
                 tri_mod.keep_custom_normals = True
                 obj.select_set(True)
                 parent_list.append(obj.parent)
-                obj.parent = None
 
-                #obj.rotation_euler[2] = obj.rotation_euler[2] + math.radians(180)
-                #obj.location[2] = -obj.location[2]
+            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 
             relative_path = 'mods\\'+root_collection+'\\'+static_object_collection_name+'\\' if queue_type != 'Entities' else 'mods\\'+root_collection+'\\'+entity_collection_name+'\\'
 
@@ -377,18 +448,21 @@ def hpl_export_objects(op):
                                     triangulate = False) #-Y, Z
             
             sel_count = len(bpy.context.selected_objects)
+            
             dae_file = xtree.fromstring(load_xml_file(root+relative_path+col_name+'.dae'))
             
             #TODO: Better way to get xml namespace.
             namespace = next(iter(dae_file)).tag.rsplit('}')[0][1:]
+            
             #   Get 'true' triangle count for *.ent file.
             triangles = [tri.attrib['count'] for tri in dae_file.findall(".//{%s}triangles" % namespace)]
-
+            
             ######################
             ### DAE INJECTIONS ###
             ######################
-            #   Inject blender material name, so the user is not reliant on the diffuse texture name.            
+            #   Inject blender material name, so the user is not reliant on the diffuse texture name.     
             effects = dae_file.findall(".//{%s}effect" % namespace)
+    
             for e, effect in enumerate(effects):
                 
                 for np in effect.findall(".//{%s}newparam" % namespace):
@@ -409,8 +483,8 @@ def hpl_export_objects(op):
                     img.attrib['id'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name
                     img.attrib['name'] = hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name
                     img.find(".//{%s}init_from" % namespace).text = '../'+hpl_config.hpl_export_queue[queue_type][col_name]['dae'][i].material_slots[0].material.name + '.png'
-
-            #   Inject corrected matrix values for unique map static objects.
+            
+            #   Inject corrected matrix values for unique map static objects and static objects.
             if queue_type != 'Entities':
                 matrices = dae_file.findall(".//{%s}matrix" % namespace)
                 for matrix in matrices:
@@ -433,7 +507,7 @@ def hpl_export_objects(op):
                         for j in range(3):
                             matrix_4x4[i][j] = -matrix_4x4[i][j]
 
-                    #   Rotate X by 1 pi radians.
+                    #   Rotate X by 1pi radians.
                     rot180x = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]
                     for i in range(3):
                         matrix_4x4[i][0:3] = [sum(a*b for a, b in zip(matrix_4x4[i][0:3], row)) for row in rot180x]
@@ -450,17 +524,23 @@ def hpl_export_objects(op):
             xtree.indent(dae_file, space="    ", level=0)
             xtree.ElementTree(dae_file).write(root + relative_path + col_name+'.dae')
 
-            #bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
-            if queue_type == 'Entities':
-                write_entity_file(hpl_config.hpl_export_queue[queue_type][col_name]['ent'], export_collection, root, relative_path, triangles, transpose_dict)
+            with open(root + relative_path + col_name+'.dae', 'r+') as f:
+                xml_str = f.read()
+                xml_str = xml_str.replace('ns0:', '').replace(':ns0', '')
+                f.seek(0)
+                f.write(xml_str)
+                f.truncate()
+
 
             #   Revert object changes we had to make for export.
             for o, obj in enumerate(hpl_config.hpl_export_queue[queue_type][col_name]['dae']):
                 obj.modifiers.remove(obj.modifiers.get("_Triangulate"))
+                
                 obj.parent = parent_list.pop(0)
+                obj.matrix_world = transpose_dict[obj]
 
-                #obj.rotation_euler[2] = obj.rotation_euler[2] - math.radians(180)
-                #obj.location[2] = -obj.location[2]
+            if queue_type == 'Entities':
+                write_entity_file(hpl_config.hpl_export_queue[queue_type][col_name]['ent'], export_collection, root, relative_path, triangles, transpose_dict)
 
             bpy.ops.object.select_all(action='DESELECT')
             #   Eventhough we are working with context overrides,
@@ -469,7 +549,9 @@ def hpl_export_objects(op):
                 obj.select_set(True)
             
     bpy.context.view_layer.objects.active = act_obj
-    return 
+
+    #   Restore scene and viewlayer visibility.
+    hide_scene_entities(unhidden_vl_collections, unhidden_scene_collections, unhidden_vl_objects, unhidden_scene_objects)
 
 def send_warning_messages(op):
     if hpl_config.hpl_export_warnings:

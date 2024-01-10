@@ -34,7 +34,8 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        run_python_hook()
+        if bpy.context.scene.hpl_parser.hpl_python_hook_active_pre:
+            run_python_hook()
 
         if hpl_file_system.mod_check() != 1:
             hpl_file_system.mod_init()
@@ -48,6 +49,8 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         hpl_entity_exporter.hpl_export_materials(self)
         if bpy.context.scene.hpl_parser.hpl_export_maps:
             write_hpm()
+        if bpy.context.scene.hpl_parser.hpl_python_hook_active_post:
+            run_python_hook()
         hpl_entity_exporter.send_warning_messages(self)
         return {'FINISHED'}
 
@@ -64,7 +67,7 @@ def run_python_hook():
             for area in screen.areas:
                 with bpy.context.temp_override(window=window, area=area):
                     try:
-                        eval(bpy.context.scene.hpl_parser.hpl_external_script_hook)
+                        eval(bpy.context.scene.hpl_parser.hpl_external_script_hook_pre)
                         break
                     except:
                         pass
@@ -146,10 +149,10 @@ def write_hpm_main(map_col, _map_path, _id):
 
             if sub_element.tag == 'EnvParticles': 
                 if var_name == 'Active':
-                    sub_element.set(var_name, str(tuple(var_value)).translate(str.maketrans({'(': '', ')': ''})) if type(var_value) not in hpl_config.hpl_common_variable_types else str(var_value))
+                    sub_element.set(var_name, str(tuple(var_value)).translate(str.maketrans({'(': '', ')': ''})) if type(var_value) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var_value))
                     sub_element = xtree.SubElement(sub_element, 'EnvParticle')
             else:
-                sub_element.set(var_name, str(tuple(var_value)).translate(str.maketrans({'(': '', ')': ''})) if type(var_value) not in hpl_config.hpl_common_variable_types else str(var_value))
+                sub_element.set(var_name, str(tuple(var_value)).translate(str.maketrans({'(': '', ')': ''})) if type(var_value) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var_value))
 
     registered_users = xtree.SubElement(root, 'RegisteredUsers')
     
@@ -191,7 +194,7 @@ def write_hpm_area(map_col, _map_path, _id):
                     xml_var = xtree.SubElement(user_variables,'Var')
                     xml_var.set('ObjectId', str(root_id+_index))
                     xml_var.set('Name', var_name)
-                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             area.set('AreaType', area_entity.get('hplp_i_properties', {}).get('PropType', ''))
             _index = _index + 1
 
@@ -258,8 +261,14 @@ def write_hpm_static_objects(map_col, _map_path, _id):
                 xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj, is_entity=False)+'.dae')
 
                 general_properties(static_object, obj, root_id, _index)
+
+                vars = [item for item in obj.items() if 'hplp_v_' in item[0]]
+                for var in vars:
+                    var_name = var[0].split('hplp_v_')[-1]
+                    static_object.set(var_name, str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
                 _index = _index + 1
 
+    _index = 0
     if unique_object:
 
         static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
@@ -300,24 +309,12 @@ def write_hpm_entity(map_col, _map_path, _id):
     _index = 0
     for obj in map_col.objects:
         if obj.is_instancer:
-            #if obj.instance_collection.get('hplp_i_properties').get('PropType') != 'Static_Object':
-            #if any([var for var in obj.instance_collection.items() if hpl_config.hpl_entity_type_identifier in var[0]]):
-            #if not obj.instance_collection[hpl_config.hpl_entity_type_identifier] == 'Static_Object':
+
             entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
             user_variables = xtree.SubElement(entity, 'UserVariables')
-            #xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj)+'.ent')
 
             general_properties(entity, obj, root_id, entity_files.index(obj.get('hplp_i_properties', {}).get('InstancerName', None)))
-            '''            
-            entity.set('ID', str(root_id+_index))
-            entity.set('Name', str(obj.name))
-            entity.set('CreStamp', str(0))
-            entity.set('ModStamp', str(0))
-            entity.set('WorldPos', hpl_convert.convert_to_hpl_vec3(obj.position))
-            entity.set('Rotation', hpl_convert.convert_to_hpl_vec3(obj.rotation_euler))
-            entity.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
-            entity.set('FileIndex', str(_index))
-            '''
+
             vars = [item for item in obj.items() if 'hplp_v_' in item[0]]
             for var in vars:
                 var_name = var[0].split('hplp_v_')[-1]
@@ -327,7 +324,7 @@ def write_hpm_entity(map_col, _map_path, _id):
                     xml_var = xtree.SubElement(user_variables,'Var')
                     xml_var.set('ObjectId', str(root_id+_index))
                     xml_var.set('Name', var_name)
-                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             _index = _index + 1
                     
     xtree.indent(root, space="    ", level=0)
@@ -423,23 +420,6 @@ def write_hpm_terrain(map_col, _map_path, _id):
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
 
-#<HPLMapTrack_Light ID="5EA807976D604255A9863AB2EA9935D63A35C828" MajorVersion="1" MinorVersion="1">
-#    <IrradianceSets>
-#        <Set Name="Default" Priority="0" LightBoost="1" MaxDistance="2000" BounceNum="3" Quality="Normal" UseFog="false" UseDepthOfField="true" UseSkybox="true" Preview="true" />
-#    </IrradianceSets>
-#    <Section Name="18063263218655078958">
-#        <Objects>
-
-# <BoxLight ID="268435457" Name="Light_Box_2" CreStamp="1702178696" ModStamp="1702178696" WorldPos="2 0 0" 
-# Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" 
-# ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" 
-# GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" 
-# FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" 
-# FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" 
-# FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" 
-# Static="false" CulledByDistance="true" CulledByFog="true" BlendFunc="0" Size="1 1 1" GroundColor="1 1 1 0" 
-# SkyColor="1 1 1 0" Weight="1" Bevel="0" FalloffPow="0" UseSphericalHarmonics="false" ProbeOffset="0 0 0" 
-# ConnectedLightMaskID="4294967295" UID="16 14 268435457" />
 ### LIGHT ###
 def write_hpm_light(map_col, _map_path, _id):
 
@@ -474,7 +454,7 @@ def write_hpm_light(map_col, _map_path, _id):
                 if var_name == 'FOV':
                     light.set(var_name, str(round(var[1] * (math.pi / 180), 4)))
                 else:
-                    light.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                    light.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             _index = _index + 1
     
     # TODO: move xtree creation to main loop, return root

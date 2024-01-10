@@ -156,7 +156,7 @@ def hpl_import_assets(op):
                 max_count = max_count+1
 
                 bpy.ops.object.select_all(action='DESELECT')
-                scene_objs = set(bpy.context.scene.objects)
+                scene_objs = set(bpy.context.scene.objects[:])
                 dae_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['geometry']
  
                 #if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']):
@@ -169,7 +169,7 @@ def hpl_import_assets(op):
                     error_list.append('Crash: '+dae_file)
                     continue
                 
-                imported_objs = set(bpy.context.scene.objects) - scene_objs
+                imported_objs = set(bpy.context.scene.objects[:]) - scene_objs
                 if not imported_objs: # Check if any objs have been imported
                     error_list.append('No Data: '+dae_file)
                     continue
@@ -180,7 +180,7 @@ def hpl_import_assets(op):
                             unnecessary_objs.append(u)
                     bpy.ops.object.delete({"selected_objects": unnecessary_objs})
 
-                filtered_objs = set(bpy.context.scene.objects) - scene_objs
+                filtered_objs = set(bpy.context.scene.objects[:]) - scene_objs
                 if not filtered_objs:
                     continue
 

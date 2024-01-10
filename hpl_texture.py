@@ -15,7 +15,10 @@ class HPL_TEXTURE():
             
             FNULL = open(os.devnull, 'w')
             exe_path = os.path.dirname(os.path.realpath(__file__)) + hpl_config.texconv_subpath
-            args = f'\"{exe_path}\" -r \"{hpl_config.texture_dict[tex]}\" -ft dds -f {hpl_config.texture_format_dict[tex]} -y -o \"{root + relative_path[:-1]}\"' #R8_UNORM BC1_UNORM
+
+            swizzle = ' -swizzle grb ' if tex == 'Normal' else '' #-inverty -reconstructz
+
+            args = f'\"{exe_path}\" -r \"{hpl_config.texture_dict[tex]}\" -ft dds -f {hpl_config.texture_format_dict[tex]} -y {swizzle} -o \"{root + relative_path[:-1]}\"' #R8_UNORM BC1_UNORM
             p = subprocess.call(args, shell=False)
             if p != 0:
                 hpl_entity_exporter.add_warning_message(' Error converting Texture, bad format? ', 'Texture', hpl_config.texture_dict[tex])
