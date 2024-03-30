@@ -32,6 +32,8 @@ class HPL_MATERIAL():
         
         if node.name == 'Principled BSDF':
             for t in hpl_config.texture_dict:
+                if not t:
+                    continue
                 if node.inputs[t].links:
                     HPL_MATERIAL.find_textures(node.inputs[t].links[0].from_node, t)
             return

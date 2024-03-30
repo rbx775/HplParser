@@ -12,9 +12,18 @@ def __swizzle(_t):
 def __swizzle_rot(_t):
     return (-_t[0],_t[2],_t[1])
 
+def convert_to_hpl_vector(vector):
+    if len(vector) == 4:
+        return convert_to_hpl_color(vector)
+    return convert_to_hpl_vec3(vector)
+
 def convert_to_hpl_vec3(vec3):
-    vec3 = __round_tuple(vec3)
+    vec3 = __round_tuple(vec3) 
     return str(__swizzle(tuple(vec3))).translate(str.maketrans({'(': '', ')': '', ',': ''}))
+
+def convert_to_hpl_color(color):
+    color = __round_tuple(color)
+    return str(tuple(color)).translate(str.maketrans({'(': '', ')': '', ',': ''}))
 
 def convert_to_hpl_rotation(vec3):
     vec3 = __round_tuple(vec3)

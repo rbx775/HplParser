@@ -119,9 +119,9 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
         spatial_general.set('Name', str(obj.name))
         spatial_general.set('CreStamp', str(0))
         spatial_general.set('ModStamp', str(0))
-        spatial_general.set('WorldPos', hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location(transpose_dict[obj].to_translation())))
-        spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vec3(transpose_dict[obj].to_euler()))
-        spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(transpose_dict[obj].to_scale()))
+        spatial_general.set('WorldPos', hpl_convert.convert_to_hpl_vector(hpl_convert.convert_to_hpl_location(transpose_dict[obj].to_translation())))
+        spatial_general.set('Rotation', hpl_convert.convert_to_hpl_vector(transpose_dict[obj].to_euler()))
+        spatial_general.set('Scale', hpl_convert.convert_to_hpl_vector(transpose_dict[obj].to_scale()))
 
     for o, obj in enumerate(obj_list):
 
@@ -167,7 +167,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             vars = [var for var in obj.items() if var[0].startswith('hplp_v_')]
             for var in vars:
                 var_name = var[0].split('hplp_v_')[-1]
-                light.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
+                light.set(var_name, hpl_convert.convert_to_hpl_vector(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             
         elif entity_type.endswith('_SHAPE'):
 
@@ -178,9 +178,9 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             relative_rotation = tuple(map(lambda i, j: i - j, obj.rotation_euler, id_dict[obj]['Parent'].rotation_euler if id_dict[obj]['Parent'] else (0, 0, 0)))
             relative_scale = (1, 1, 1) #TODO: Investigate relative scale
 
-            shape.set('RelativeTranslation', hpl_convert.convert_to_hpl_vec3((0,0,0)))
-            shape.set('RelativeRotation', hpl_convert.convert_to_hpl_vec3((0,0,0)))
-            shape.set('RelativeScale', hpl_convert.convert_to_hpl_vec3(relative_scale))
+            shape.set('RelativeTranslation', hpl_convert.convert_to_hpl_vector((0,0,0)))
+            shape.set('RelativeRotation', hpl_convert.convert_to_hpl_vector((0,0,0)))
+            shape.set('RelativeScale', hpl_convert.convert_to_hpl_vector(relative_scale))
             shape_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
             shape.set('ShapeType', str(shape_type.split('_SHAPE')[0].title()))
 

@@ -75,7 +75,6 @@ def create_mod(mod_path):
     if not os.path.isfile(documents_folder_path + 'WIPMod.cfg'):
         shutil.copy(package_folder_path+'\\UserFiles\\WIPMod.cfg', documents_folder_path)
         
-
     #   Copy the mod template
     recursive_mkdir(mod_path)
     shutil.copytree(package_folder_path+'\\ModFiles\\', mod_path, dirs_exist_ok=True)
@@ -123,6 +122,9 @@ class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
     #path : bpy.props.StringProperty(name="Path", description="Path to mod", default="")
 
     def execute(self, context):
-        os.startfile(bpy.context.scene.hpl_parser.hpl_game_root_path+'mods\\'+bpy.context.scene.hpl_parser.hpl_project_root_col)
-        return {'FINISHED'}
+        path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col)
+        if os.path.exists(path):
+            os.startfile(path)
+            return {'FINISHED'}
+        return {'CANCELLED'}
 

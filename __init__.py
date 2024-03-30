@@ -118,6 +118,8 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     def set_hpl_project_root_col(self, value):
         self['hpl_project_root_col'] = value    
+        hpl_config.hpl_ui_folder_project_root_object_col = None
+        hpl_config.hpl_ui_folder_project_root_name_col = value
         if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
             if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
                 bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col)
@@ -136,18 +138,21 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     def set_hpl_folder_maps_col(self, value):
         self['hpl_folder_maps_col'] = value
-                
+        #bpy.context.scene.hpl_parser.hpl_is_maps_folder_valid = True
+
     def get_hpl_folder_entities_col(self):
         return self.get("hpl_folder_entities_col", 0)
 
     def set_hpl_folder_entities_col(self, value):
         self['hpl_folder_entities_col'] = value
+        #bpy.context.scene.hpl_parser.hpl_is_entities_folder_valid = True
         
     def get_hpl_folder_static_objects_col(self):
         return self.get("hpl_folder_static_objects_col", 0)
 
     def set_hpl_folder_static_objects_col(self, value):
         self['hpl_folder_static_objects_col'] = value
+        #bpy.context.scene.hpl_parser.hpl_is_static_objects_folder_valid = True
 
     def get_hpl_map_root_col(self):
         try:
@@ -170,11 +175,17 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     hpl_is_game_root_valid : bpy.props.BoolProperty(default=False)
 
+    hpl_is_entities_folder_valid : bpy.props.BoolProperty(default=False)
+    #hpl_is_static_objects_folder_valid : bpy.props.BoolProperty(default=False)
+    #hpl_is_maps_folder_valid : bpy.props.BoolProperty(default=False)
+    #hpl_is_project_folder_valid : bpy.props.BoolProperty(default=False)
+
+    hpl_valid_operational_folders : bpy.props.BoolProperty(default=False)
+
     dae_file_count: bpy.props.StringProperty(default='', name = 'dae file count')
     vmf_scale: bpy.props.IntProperty(default=45, name = '', min = 1, max = 256)
     
     settings : bpy.props.BoolProperty(default=True)
-    hpl_is_game_root_valid : bpy.props.BoolProperty(default=False)
 
     hpl_selected_collection: bpy.props.StringProperty(name="selected object",                               
                                         get=get_hpl_selected_collection, 
@@ -305,9 +316,10 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         
     def update_hpl_startup_map_col(self, context):
         data = []
-        for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
-            fdata = (collection.name,collection.name,'')
-            data.append(fdata)
+        if bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
+                fdata = (collection.name,collection.name,'')
+                data.append(fdata)
         return data
     
     hpl_startup_map_col: bpy.props.EnumProperty(
@@ -370,7 +382,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         description='The folder that the exporter will export static objects to',
         items=update_hpl_folder_static_objects_col,
-        get=get_hpl_folder_static_objects_col, 
+        get=get_hpl_folder_static_objects_col,
         set=set_hpl_folder_static_objects_col,
     )
     
@@ -744,9 +756,17 @@ def draw_panel_3d_content(context, layout):
     wm = context.window_manager
     layout.use_property_split = True
     layout.use_property_decorate = False
-    #col = layout.column(align=True)
-    #box = col.box()
-    #box.operator(SCENE_SELECTION_LISTENER_POST_OT_run.bl_idname, icon = "SHADING_BBOX", text="Register Selection Listener")
+
+    def draw_mod_panel():
+        col = layout.column(align=True)
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
+        box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
+        box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
+        box.prop(props, "hpl_folder_maps_col", text='Maps Folder', expand=False)
+        box.prop(props, "hpl_folder_entities_col", text='Entities Folder', expand=False)
+        box.prop(props, "hpl_folder_static_objects_col", text='Static Objects Folder', expand=False)
+        return
 
     col = layout.column(align=True)
     if not bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
@@ -754,221 +774,224 @@ def draw_panel_3d_content(context, layout):
         box.label(text='Set the Game Path in the Addon Settings', icon='ERROR')
         #box.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
         box.operator("hpl_parser.open_user_preferences")
+        return
 
-    else:
-        col = layout.column(align=True)
-        box = col.box()
-        
-        if not bpy.context.scene.hpl_parser.hpl_has_project_col and bpy.context.scene.hpl_parser.hpl_project_root_col:
-            box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
-            return
-
-        singleRow = box.row(align=True)
-        singleRow.prop(props, 'hpl_ui_parser_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_parser_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
-        singleRow.label(text='HPL Parser Settings')
-        
-        if props.hpl_ui_parser_settings_menu:
-            box.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
-            
-        if bpy.context.scene.hpl_parser.hpl_project_root_col:
-            if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-                box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{hpl_config.hpl_ui_folder_project_root_col}\'', icon= 'ERROR')
-        else:
-            box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
-
-        col = layout.column(align=True)
-        box = col.box()
-        singleRow = box.row(align=True)
-        singleRow.prop(props, 'hpl_ui_tools_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_tools_menu else "RIGHTARROW", icon_only = True, emboss = False)
-        singleRow.label(text='HPL Tools')
-        if props.hpl_ui_tools_menu:
-            #singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
-            singleRow = box.row(align=True)
-            singleRow.scale_y = 2
-            
-            singleRow.operator(HPL_AREA_CALLBACK.bl_idname, emboss=True, depress=bpy.context.scene.hpl_parser.hpl_area_callback_active, icon = "SHADING_BBOX", text="Draw Area")
-            singleRow.separator()
-            singleRow.operator(HPL_NODE_CALLBACK.bl_idname, emboss=True, depress=bpy.context.scene.hpl_parser.hpl_node_callback_active, icon = "GP_SELECT_POINTS", text="Draw Nodes")
-        
-        col = layout.column(align=True)
-        box = col.box()
-        
-        singleRow = box.row(align=True)
-        
-        layout.template_list("TEXT_UL_list", "", bpy.data, "texts", bpy.data.texts, "active_index", rows=2)
-        singleRow.prop(props, 'hpl_external_script_hook_pre', icon = "WORDWRAP_OFF") #'CONSOLE'
-        singleRow.prop(props, 'hpl_python_hook_active_pre')
-        singleRow = box.row(align=True)
-        singleRow.prop(props, 'hpl_external_script_hook_post', icon = "WORDWRAP_OFF") #'CONSOLE'
-        singleRow.prop(props, 'hpl_python_hook_active_post')
-        
-        singleRow = box.row(align=True)
-        singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
-        singleRow.scale_y = 2
-        singleRow.operator(HPM_OT_HPMEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
-
-        layout.use_property_split = False
-        col = layout.column(align=False)
-        singleRow = box.row(align=True)
-        singleRow.use_property_split = False
-        singleRow.prop(props, 'hpl_export_entities', expand=False)
-        singleRow.prop(props, 'hpl_export_textures', expand=False)
-        singleRow.prop(props, 'hpl_export_maps', expand=False)
-
-        layout.use_property_split = True
-        #col = layout.column(align=True)
-        #box = col.box()
-        #box.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
-
-        col = layout.column(align=True)
-
-        if not hpl_config.hpl_outliner_selection:
-            return
-
+    col = layout.column(align=True)
+    box = col.box()
+    
+    if not bpy.context.scene.hpl_parser.hpl_has_project_col and not bpy.context.scene.hpl_parser.hpl_project_root_col:
+        box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
+        return
+    
+    if not validate_operational_folder_collections():
         if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
+            draw_mod_panel()
+        else:
+            col = layout.column(align=True)
             box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
-            box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
-            box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
-            box.prop(props, "hpl_folder_maps_col", text='Maps Folder', expand=False)
-            box.prop(props, "hpl_folder_entities_col", text='Entities Folder', expand=False)
-            box.prop(props, "hpl_folder_static_objects_col", text='Static Objects Folder', expand=False)
+            box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_name_col}\" and fix folders.', icon='ERROR')
+        return
 
-        if not hpl_config.hpl_valid_operational_folders:
-            box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_col}\" and fix folders.', icon='ERROR')
-            return
+    singleRow = box.row(align=True)
+    singleRow.prop(props, 'hpl_ui_parser_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_parser_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
+    singleRow.label(text='HPL Parser Settings')
+    
+    if props.hpl_ui_parser_settings_menu:
+        box.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
+        
+    if bpy.context.scene.hpl_parser.hpl_project_root_col:
+        if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
+            box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{hpl_config.hpl_ui_folder_project_root_name_col}\'', icon= 'ERROR')
+    else:
+        box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
 
-        elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_maps_col:
+    col = layout.column(align=True)
+    box = col.box()
+    singleRow = box.row(align=True)
+    singleRow.prop(props, 'hpl_ui_tools_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_tools_menu else "RIGHTARROW", icon_only = True, emboss = False)
+    singleRow.label(text='HPL Tools')
+    if props.hpl_ui_tools_menu:
+        #singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
+        singleRow = box.row(align=True)
+        singleRow.scale_y = 2
+        
+        singleRow.operator(HPL_AREA_CALLBACK.bl_idname, emboss=True, depress=bpy.context.scene.hpl_parser.hpl_area_callback_active, icon = "SHADING_BBOX", text="Draw Area")
+        singleRow.separator()
+        singleRow.operator(HPL_NODE_CALLBACK.bl_idname, emboss=True, depress=bpy.context.scene.hpl_parser.hpl_node_callback_active, icon = "GP_SELECT_POINTS", text="Draw Nodes")
+    
+    col = layout.column(align=True)
+    box = col.box()
+    
+    singleRow = box.row(align=True)
+    
+    layout.template_list("TEXT_UL_list", "", bpy.data, "texts", bpy.data.texts, "active_index", rows=2)
+    singleRow.prop(props, 'hpl_external_script_hook_pre', icon = "WORDWRAP_OFF") #'CONSOLE'
+    singleRow.prop(props, 'hpl_python_hook_active_pre')
+    singleRow = box.row(align=True)
+    singleRow.prop(props, 'hpl_external_script_hook_post', icon = "WORDWRAP_OFF") #'CONSOLE'
+    singleRow.prop(props, 'hpl_python_hook_active_post')
+    
+    singleRow = box.row(align=True)
+    singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
+    singleRow.scale_y = 2
+    singleRow.operator(HPM_OT_HPMEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
+
+    layout.use_property_split = False
+    col = layout.column(align=False)
+    singleRow = box.row(align=True)
+    singleRow.use_property_split = False
+    singleRow.prop(props, 'hpl_export_entities', expand=False)
+    singleRow.prop(props, 'hpl_export_textures', expand=False)
+    singleRow.prop(props, 'hpl_export_maps', expand=False)
+
+    layout.use_property_split = True
+    #col = layout.column(align=True)
+    #box = col.box()
+    #box.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
+
+    col = layout.column(align=True)
+
+    if not hpl_config.hpl_outliner_selection:
+        return
+    
+    #if not hpl_config.hpl_valid_operational_folders:
+    #    box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_name_col}\" and fix folders.', icon='ERROR')
+    #    return
+
+    if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
+        draw_mod_panel()
+
+    elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_maps_name_col:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All levels go in here.', icon='FILE_FOLDER')
+
+    elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_entities_name_col:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All entities go in here.', icon='FILE_FOLDER')
+
+    elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_static_objects_name_col:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All static objects go in here.', icon='FILE_FOLDER')
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.MAP.name:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a map.', icon='HOME')
+
+        #box.use_property_split = False
+        #box.use_property_decorate = True
+
+        #singleRow = box.row(align=True)
+        #singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_GroupExportUniqueStaticObject"]', icon = "DOWNARROW_HLT" if hpl_config.hpl_outliner_selection['hplp_s_GroupExportUniqueStaticObject'] else "RIGHTARROW", icon_only = True, emboss = False)
+        #singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_ExportUniqueStaticObject"]', icon_only=False, text='Submesh to Static Object')
+
+        #box.use_property_split = True
+        #box.use_property_decorate = False
+
+        singleRowbtn = box.row(align=True)
+        singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY.name:
+        if hpl_config.hpl_selection_state:
             box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All levels go in here.', icon='FILE_FOLDER')
-
-        elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_entities_col:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All entities go in here.', icon='FILE_FOLDER')
-
-        elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_static_objects_col:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All static objects go in here.', icon='FILE_FOLDER')
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.MAP.name:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a map.', icon='HOME')
-
-            #box.use_property_split = False
-            #box.use_property_decorate = True
-
-            #singleRow = box.row(align=True)
-            #singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_GroupExportUniqueStaticObject"]', icon = "DOWNARROW_HLT" if hpl_config.hpl_outliner_selection['hplp_s_GroupExportUniqueStaticObject'] else "RIGHTARROW", icon_only = True, emboss = False)
-            #singleRow.prop(hpl_config.hpl_outliner_selection, f'["hplp_s_ExportUniqueStaticObject"]', icon_only=False, text='Submesh to Static Object')
-
-            #box.use_property_split = True
-            #box.use_property_decorate = False
-
-            singleRowbtn = box.row(align=True)
-            singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY.name:
-            if hpl_config.hpl_selection_state:
-                box = col.box()
-                col_color = hpl_config.hpl_ui_outliner_selection_color_tag
-                
-                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
-                box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
-                
-                singleRowbtn = box.row(align=True)
-                singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
-                
-                draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-            else:
-                box = col.box()
-                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_project_root_col}\", therefore ignored for export.', icon='INFO') 
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name:
-            box = col.box()
-            instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            col_color = bpy.data.collections[instance_of].color_tag #hpl_config.hpl_ui_outliner_selection_color_tag
-            #box.label(text=f'{hpl_config.hpl_ui_outliner_selection_prop_type}', icon='SEQUENCE_COLOR_09' if col_color == 'NONE' else 'SEQUENCE_'+col_color) 
-            box.label(text=f'\"{instance_of}\" is of type {hpl_config.hpl_ui_outliner_selection_prop_type}', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name and not hpl_config.hpl_selection_state:
-            box = col.box() 
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in a level collection, ignored for export.', icon='INFO')
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT.name:
-            if hpl_config.hpl_selection_state:
-                box = col.box()
-                col_color = hpl_config.hpl_ui_outliner_selection_color_tag
-                
-                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
-            else:
-                box = col.box()
-                box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_static_objects_col}\", therefore ignored for export.', icon='INFO') 
-
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
-            box = col.box()
-            instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            col_color = bpy.data.collections[instance_of].color_tag #hpl_config.hpl_ui_outliner_selection_color_tag
-            box.label(text=f'\"{instance_of}\" is of type Static_Object', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.BODY.name:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a physical body.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-
-        #elif hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType') == hpl_config.hpl_entity_type.JOINT:
-        elif hpl_config.hpl_selection_type.endswith('_JOINT'):
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-            if hpl_config.hpl_joint_set_warning:
-                col = layout.column(align=True)
-                box = col.box()
-                row_label = box.row()
-                row_label.label(text='Circular Dependency', icon='ERROR')
-
-        elif hpl_config.hpl_selection_type.endswith('_SHAPE'):
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a collision entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a submesh.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a deactivated submesh, it will only be used by blender.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-
-        elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a {hpl_config.hpl_selection_type.lower().replace("_"," ")}.', icon='OUTLINER_OB_LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
-            box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
-            box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
-            draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
-
-        elif hpl_config.hpl_selection_type == hpl_entity_type.AREA.name:
-            box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an area.', icon='SHADING_BBOX')
-            box.prop(props, "hpl_area_classes_enum", text='Area Type', expand=False)
+            col_color = hpl_config.hpl_ui_outliner_selection_color_tag
+            
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+            box.prop(props, "hpl_base_classes_enum", text='Entity Type', expand=False)
+            
             singleRowbtn = box.row(align=True)
             singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
-            #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
+            
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+        else:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_project_root_name_col}\", therefore ignored for export.', icon='INFO') 
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name:
+        box = col.box()
+        instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an entity instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        col_color = bpy.data.collections[instance_of].color_tag #hpl_config.hpl_ui_outliner_selection_color_tag
+        #box.label(text=f'{hpl_config.hpl_ui_outliner_selection_prop_type}', icon='SEQUENCE_COLOR_09' if col_color == 'NONE' else 'SEQUENCE_'+col_color) 
+        box.label(text=f'\"{instance_of}\" is of type {hpl_config.hpl_ui_outliner_selection_prop_type}', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name and not hpl_config.hpl_selection_state:
+        box = col.box() 
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in a level collection, ignored for export.', icon='INFO')
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT.name:
+        if hpl_config.hpl_selection_state:
+            box = col.box()
+            col_color = hpl_config.hpl_ui_outliner_selection_color_tag
+            
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+        else:
+            box = col.box()
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_static_objects_name_col}\", therefore ignored for export.', icon='INFO') 
+
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
+        box = col.box()
+        instance_of = hpl_config.hpl_ui_outliner_selection_instancer_name
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object instance of \"{instance_of}\".', icon='OUTLINER_OB_GROUP_INSTANCE') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        col_color = bpy.data.collections[instance_of].color_tag #hpl_config.hpl_ui_outliner_selection_color_tag
+        box.label(text=f'\"{instance_of}\" is of type Static_Object', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.BODY.name:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a physical body.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+    #elif hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType') == hpl_config.hpl_entity_type.JOINT:
+    elif hpl_config.hpl_selection_type.endswith('_JOINT'):
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+        if hpl_config.hpl_joint_set_warning:
+            col = layout.column(align=True)
+            box = col.box()
+            row_label = box.row()
+            row_label.label(text='Circular Dependency', icon='ERROR')
+
+    elif hpl_config.hpl_selection_type.endswith('_SHAPE'):
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a collision entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+        box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a submesh.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+        box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.SUBMESH.name:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a deactivated submesh, it will only be used by blender.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+        box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+
+    elif hpl_config.hpl_selection_type.endswith('_LIGHT'):
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a {hpl_config.hpl_selection_type.lower().replace("_"," ")}.', icon='OUTLINER_OB_LIGHT') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.prop(hpl_config.hpl_viewport_selection, "display_type", text="Display As")
+        box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
+
+    elif hpl_config.hpl_selection_type == hpl_entity_type.AREA.name:
+        box = col.box()
+        box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is an area.', icon='SHADING_BBOX')
+        box.prop(props, "hpl_area_classes_enum", text='Area Type', expand=False)
+        singleRowbtn = box.row(align=True)
+        singleRowbtn.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Delete Properties', icon = "FILE_REFRESH")
+        #singleRowbtn.enabled = False if bpy.context.scene.hpl_parser.hpl_base_classes_enum == 'None' else True
+        draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
 
 class TEXT_UL_list(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -997,8 +1020,7 @@ class HPL_PT_3D_CREATE(bpy.types.Panel):
         pass
 
     def draw(self, context):
-        if validate_operational_folder_collections():
-            draw_panel_3d_content(context, self.layout)
+        draw_panel_3d_content(context, self.layout)
 
 def draw_panel_mat_content(context, layout):
     
@@ -1161,13 +1183,21 @@ def hpl_context_update():
 
 def validate_operational_folder_collections():
 
-    if not bpy.context.scene.hpl_parser.hpl_project_root_col:
-        return False
+    #if not bpy.context.scene.hpl_parser.hpl_project_root_col:
+    #    return False
+    collection_names = [col.name for col in bpy.data.collections]
+
     if not bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+        return False
+    if bpy.context.scene.hpl_parser.hpl_folder_maps_col not in collection_names:
         return False
     if not bpy.context.scene.hpl_parser.hpl_folder_entities_col:
         return False
+    if bpy.context.scene.hpl_parser.hpl_folder_entities_col not in collection_names:
+        return False
     if not bpy.context.scene.hpl_parser.hpl_folder_static_objects_col:
+        return False
+    if bpy.context.scene.hpl_parser.hpl_folder_static_objects_col not in collection_names:
         return False
     return True
 
@@ -1176,11 +1206,15 @@ def scene_selection_listener_pre(self, context):
     
     #   Check if an object has been deleted.
     if hpl_config.hpl_previous_scene_object_count > len(bpy.data.objects):
-        pass
+        print('DELETE OBJECT')
+        hpl_config.hpl_viewport_selection = None
+        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
     if hpl_config.hpl_previous_scene_collection_count > len(bpy.data.collections):
-        pass
+        print('DELETE COLLECTION')
+        hpl_config.hpl_viewport_selection = None
+        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
 
-    hpl_config.hpl_valid_operational_folders = validate_operational_folder_collections()
+    bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
     hpl_context_update()
     return
 
@@ -1188,10 +1222,16 @@ def scene_selection_listener_pre(self, context):
 @persistent
 def scene_selection_listener_post(self, context):
 
-    if not hpl_config.hpl_valid_operational_folders:
-        hpl_config.hpl_outliner_selection = bpy.data.collections.get('DemoProject')
-        hpl_config.hpl_selection_type = hpl_entity_type.MOD.name
-        return
+    #try:
+        
+    #print('maps: ', bpy.context.scene.hpl_parser.hpl_folder_maps_col)
+    #print('entities: ', bpy.context.scene.hpl_parser.hpl_folder_entities_col)
+    #print('static_objects: ', bpy.context.scene.hpl_parser.hpl_folder_static_objects_col)
+
+    #if not bpy.context.scene.hpl_parser.hpl_valid_operational_folders:
+    #    hpl_config.hpl_outliner_selection = bpy.data.collections.get('DemoProject')
+    #    hpl_config.hpl_selection_type = hpl_entity_type.MOD.name
+    #    return
 
     #   Check if the outliner selection is VALID.
     #   Do some arbitrary call to see if hpl_outliner_selection is even VALID. NONE != VALID
@@ -1202,31 +1242,45 @@ def scene_selection_listener_post(self, context):
     #   Check if the outliner selection is NONE.
     if not hpl_config.hpl_outliner_selection:
         hpl_config.hpl_outliner_selection = bpy.context.scene.collection
-
     #   Skip scene selection evaluation if we create a new Object from hpl_object.py.
     if hpl_config.hpl_skip_scene_listener:
         return
-
     #   Has the Project folder been renamed through outliner?
     #if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'} and hpl_config.hpl_invoke_mod_dialogue != {'CANCELLED'}:
     #    hpl_file_system.mod_init()
 
     #   Save window type for later check in file browsers.
-    hpl_config.main_window = bpy.context.window
+    window = bpy.context.window
+    if any(area.type == 'VIEW_3D' for area in window.screen.areas):
+        hpl_config.main_window = window
 
     hpl_property_io.hpl_properties.update_selection()
 
     update_scene_ui()
 
     #   Check if the project root collection exists.
-    if not bpy.context.view_layer.active_layer_collection.collection.children:
-        bpy.context.scene.hpl_parser.hpl_has_project_col = True
+    bpy.context.scene.hpl_parser.hpl_has_project_col = bool(bpy.context.view_layer.active_layer_collection.collection.children)
 
     #   Check if the project root collection has a 'maps' collection.
     if bpy.context.scene.hpl_parser.hpl_project_root_col:
         if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
             bpy.context.scene.hpl_parser.hpl_has_maps_col = True
+    #except ReferenceError as e:
+    #    print(e)
 
+@persistent 
+def on_load_post(self):
+    bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
+    hpl_context_update()
+
+@persistent 
+def on_undo_post(self):
+    bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
+    hpl_context_update()
+
+@persistent 
+def on_redo_post(self):                                                                                                                                     
+    bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
     hpl_context_update()
 
 classes = (
@@ -1277,6 +1331,9 @@ def register():
 
     bpy.app.handlers.depsgraph_update_pre.append(scene_selection_listener_pre)
     bpy.app.handlers.depsgraph_update_post.append(scene_selection_listener_post)
+    bpy.app.handlers.load_post.append(on_load_post)
+    bpy.app.handlers.undo_post.append(on_undo_post)
+    bpy.app.handlers.redo_post.append(on_redo_post)
     
     hpl_config.is_texconv_available = os.path.isfile(os.path.dirname(os.path.realpath(__file__))+hpl_config.texconv_subpath)
     
@@ -1296,6 +1353,9 @@ def unregister():
     hpl_preferences.unregister()
     bpy.app.handlers.depsgraph_update_pre.clear()
     bpy.app.handlers.depsgraph_update_post.clear()
+    bpy.app.handlers.load_post.clear()
+    bpy.app.handlers.undo_post.clear()
+    bpy.app.handlers.redo_post.clear()
 
 if __name__ == "__main__":
     register()

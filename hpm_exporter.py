@@ -34,13 +34,14 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return True
         
     def execute(self, context):
-        if bpy.context.scene.hpl_parser.hpl_python_hook_active_pre:
-            run_python_hook()
+
 
         if hpl_file_system.mod_check() != 1:
             hpl_file_system.mod_init()
             return {'CANCELLED'}
-        
+
+        if bpy.context.scene.hpl_parser.hpl_python_hook_active_pre:
+            run_python_hook()
         hpl_file_system.edit_wip_mod()
         
         hpl_config.hpl_export_warnings = {}
@@ -58,6 +59,20 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
         return
     def unregister():
         return    
+    
+def has_player_start(map_col):
+    for obj in map_col.objects:
+        if obj.get('hplp_i_properties', {}).get('PropType', '') == 'PlayerStart':        
+            return True
+    return False
+    
+def check_map_validity(map_col):
+    #if not map_col.get('hplp_i_properties', {}).get('EntityType', '') == hpl_config.hpl_entity_type.MAP.name:
+    #    return False
+    if not has_player_start(map_col):
+        hpl_entity_exporter.add_warning_message(' export aborted because map is missing a PlayerStart Area ', 'Map', map_col.name)
+        return False
+    return True
     
 def run_python_hook():
     #TODO: Make this work even if script window is not opened.
@@ -89,12 +104,12 @@ def unique_static_object_properties(spatial_general, obj_name, _id, _index, has_
     spatial_general.set('Name', str(obj_name))
     spatial_general.set('CreStamp', str(0))
     spatial_general.set('ModStamp', str(0))
-    #spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location((0,0,0))))
+    #spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vector(hpl_convert.convert_to_hpl_location((0,0,0))))
     #spatial_general.set('Rotation', hpl_convert.convert_to_hpl_rotation((0,0,0)))
-    #spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3((1,1,1)))
-    spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3((0,0,0)))
+    #spatial_general.set('Scale', hpl_convert.convert_to_hpl_vector((1,1,1)))
+    spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vector((0,0,0)))
     spatial_general.set('Rotation', hpl_convert.convert_to_hpl_rotation((0,0,0)))
-    spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3((1,1,1)))
+    spatial_general.set('Scale', hpl_convert.convert_to_hpl_vector((1,1,1)))
     if has_file_index:
         spatial_general.set('FileIndex', str(_index))
 
@@ -105,9 +120,9 @@ def general_properties(spatial_general, obj, _id, _index, has_file_index = True)
     spatial_general.set('Name', str(obj.name))
     spatial_general.set('CreStamp', str(0))
     spatial_general.set('ModStamp', str(0))
-    spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vec3(hpl_convert.convert_to_hpl_location(obj.location)))
+    spatial_general.set('WorldPos',hpl_convert.convert_to_hpl_vector(hpl_convert.convert_to_hpl_location(obj.location)))
     spatial_general.set('Rotation', hpl_convert.convert_to_hpl_rotation(obj.rotation_euler))
-    spatial_general.set('Scale', hpl_convert.convert_to_hpl_vec3(obj.scale))
+    spatial_general.set('Scale', hpl_convert.convert_to_hpl_vector(obj.scale))
     if has_file_index:
         spatial_general.set('FileIndex', str(_index))
 
@@ -182,14 +197,14 @@ def write_hpm_area(map_col, _map_path, _id):
 
             general_properties(area, area_entity, root_id, _index, has_file_index=False)
             #   Override Scale, with dimension.
-            area.set('Scale', hpl_convert.convert_to_hpl_vec3(area_entity.dimensions))
+            area.set('Scale', hpl_convert.convert_to_hpl_vector(area_entity.dimensions))
             
             user_variables = xtree.SubElement(area, 'UserVariables')
             vars = [item for item in area_entity.items() if 'hplp_v_' in item[0]]
             for var in vars:
                 var_name = var[0].split('hplp_v_')[-1]
-                if var_name in hpm_config.hpm_entities_properties['Entity']:
-                    area.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
+                if var_name in hpm_config.hpm_entities_properties['Entity']:                        
+                    area.set(var_name, hpl_convert.convert_to_hpl_vector(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else str(var[1]))
                 else:
                     xml_var = xtree.SubElement(user_variables,'Var')
                     xml_var.set('ObjectId', str(root_id+_index))
@@ -251,16 +266,29 @@ def write_hpm_static_objects(map_col, _map_path, _id):
     section.set('Name', os.getlogin()+'@'+socket.gethostname())
     file_index = xtree.SubElement(section, 'FileIndex_StaticObjects', NumOfFiles=str(_number_of_files)) #TODO: Get count, 
     objects = xtree.SubElement(section, 'Objects')
-    _index = 0
 
+    file_object_list = []
     for obj in map_col.objects:
-        if obj.is_instancer:
+        if not obj.is_instancer:
+            if obj.get('hplp_i_properties', {}).get('EntityType', None) == hpl_config.hpl_entity_type.SUBMESH.name:
+                file_object_list.append(map_col.name)
+        if obj.instance_type == 'COLLECTION':
             if obj.get('hplp_i_properties', {}).get('EntityType', None) == hpl_config.hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
-            
-                static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-                xtree.SubElement(file_index, 'File', Id=str(_index), Path=get_object_path(obj, is_entity=False)+'.dae')
+                file_object_list.append(obj.instance_collection.name)
 
-                general_properties(static_object, obj, root_id, _index)
+    file_object_list = list(set(file_object_list))
+
+    for o, obj in enumerate(file_object_list):            
+        xtree.SubElement(file_index, 'File', Id=str(o), Path=get_object_name_path(obj, is_entity=False)+'.dae')
+
+    _index = 0
+    for obj in map_col.objects:
+        if obj.instance_type == 'COLLECTION':
+            if obj.get('hplp_i_properties', {}).get('EntityType', None) == hpl_config.hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
+                
+                static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
+
+                general_properties(static_object, obj, root_id, file_object_list.index(obj.instance_collection.name))
 
                 vars = [item for item in obj.items() if 'hplp_v_' in item[0]]
                 for var in vars:
@@ -268,13 +296,13 @@ def write_hpm_static_objects(map_col, _map_path, _id):
                     static_object.set(var_name, str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
                 _index = _index + 1
 
-    _index = 0
+    #_index = 0
     if unique_object:
 
         static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
         xtree.SubElement(file_index, 'File', Id=str(_index), Path='mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/static_objects/'+map_col.name+'.dae')
 
-        unique_static_object_properties(static_object, map_col.name, root_id, _index)
+        unique_static_object_properties(static_object, map_col.name, root_id, file_object_list.index(map_col.name))
 
         static_object.set('Collides', "true")
         static_object.set('CastShadows', "true")
@@ -284,7 +312,6 @@ def write_hpm_static_objects(map_col, _map_path, _id):
         static_object.set('CulledByFog', "true")
         static_object.set('IllumColor', "1 1 1 1")
         static_object.set('IllumBrightness', "1")
-        static_object.set('UID', "16 11 268435463")
                         
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
@@ -454,7 +481,7 @@ def write_hpm_light(map_col, _map_path, _id):
                 if var_name == 'FOV':
                     light.set(var_name, str(round(var[1] * (math.pi / 180), 4)))
                 else:
-                    light.set(var_name, hpl_convert.convert_to_hpl_vec3(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
+                    light.set(var_name, hpl_convert.convert_to_hpl_vector(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             _index = _index + 1
     
     # TODO: move xtree creation to main loop, return root
@@ -471,6 +498,9 @@ def write_hpm():
     #host_file_path = os.path.dirname(os.path.realpath(__file__))+'\\host\\host.hpm'
 
     for map_col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
+
+        if not check_map_validity(map_col):
+            continue
 
         id = hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()
 

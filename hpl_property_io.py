@@ -234,7 +234,10 @@ class hpl_properties():
                             var_dict[group_name][variable_name] = {'Type' : _type, 'DefaultValue' : _value, 'Description' : vars.get('Description')}
 
                             _enums = [enum_value.attrib['Name'] for enum_value in vars.findall('EnumValue')]
-                            if _enums: 
+                            if _enums:
+                                #   Check if the default value is an integer instead of an actual key, if so, convert it to the enum value.
+                                if _value.isdigit():
+                                    _value = _enums[int(_value) if int(_value) < len(_enums) else 0]
                                 var_dict[group_name][variable_name].update({'EnumValues' :  [_enums, _value]})
                         #   Check if group is empty, if so, delete it. i.e. LampComponent will have no variables.
                         if var_dict[group_name] == {}:
@@ -245,20 +248,20 @@ class hpl_properties():
         classes = [var for var in entity_class_tree.findall(f'.//Class') if var.get('Name') == sub_prop]
 
         base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass')]
-        #Need to search for 'sub_prop' first, but append last, to immitate the leveleditor order.
+        #   Need to search for 'sub_prop' first, but append last, to immitate the leveleditor order.
         sub_prop_dict = get_vars(classes[0], variable_type) if classes else {}
 
         inherits = [classes[0].attrib[var] for var in classes[0].attrib if var == 'InheritsFrom']
         components = [classes[0].attrib[var].replace(' ', '').rsplit(',') for var in classes[0].attrib if var == 'UsesComponents']
 
-        #Adding Inherits
+        #   Adding Inherits
         if inherits:
             for i in inherits:
                 base_classes = [var for var in entity_class_tree.findall(f'.//BaseClass') if var.get('Name') == i]
                 var_dict.update(get_vars(base_classes[0], variable_type))
 
-        #Adding components
-        #TODO: better component system, new search function
+        #   Adding components
+        #   TODO: better component system, new search function
         if components:
             for c in components[0]:
                 component_classes = [var for var in global_class_tree.findall(f'.//Component') if var.get('Name') == c]
@@ -460,6 +463,7 @@ class hpl_properties():
             return
         
         hpl_config.hpl_outliner_selection = ent
+        #print('NAME OF OUTLINER ENTITY: ', ent.name)
         hpl_config.hpl_ui_outliner_selection_name = ent.name
     
     def update_viewport_selection(ent):
@@ -468,6 +472,7 @@ class hpl_properties():
             return
         
         hpl_config.hpl_viewport_selection = ent
+        #print('NAME OF VIEWPORT ENTITY: ', ent.name)
         hpl_config.hpl_ui_viewport_selection_name = ent.name
 
         hpl_properties.update_outliner_selection(ent)
@@ -476,8 +481,18 @@ class hpl_properties():
         
         hpl_config.hpl_active_material = ent
         hpl_config.hpl_ui_active_material_name = ent
-    
-    def update_selection():   
+
+    def set_outliner_selection_to_scene_collection():
+        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
+
+    def set_outliner_selection_to_mod_folder():
+        #if bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_mod_col]:
+        if hpl_config.hpl_ui_folder_project_root_name_col:
+            hpl_config.hpl_outliner_selection = bpy.data.collections[hpl_config.hpl_ui_folder_project_root_name_col]
+        else:
+            hpl_properties.set_outliner_selection_to_scene_collection()
+        
+    def update_selection():
 
         if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
             for window in bpy.context.window_manager.windows:
@@ -491,6 +506,7 @@ class hpl_properties():
                                     hpl_properties.update_material_selection(bpy.context.active_object.active_material)
                                 except:
                                     pass
+                            continue
 
                         if area.type == 'VIEW_3D':
                             with bpy.context.temp_override(window=window, area=area):
@@ -499,21 +515,24 @@ class hpl_properties():
                                     hpl_properties.update_material_selection(bpy.context.active_object.active_material)
                                 except:
                                     pass
-
+                            continue
                         if area.type == 'NODE_EDITOR':
                             with bpy.context.temp_override(window=window, area=area):
                                 pass
                                 #hpl_properties.update_material_selection(active_material) if active_material else None
+                            continue
         
         if not hpl_config.hpl_outliner_selection:
-            hpl_config.hpl_outliner_selection = bpy.context.scene.collection
+            hpl_properties.set_outliner_selection_to_scene_collection()
+
+        if 'invalid' in str(hpl_config.hpl_outliner_selection):
+            hpl_properties.set_outliner_selection_to_mod_folder()
+            return None
         
         hpl_config.hpl_selection_type = hpl_properties.get_selection_type()
 
         if not hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}):
             hpl_properties.set_entity_type()
-
-        #hpl_config.hpl_selection_type = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType', '')
 
         if hpl_config.hpl_outliner_selection != hpl_config.hpl_previous_outliner_selection:
             pass #TODO: Update UI ?
@@ -527,10 +546,10 @@ class hpl_properties():
             #bpy.context.scene.hpl_parser_entity_properties.clear()
 
         hpl_config.hpl_ui_outliner_selection_instancer_name = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('InstancerName')
-        hpl_config.hpl_ui_folder_entities_col = bpy.context.scene.hpl_parser.hpl_folder_entities_col
-        hpl_config.hpl_ui_folder_maps_col = bpy.context.scene.hpl_parser.hpl_folder_maps_col
-        hpl_config.hpl_ui_folder_static_objects_col = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
-        hpl_config.hpl_ui_folder_project_root_col = bpy.context.scene.hpl_parser.hpl_project_root_col
+        hpl_config.hpl_ui_folder_entities_name_col = bpy.context.scene.hpl_parser.hpl_folder_entities_col
+        hpl_config.hpl_ui_folder_maps_name_col = bpy.context.scene.hpl_parser.hpl_folder_maps_col
+        hpl_config.hpl_ui_folder_static_objects_name_col = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
+        hpl_config.hpl_ui_folder_project_root_name_col = bpy.context.scene.hpl_parser.hpl_project_root_col
             
         hpl_config.hpl_previous_scene_collection = [obj for obj in bpy.context.scene.objects]
         hpl_config.hpl_previous_outliner_selection = hpl_config.hpl_outliner_selection
@@ -787,4 +806,5 @@ class hpl_properties():
         return [_type, _value]
     
     def blender_to_hpl_types():
+        #   TODO back and forth conversion.
         return

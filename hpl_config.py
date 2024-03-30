@@ -50,10 +50,15 @@ hpl_ui_active_material_name = ''
 hpl_ui_outliner_selection_color_tag = ''
 hpl_ui_outliner_selection_instancer_name = ''
 hpl_ui_outliner_selection_prop_type = ''
-hpl_ui_folder_entities_col = ''
-hpl_ui_folder_maps_col = ''
-hpl_ui_folder_static_objects_col = ''
-hpl_ui_folder_project_root_col = ''
+hpl_ui_folder_entities_name_col = ''
+hpl_ui_folder_maps_name_col = ''
+hpl_ui_folder_static_objects_name_col = ''
+hpl_ui_folder_project_root_name_col = ''
+
+hpl_ui_folder_entities_object_col = None
+hpl_ui_folder_maps_object_col = None
+hpl_ui_folder_static_objects_object_col = None
+hpl_ui_folder_project_root_object_col = None
 
 hpl_valid_operational_folders = True
 
@@ -375,7 +380,7 @@ hpl_point_light_properties_vars_dict = {'PointLight' :
         'CastDiffuseLight'          : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastSpecularLight'         : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'CastShadows'               : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
-        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : ['Low', 'Medium', 'High', 'VeryHigh'], 'Description' : ""},
+        'ShadowResolution'          : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
         'ShadowsAffectStatic'       : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'ShadowsAffectDynamic'      : {'Type' : "Bool",   'DefaultValue' : True,     'Description' : ""},
         'Radius'                    : {'Type' : "Float",  'DefaultValue' : 1.0,        'Description' : ""},
