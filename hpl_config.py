@@ -16,6 +16,7 @@ hpl_asset_filetypes = {'geometry' : '.dae', 'material' : '.mat', 'entity' : '.en
 
 hpl_previous_scene_object_count = math.inf
 hpl_previous_scene_collection_count = math.inf
+hpl_previous_undo_redo = False
 
 #TODO: rename prefixes to cfg instead of hpl. Create new hpl_environments.py and use env as prefix for global variables.
 hpl_asset_material_files = {}
@@ -492,6 +493,8 @@ texture_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}
 texture_default_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}#{'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
 texture_format_dict = {'Base Color': "BC1_UNORM", 'Specular': "BC3_UNORM", 'Normal': "BC5_UNORM"}
 
+hpl_wipmod_filename = 'WIPMod.cfg'
+
 #   Values will be evaluated with eval() for mod creation.
 hpl_mod_files = {   'main_init.cfg' : {
                                     'MainSaveFolder' : 'bpy.context.scene.hpl_parser.hpl_project_root_col+\'/save/\'',
@@ -501,7 +504,7 @@ hpl_mod_files = {   'main_init.cfg' : {
                     'entry.hpc' : {
                                     'Title' : 'bpy.context.scene.hpl_parser.hpl_project_root_col',
                                     },
-                    'WIPMod.cfg' : {    
+                    hpl_wipmod_filename : {    
                                     'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col + \'\\\\entry.hpc\'',
                                     },
                 }

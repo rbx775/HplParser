@@ -39,41 +39,60 @@ def recursive_mkdir(path):
             if not os.path.exists(_path):
                 os.mkdir(_path)
 
-# TODO: Maybe call every project_col change?
 def edit_wip_mod():
-        
-    documents_folder_path = os.path.expanduser('~/Documents')+'HPL3\\'
-    edit_mod_files(iter(os.walk(documents_folder_path)))
+
+    package_folder_path = os.path.dirname(os.path.abspath(__file__))
+    documents_folder_path = os.path.join(os.path.expanduser('~/Documents'),'HPL3')
+
+    #   WIPMod.cfg in user documents is needed to point the HPL Level editor to the mod.
+    recursive_mkdir(documents_folder_path)
+    if not os.path.isfile(os.path.join(documents_folder_path, hpl_config.hpl_wipmod_filename)):
+        shutil.copy(os.path.join(package_folder_path+'\\UserFiles\\'+hpl_config.hpl_wipmod_filename), documents_folder_path)
+
+    update_wip_mod(documents_folder_path, hpl_config.hpl_wipmod_filename)
+
+# TODO: Maybe call every project_col change?
+def update_wip_mod(documents_folder_path, filename):
+
+    file = os.path.join(documents_folder_path, filename)
+
+    wipMod = xtree.parse(file)
+    root = wipMod.getroot()
+    root.set('Path', str(eval(hpl_config.hpl_mod_files[filename]['Path'])))
+    wipMod.write(file)
 
 def edit_mod_files(path_generators):
     
     for dirpath, dirnames, filenames in path_generators:
         for filename in filenames:
             filepath = os.path.join(dirpath, filename)
+            write_mod_files(filepath, filename)
 
-            if filename in hpl_config.hpl_mod_files:            
-                #   Open the file in read mode and create a list of lines
-                with open(filepath, 'r', encoding='ascii') as file:
-                    lines = file.readlines()
+def write_mod_files(filepath, filename):
 
-                #   Modify the lines defined in hpl_config.hpl_mod_files
-                for i, line in enumerate(lines):
-                    for mod_line in hpl_config.hpl_mod_files[filename]:
-                        if mod_line in line and '=' in line:
-                            lines[i] = lines[i].split('=')[0] + '= "' + str(eval(hpl_config.hpl_mod_files[filename][mod_line])) + '"' + '\n'
-                #   Save file
-                with open(filepath, 'w', encoding='ascii') as file:
-                    file.writelines(lines)
+    if filename in hpl_config.hpl_mod_files:            
+        #   Open the file in read mode and create a list of lines
+        with open(filepath, 'r', encoding='ascii') as file:
+            lines = file.readlines()
+
+        #   Modify the lines defined in hpl_config.hpl_mod_files
+        for i, line in enumerate(lines):
+            for mod_line in hpl_config.hpl_mod_files[filename]:
+                if mod_line in line and '=' in line:
+                    lines[i] = lines[i].split('=')[0] + '= "' + str(eval(hpl_config.hpl_mod_files[filename][mod_line])) + '"' + '\n'
+        #   Save file
+        with open(filepath, 'w', encoding='ascii') as file:
+            file.writelines(lines)
 
 def create_mod(mod_path):
     
     package_folder_path = os.path.dirname(os.path.abspath(__file__))
-    documents_folder_path = os.path.expanduser('~/Documents')+'HPL3\\'
+    documents_folder_path = os.path.join(os.path.expanduser('~/Documents'),'HPL3')
 
     #   WIPMod.cfg in user documents is needed to point the HPL Level editor to the mod.
     recursive_mkdir(documents_folder_path)
-    if not os.path.isfile(documents_folder_path + 'WIPMod.cfg'):
-        shutil.copy(package_folder_path+'\\UserFiles\\WIPMod.cfg', documents_folder_path)
+    if not os.path.isfile(os.path.join(documents_folder_path, hpl_config.hpl_wipmod_filename)):
+        shutil.copy(os.path.join(package_folder_path+'\\UserFiles\\', hpl_config.hpl_wipmod_filename), documents_folder_path)
         
     #   Copy the mod template
     recursive_mkdir(mod_path)

@@ -861,15 +861,15 @@ def draw_panel_3d_content(context, layout):
     if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
         draw_mod_panel()
 
-    elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_maps_name_col:
+    elif hpl_config.hpl_ui_outliner_selection_name == hpl_config.hpl_ui_folder_maps_name_col:
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All levels go in here.', icon='FILE_FOLDER')
 
-    elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_entities_name_col:
+    elif hpl_config.hpl_ui_outliner_selection_name == hpl_config.hpl_ui_folder_entities_name_col:
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All entities go in here.', icon='FILE_FOLDER')
 
-    elif hpl_config.hpl_outliner_selection.name == hpl_config.hpl_ui_folder_static_objects_name_col:
+    elif hpl_config.hpl_ui_outliner_selection_name == hpl_config.hpl_ui_folder_static_objects_name_col:
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All static objects go in here.', icon='FILE_FOLDER')
 
@@ -1020,7 +1020,8 @@ class HPL_PT_3D_CREATE(bpy.types.Panel):
         pass
 
     def draw(self, context):
-        draw_panel_3d_content(context, self.layout)
+        if hpl_config.hpl_outliner_selection:
+            draw_panel_3d_content(context, self.layout)
 
 def draw_panel_mat_content(context, layout):
     
@@ -1103,7 +1104,8 @@ class HPL_PT_MAT_CREATE(bpy.types.Panel):
         pass
 
     def draw(self, context):
-        draw_panel_mat_content(context, self.layout)
+        if hpl_config.hpl_outliner_selection:
+            draw_panel_mat_content(context, self.layout)
 
 
 class HPL_OT_OpenUserPreferences(bpy.types.Operator):
@@ -1130,52 +1132,6 @@ def update_scene_ui():
         item.enum_items = str(value[0])
         item.enum_property = value[1]
 
-    return
-
-    entity_dictionary = hpl_property_io.hpl_properties.get_var_from_entity_properties()
-    entity_vars = entity_dictionary.get('Vars', {})
-    entity_groups = entity_dictionary.get('GroupStates', {})
-
-    for group_key, value in entity_vars.items():
-
-        group = bpy.context.scene.hpl_parser_entity_properties.add() #GROUP
-        group.name = group_key
-        group.type = 'group'
-        group.group_of = group_key
-        group.bool_property = entity_groups.get(group_key, False)
-
-        for key, value in value.items():
-
-            item = bpy.context.scene.hpl_parser_entity_properties.add() #VARIABLE
-
-            _enum_vars = value.get('EnumValues', '')
-            _type = value.get('Type')
-            _value = value.get('DefaultValue', '')
-
-            item.name = key
-            item.type = _type
-            item.group_of = group_key
-
-            # Some variable types need special treatment
-            if _type.lower() == 'string':
-                item.string_property = '' if _value == '\'\'' else _value
-                continue
-            if _type.lower() == 'file':
-                item.file_property = '' if _value == '\'\'' else _value
-                continue
-            if _type.lower() == 'function':
-                item.function_property = '' if _value == '\'\'' else _value
-                continue
-
-            if _enum_vars:
-                item.enum_items = f'\'{_enum_vars}\''
-                item.enum_property = _value
-                continue
-
-            exec(f'item.{_type}_property = {_value}')
-            if 'Dir' in key:
-                exec(f'item.{_type}_dir_property = {_value}')
-
 def hpl_context_update():
     #   Get Object count
     hpl_config.hpl_previous_scene_object_count = len(bpy.data.objects)
@@ -1201,20 +1157,25 @@ def validate_operational_folder_collections():
         return False
     return True
 
+def reset_context_selection(undo = False):
+
+
+    #   Check if an object has been deleted, also for redo.
+    #if hpl_config.hpl_previous_scene_object_count != len(bpy.data.objects):
+    hpl_config.hpl_viewport_selection = None
+    hpl_config.hpl_outliner_selection = bpy.context.scene.collection
+
+    #if hpl_config.hpl_previous_scene_collection_count != len(bpy.data.collections):
+    #    hpl_config.hpl_viewport_selection = None
+    #    hpl_config.hpl_outliner_selection = bpy.context.scene.collection
+
+    #hpl_config.hpl_previous_undo_redo = undo
+
 @persistent
 def scene_selection_listener_pre(self, context):
-    
-    #   Check if an object has been deleted.
-    if hpl_config.hpl_previous_scene_object_count > len(bpy.data.objects):
-        print('DELETE OBJECT')
-        hpl_config.hpl_viewport_selection = None
-        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
-    if hpl_config.hpl_previous_scene_collection_count > len(bpy.data.collections):
-        print('DELETE COLLECTION')
-        hpl_config.hpl_viewport_selection = None
-        hpl_config.hpl_outliner_selection = bpy.context.scene.collection
-
     bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
+    if hpl_config.hpl_previous_scene_object_count != len(bpy.data.objects) or hpl_config.hpl_previous_scene_collection_count != len(bpy.data.collections):
+        reset_context_selection(False)
     hpl_context_update()
     return
 
@@ -1222,14 +1183,8 @@ def scene_selection_listener_pre(self, context):
 @persistent
 def scene_selection_listener_post(self, context):
 
-    #try:
-        
-    #print('maps: ', bpy.context.scene.hpl_parser.hpl_folder_maps_col)
-    #print('entities: ', bpy.context.scene.hpl_parser.hpl_folder_entities_col)
-    #print('static_objects: ', bpy.context.scene.hpl_parser.hpl_folder_static_objects_col)
-
     #if not bpy.context.scene.hpl_parser.hpl_valid_operational_folders:
-    #    hpl_config.hpl_outliner_selection = bpy.data.collections.get('DemoProject')
+    #    hpl_config.hpl_outliner_selection = bpy.data.collections.get('DemoProjecxt')
     #    hpl_config.hpl_selection_type = hpl_entity_type.MOD.name
     #    return
 
@@ -1265,23 +1220,21 @@ def scene_selection_listener_post(self, context):
     if bpy.context.scene.hpl_parser.hpl_project_root_col:
         if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
             bpy.context.scene.hpl_parser.hpl_has_maps_col = True
-    #except ReferenceError as e:
-    #    print(e)
 
 @persistent 
 def on_load_post(self):
     bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
-    hpl_context_update()
-
+    reset_context_selection(True)
+ 
 @persistent 
 def on_undo_post(self):
     bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
-    hpl_context_update()
+    reset_context_selection(True)
 
 @persistent 
-def on_redo_post(self):                                                                                                                                     
+def on_redo_post(self):        
     bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
-    hpl_context_update()
+    reset_context_selection(True)
 
 classes = (
     TEXT_UL_list,

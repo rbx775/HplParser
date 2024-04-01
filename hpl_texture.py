@@ -12,6 +12,9 @@ class HPL_TEXTURE():
         exported_textures = hpl_config.texture_default_dict.copy()
 
         for tex in exported_textures:
+
+            if not hpl_config.texture_dict[tex]:
+                continue
             
             FNULL = open(os.devnull, 'w')
             exe_path = os.path.dirname(os.path.realpath(__file__)) + hpl_config.texconv_subpath
@@ -26,5 +29,5 @@ class HPL_TEXTURE():
                 exported_textures[tex] = relative_path + os.path.basename(hpl_config.texture_dict[tex]).split('.')[0] + '.dds'
 
         return exported_textures
-                    
+        
         #subprocess.call(args, stdout=FNULL, stderr=FNULL, shell=False)exported_textures

@@ -463,7 +463,6 @@ class hpl_properties():
             return
         
         hpl_config.hpl_outliner_selection = ent
-        #print('NAME OF OUTLINER ENTITY: ', ent.name)
         hpl_config.hpl_ui_outliner_selection_name = ent.name
     
     def update_viewport_selection(ent):
@@ -472,7 +471,6 @@ class hpl_properties():
             return
         
         hpl_config.hpl_viewport_selection = ent
-        #print('NAME OF VIEWPORT ENTITY: ', ent.name)
         hpl_config.hpl_ui_viewport_selection_name = ent.name
 
         hpl_properties.update_outliner_selection(ent)
