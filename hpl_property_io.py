@@ -353,38 +353,37 @@ class hpl_properties():
         hpl_config.hpl_selection_state = False
         ### COLLECTION ###
         if sel_identifier == 'Collection':
-
             if sel == bpy.context.scene.collection:
-                return hpl_entity_type.NONE.name
+                return hpl_entity_type.ADDON.name
             ### PROJECT FOLDER ###
-            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col]:
+            if sel == bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
                 hpl_properties.set_entity_state(sel, hpl_entity_type.MOD.name)
                 return hpl_entity_type.MOD.name
             ### STATIC OBJECT FOLDER ###
-            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col]:
+            if sel == bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer:
                 hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT_FOLDER.name)
                 return hpl_entity_type.STATIC_OBJECT_FOLDER.name
             ### ENTITY FOLDER ###
-            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col]:
+            if sel == bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer:
                 hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_FOLDER.name)
                 return hpl_entity_type.ENTITY_FOLDER.name
             ### MAP FOLDER ###
-            if sel == bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col]:
+            if sel == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer:
                 hpl_properties.set_entity_state(sel, hpl_entity_type.MAP_FOLDER.name)
                 return hpl_entity_type.MAP_FOLDER.name
             ### MAPS ###
-            if bpy.context.scene.hpl_parser.hpl_folder_maps_col:
-                if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children if col == sel]):
+            if bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer:
+                if any([col for col in bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.children if col == sel]):
                     hpl_properties.set_entity_state(sel, hpl_entity_type.MAP.name)
                     return hpl_entity_type.MAP.name
                 
             #   Check if the entity is inside entity collection
-            if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col].children if col == sel]):
+            if any([col for col in bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.children if col == sel]):
                 hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY.name)
                 return hpl_entity_type.ENTITY.name
             
             #   Check if the entity is inside entity collection
-            if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col].children if col == sel]):
+            if any([col for col in bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.children if col == sel]):
                 hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT.name)
                 return hpl_entity_type.STATIC_OBJECT.name
             
@@ -445,13 +444,13 @@ class hpl_properties():
                     origin = sel.instance_collection
                     user = sel.users_collection[0]
 
-                    if user in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children_recursive:
-                        if origin in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_entities_col].children_recursive:
+                    if user in bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.children_recursive:
+                        if origin in bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.children_recursive:
                             #if entity_properties_type == hpl_entity_type.ENTITY_INSTANCE.name:
                             hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_INSTANCE.name)
                             return hpl_entity_type.ENTITY_INSTANCE.name
                         
-                        if origin in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_static_objects_col].children_recursive:
+                        if origin in bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.children_recursive:
                             #if entity_properties_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
                             hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT_INSTANCE.name)
                             return hpl_entity_type.STATIC_OBJECT_INSTANCE.name
@@ -477,8 +476,23 @@ class hpl_properties():
                     
     def update_material_selection(ent):
         
-        hpl_config.hpl_active_material = ent
-        hpl_config.hpl_ui_active_material_name = ent
+        if not ent:
+            return
+        
+        elif ent.bl_rna.identifier == 'COLLECTION':
+            return
+        
+        elif ent.type != 'MESH':
+            return
+        
+        elif not ent.data.materials:
+            return
+        
+        elif not ent.material_slots[0].material:
+            return
+            
+        hpl_config.hpl_active_material = ent.active_material
+        hpl_config.hpl_ui_active_material_name = ent.active_material.name
 
     def set_outliner_selection_to_scene_collection():
         hpl_config.hpl_outliner_selection = bpy.context.scene.collection
@@ -492,34 +506,27 @@ class hpl_properties():
         
     def update_selection():
 
-        if bpy.context.view_layer.active_layer_collection.collection != bpy.context.scene.collection:
-            for window in bpy.context.window_manager.windows:
-                if window == hpl_config.main_window:
-                    for area in window.screen.areas:
-                        # TODO: check for opened pref window on main display
-                        if area.type == 'OUTLINER':
-                            with bpy.context.temp_override(window=window, area=area):
-                                hpl_properties.update_outliner_selection(bpy.context.selected_ids[0]) if bpy.context.selected_ids else None
-                                try:
-                                    hpl_properties.update_material_selection(bpy.context.active_object.active_material)
-                                except:
-                                    pass
-                            continue
+        for window in bpy.context.window_manager.windows:
+            if window == hpl_config.main_window:
+                for area in window.screen.areas:
+                    if area.type == 'OUTLINER':
+                        with bpy.context.temp_override(window=window, area=area):
+                            if bpy.context.selected_ids:
+                                if bpy.context.selected_ids[0].bl_rna.identifier == 'Collection':
+                                    hpl_properties.update_outliner_selection(bpy.context.selected_ids[0])
+                                elif bpy.context.selected_ids[0].bl_rna.identifier == 'Object':
+                                    continue
+                                break
+                            elif bpy.context.view_layer.active_layer_collection.collection == bpy.context.scene.collection:
+                                hpl_properties.update_outliner_selection(bpy.context.scene.collection)
+                                
 
-                        if area.type == 'VIEW_3D':
-                            with bpy.context.temp_override(window=window, area=area):
-                                hpl_properties.update_viewport_selection(bpy.context.selected_ids[0]) if bpy.context.selected_ids else None                                
-                                try:
-                                    hpl_properties.update_material_selection(bpy.context.active_object.active_material)
-                                except:
-                                    pass
-                            continue
-                        if area.type == 'NODE_EDITOR':
-                            with bpy.context.temp_override(window=window, area=area):
-                                pass
-                                #hpl_properties.update_material_selection(active_material) if active_material else None
-                            continue
-        
+                    if area.type == 'VIEW_3D':
+                        with bpy.context.temp_override(window=window, area=area):
+                            if bpy.context.selected_ids:
+                                hpl_properties.update_viewport_selection(bpy.context.selected_ids[0]) 
+                                hpl_properties.update_material_selection(bpy.context.selected_ids[0])
+
         if not hpl_config.hpl_outliner_selection:
             hpl_properties.set_outliner_selection_to_scene_collection()
 
@@ -544,10 +551,10 @@ class hpl_properties():
             #bpy.context.scene.hpl_parser_entity_properties.clear()
 
         hpl_config.hpl_ui_outliner_selection_instancer_name = hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('InstancerName')
-        hpl_config.hpl_ui_folder_entities_name_col = bpy.context.scene.hpl_parser.hpl_folder_entities_col
-        hpl_config.hpl_ui_folder_maps_name_col = bpy.context.scene.hpl_parser.hpl_folder_maps_col
-        hpl_config.hpl_ui_folder_static_objects_name_col = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
-        hpl_config.hpl_ui_folder_project_root_name_col = bpy.context.scene.hpl_parser.hpl_project_root_col
+        hpl_config.hpl_ui_folder_entities_name_col = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.name
+        hpl_config.hpl_ui_folder_maps_name_col = bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name
+        hpl_config.hpl_ui_folder_static_objects_name_col = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name
+        hpl_config.hpl_ui_folder_project_root_name_col = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
             
         hpl_config.hpl_previous_scene_collection = [obj for obj in bpy.context.scene.objects]
         hpl_config.hpl_previous_outliner_selection = hpl_config.hpl_outliner_selection

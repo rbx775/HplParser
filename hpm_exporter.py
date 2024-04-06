@@ -230,13 +230,13 @@ def write_hpm_billboard(map_col, _map_path, _id):
     xtree.ElementTree(root).write(_map_path)
 
 def get_object_name_path(obj_name, is_entity=True):
-    sub_folder = bpy.context.scene.hpl_parser.hpl_folder_entities_col if is_entity else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
-    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col, sub_folder, obj_name)
+    sub_folder = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.name if is_entity else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name
+    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, sub_folder, obj_name)
     
 def get_object_path(obj, is_entity=True):
-    sub_folder = bpy.context.scene.hpl_parser.hpl_folder_entities_col if is_entity else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
+    sub_folder = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.name if is_entity else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name
     #return 'mods' + bpy.context.scene.hpl_parser.hpl_project_root_col + sub_folder + obj.instance_collection.name
-    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col, sub_folder, obj.instance_collection.name)
+    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, sub_folder, obj.instance_collection.name)
 
 ### STATIC_OBJECTS BATCHES ###
 def write_hpm_static_object_batches(map_col, _map_path, _id):
@@ -300,7 +300,7 @@ def write_hpm_static_objects(map_col, _map_path, _id):
     if unique_object:
 
         static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-        xtree.SubElement(file_index, 'File', Id=str(_index), Path='mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/static_objects/'+map_col.name+'.dae')
+        xtree.SubElement(file_index, 'File', Id=str(_index), Path=os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, 'static_objects', map_col.name + '.dae'))
 
         unique_static_object_properties(static_object, map_col.name, root_id, file_object_list.index(map_col.name))
 
@@ -491,23 +491,23 @@ def write_hpm_light(map_col, _map_path, _id):
 def write_hpm():
     # Eventhough we are working with context overrides \
     # we need the selection for the DAE Exporter at the end.
-    root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    mod = bpy.context.scene.hpl_parser.hpl_project_root_col
+    game_root_path = bpy.context.scene.hpl_parser.hpl_game_root_path
+    mod_collection_name = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
 
-    map_path = root+'mods\\'+mod+'\\maps\\'
+    map_path = os.path.join(game_root_path, 'mods', mod_collection_name, 'maps')
     #host_file_path = os.path.dirname(os.path.realpath(__file__))+'\\host\\host.hpm'
 
-    for map_col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
+    for map_col in bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.children:
 
         if not check_map_validity(map_col):
             continue
 
         id = hashlib.sha1(map_col.name.encode("UTF-8")).hexdigest().upper()
 
-        hpl_file_system.recursive_mkdir(map_path + map_col.name)
+        hpl_file_system.recursive_mkdir(os.path.join(map_path, map_col.name))
 
         for container in hpm_config.hpm_file_containers:
-            _map_path = map_path + map_col.name + '\\'+ map_col.name + '.hpm' + container
+            _map_path = os.path.join(map_path, map_col.name, map_col.name + '.hpm' + container)
             if container == '':
                 write_hpm_main(map_col, _map_path, id)
             elif container == '_Area':

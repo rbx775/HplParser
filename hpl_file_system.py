@@ -13,8 +13,8 @@ def set_startup_map():
 def mod_check():
 
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    mod = bpy.context.scene.hpl_parser.hpl_project_root_col
-    mod_path = root+'mods\\'+mod
+    mod = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
+    mod_path = os.path.join(root, 'mods', mod)
     
     if not os.path.exists(mod_path):
         return mod_path
@@ -54,12 +54,16 @@ def edit_wip_mod():
 # TODO: Maybe call every project_col change?
 def update_wip_mod(documents_folder_path, filename):
 
-    file = os.path.join(documents_folder_path, filename)
+    filepath = os.path.join(documents_folder_path, filename)
+    with open(filepath, 'r+', encoding='ascii') as f:
+        wipMod = xtree.parse(f)
+        root = wipMod.getroot()
+        root.set('Path', str(eval(hpl_config.hpl_mod_files[filename]['Path'])))
 
-    wipMod = xtree.parse(file)
-    root = wipMod.getroot()
-    root.set('Path', str(eval(hpl_config.hpl_mod_files[filename]['Path'])))
-    wipMod.write(file)
+        f.seek(0) 
+        f.truncate()
+
+        wipMod.write(f, encoding='unicode')
 
 def edit_mod_files(path_generators):
     
@@ -131,7 +135,7 @@ class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text=f'Create Mod \'{bpy.context.scene.hpl_parser.hpl_project_root_col}\' on your hard drive? Esc to cancel.', icon='ERROR')
+        layout.label(text=f'Create Mod \'{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\' on your hard drive? Esc to cancel.', icon='ERROR')
 
 class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
     bl_idname = 'hpl_parser.open_mod_folder'
@@ -141,7 +145,7 @@ class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
     #path : bpy.props.StringProperty(name="Path", description="Path to mod", default="")
 
     def execute(self, context):
-        path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col)
+        path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name)
         if os.path.exists(path):
             os.startfile(path)
             return {'FINISHED'}

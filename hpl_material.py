@@ -10,24 +10,37 @@ class HPL_MATERIAL():
             node.image.filepath = filepath
             node.image.reload()
 
-    def exr_to_png(exr_path):
-
-        png = bpy.data.images.load(exr_path)
-        png.file_format = 'PNG'
-        png_path = os.path.join(os.path.dirname(exr_path), '_convert_to_png', os.path.basename(exr_path))
-        png_path = png_path.replace('.exr', '.png')
-        png.save_render(png_path)
+    def export_to_png(_image, _from='.png'):
         
-        return png, png_path
+        png = bpy.data.images.load(_image.filepath) if _image.filepath else _image
+        png.file_format = 'PNG'
+
+        #   TODO make the temp texture save folder a setting in the preferences. So it can be changed by the user.
+        available_img_path = os.path.join(os.path.dirname(_image.filepath), '_export_to_png', os.path.basename(_image.filepath))+'.png'
+        internal_img_path = os.path.join(bpy.path.abspath('//'), '_export_to_png', _image.name)+'.png'
+
+        _path = available_img_path if _image.filepath else internal_img_path
+        png.save_render(_path)
+        return png, _path
 
     def find_textures(node, tex_node):
         if node.type == 'TEX_IMAGE':
+            #   Skip if the texture node is empty.
             if not hasattr(node.image, 'filepath'):
                 return
+            
             filepath = bpy.path.abspath(node.image.filepath)
-            if 'exr' in filepath:
-                png, filepath = HPL_MATERIAL.exr_to_png(filepath)
+
+            #   Is the texture only saved internally within the .blend?
+            if not filepath:
+                png, filepath = HPL_MATERIAL.export_to_png(node.image, _from='.png')
                 HPL_MATERIAL.set_texture_to_node(node, png, filepath)
+
+            #   Is the texture an .exr file?
+            if '.exr' in filepath:
+                png, filepath = HPL_MATERIAL.export_to_png(node.image, _from='.exr')
+                HPL_MATERIAL.set_texture_to_node(node, png, filepath)
+
             hpl_config.texture_dict[tex_node] = filepath
         
         if node.name == 'Principled BSDF':

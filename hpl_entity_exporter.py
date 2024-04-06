@@ -55,7 +55,7 @@ def check_children(obj, shapes, bodies, joints):
         check_children(children)
 
 def get_object_path(obj):
-    return 'mods/'+bpy.context.scene.hpl_parser.hpl_project_root_col+'/entities/'+obj.name
+    return os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, 'entities', obj.name)
 
 ### Write material files ###
 def write_material_file(mat, root, relative_path):
@@ -70,11 +70,11 @@ def write_material_file(mat, root, relative_path):
     specific_variables = xtree.SubElement(material, 'SpecificVariables')
     
     if texture_slots.get('Base Color'):
-        diffuse = xtree.SubElement(texture_untis, 'Diffuse', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(exported_textures['Base Color']), Mipmaps='true', Type='2D', Wrap='Repeat')
+        diffuse = xtree.SubElement(texture_untis, 'Diffuse', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['Base Color'])), Mipmaps='true', Type='2D', Wrap='Repeat')
     if texture_slots.get('Specular'):
-        specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(exported_textures['Specular']), Mipmaps='true', Type='2D', Wrap='Repeat')
+        specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['Specular'])), Mipmaps='true', Type='2D', Wrap='Repeat')
     if texture_slots.get('Normal'):
-        normalmap = xtree.SubElement(texture_untis, 'NMap', AnimFrameTime='', AnimMode='', File=relative_path + os.path.basename(exported_textures['Normal']), Mipmaps='true', Type='2D', Wrap='Repeat')
+        normalmap = xtree.SubElement(texture_untis, 'NMap', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['Normal'])), Mipmaps='true', Type='2D', Wrap='Repeat')
 
     vars = [var for var in mat.items() if var[0].startswith('hplp_v_')]
     for var in vars:
@@ -150,7 +150,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             general_properties(sub_mesh, obj)
 
             sub_mesh.set('TriCount', str(triangle_list.pop(-1)))
-            sub_mesh.set('Material', str(relative_path + obj.material_slots[0].name + '.mat') if list(obj.material_slots) else '') #TODO: check if available first
+            sub_mesh.set('Material', os.path.join(relative_path, obj.material_slots[0].name + '.mat') if list(obj.material_slots) else '') #TODO: check if available first
 
             vars = [var for var in obj.items() if var[0].startswith('hplp_v_')]
             for var in vars:
@@ -242,7 +242,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
     _Id = _Id + 1
                         
     xtree.indent(entity, space="    ", level=0)
-    xtree.ElementTree(entity).write(root+relative_path+obj_col.name+'.ent')
+    xtree.ElementTree(entity).write(os.path.join(root, relative_path, obj_col.name+'.ent'))
 
 def add_warning_message(warning_msg, export_collection_name, obj_name):
     if not hpl_config.hpl_export_warnings:
@@ -302,6 +302,7 @@ def is_valid_export_collection(col):
     if col.exclude:
         return False
 
+    #  Check if collection has valid export objects.Switch back to data collections for comparisons
     col = bpy.data.collections[col.name]
 
     if not col.get('hplp_i_properties', {}).get('EntityType', ''):
@@ -310,11 +311,11 @@ def is_valid_export_collection(col):
         return False
     elif not col.objects:
         return False
-    elif bpy.context.scene.hpl_parser.hpl_folder_maps_col == col.name:
+    elif bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer == col:
         return False
-    elif bpy.context.scene.hpl_parser.hpl_folder_static_objects_col == col.name:
+    elif bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer == col:
         return False
-    elif bpy.context.scene.hpl_parser.hpl_folder_entities_col == col.name:
+    elif bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer == col:
         return False
     return True
 
@@ -385,10 +386,10 @@ def hpl_export_objects(op):
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
 
-    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
-    map_collection_name = bpy.context.scene.hpl_parser.hpl_folder_maps_col
-    entity_collection_name = bpy.context.scene.hpl_parser.hpl_folder_entities_col
-    static_object_collection_name = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col
+    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
+    map_collection_name = bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name
+    entity_collection_name = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.name
+    static_object_collection_name = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name
     root = bpy.context.scene.hpl_parser.hpl_game_root_path + '\\'
     
     #TODO: Focused preferences window breaks this. Fix needed.
@@ -432,24 +433,24 @@ def hpl_export_objects(op):
 
             bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 
-            relative_path = 'mods\\'+root_collection+'\\'+static_object_collection_name+'\\' if queue_type != 'Entities' else 'mods\\'+root_collection+'\\'+entity_collection_name+'\\'
+            relative_path = os.path.join('mods', root_collection, static_object_collection_name) if queue_type != 'Entities' else os.path.join('mods', root_collection, entity_collection_name)
 
-            if not os.path.exists(root + relative_path):
-                os.mkdir(root + relative_path)
+            if not os.path.exists(os.path.join(root, relative_path)):
+                os.mkdir(os.path.join(root, relative_path))
 
-            #   Delete HPL *.msh file. This will be recreated once the Level Editor or game is launched.
-            if os.path.isfile(root+relative_path+col_name+'.msh'):
-                os.remove(root+relative_path+col_name+'.msh')
-            
-            bpy.ops.wm.collada_export(filepath=root+relative_path+col_name, check_existing=False, use_texture_copies = False,\
+            # Delete HPL *.msh file. This will be recreated once the Level Editor or game is launched.
+            if os.path.isfile(os.path.join(root, relative_path, col_name + '.msh')):
+                os.remove(os.path.join(root, relative_path, col_name + '.msh'))
+            print(len(bpy.context.selected_objects))
+            bpy.ops.wm.collada_export(filepath=os.path.join(root, relative_path, col_name), check_existing=False, use_texture_copies = False,\
                                     selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                     export_global_forward_selection = 'Y', export_global_up_selection = 'Z',\
                                     apply_global_orientation = True, export_object_transformation_type_selection = 'matrix', \
                                     triangulate = False) #-Y, Z
             
-            sel_count = len(bpy.context.selected_objects)
+            #sel_count = len(bpy.context.selected_objects)
             
-            dae_file = xtree.fromstring(load_xml_file(root+relative_path+col_name+'.dae'))
+            dae_file = xtree.fromstring(load_xml_file(os.path.join(root, relative_path, col_name + '.dae')))
             
             #TODO: Better way to get xml namespace.
             namespace = next(iter(dae_file)).tag.rsplit('}')[0][1:]
@@ -522,9 +523,9 @@ def hpl_export_objects(op):
                     matrix.text = ' '.join([str(coord) for row in matrix_4x4 for coord in row])
 
             xtree.indent(dae_file, space="    ", level=0)
-            xtree.ElementTree(dae_file).write(root + relative_path + col_name+'.dae')
+            xtree.ElementTree(dae_file).write(os.path.join(root, relative_path, col_name+'.dae'))
 
-            with open(root + relative_path + col_name+'.dae', 'r+') as f:
+            with open(os.path.join(root, relative_path, col_name + '.dae'), 'r+') as f:
                 xml_str = f.read()
                 xml_str = xml_str.replace('ns0:', '').replace(':ns0', '')
                 f.seek(0)
@@ -560,13 +561,16 @@ def send_warning_messages(op):
 
 def hpl_export_materials(op):
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col
+    root_collection_name = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
+    entity_collection_name = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.name
+    static_object_collection_name = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name
 
     for queue_type in hpl_config.hpl_export_queue:
-        relative_path = os.path.join('mods', root_collection, bpy.context.scene.hpl_parser.hpl_folder_entities_col if queue_type == 'Entities' else bpy.context.scene.hpl_parser.hpl_folder_static_objects_col)
+        relative_path = os.path.join('mods', root_collection_name, entity_collection_name if queue_type == 'Entities' else static_object_collection_name)
 
         for col in hpl_config.hpl_export_queue[queue_type]:
             for mat in hpl_config.hpl_export_queue[queue_type][col]['mat']:
+                # TODO: Check if material is in use, crashes if no mats are on object.  
                 if bpy.data.materials[mat].users > 0 and bpy.data.materials[mat].get('hplp_i_properties', {}) and bpy.context.scene.hpl_parser.hpl_export_textures:
                     write_material_file(bpy.data.materials[mat], root, relative_path+'\\')
 

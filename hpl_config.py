@@ -85,6 +85,7 @@ class hpl_entity_type(Enum):
     STATIC_OBJECT = 12
     STATIC_OBJECT_INSTANCE = 13
     MATERIAL = 14
+    ADDON = 15
 
     SPHERE_SHAPE = 20
     BOX_SHAPE = 21
@@ -497,14 +498,14 @@ hpl_wipmod_filename = 'WIPMod.cfg'
 
 #   Values will be evaluated with eval() for mod creation.
 hpl_mod_files = {   'main_init.cfg' : {
-                                    'MainSaveFolder' : 'bpy.context.scene.hpl_parser.hpl_project_root_col+\'/save/\'',
+                                    'MainSaveFolder' : 'bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name+\'/save/\'',
                                     'File' : 'bpy.context.scene.hpl_parser.hpl_startup_map_col+\'.hpm\'',
-                                    'GameName' : 'bpy.context.scene.hpl_parser.hpl_project_root_col',
+                                    'GameName' : 'bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name',
                                     },
                     'entry.hpc' : {
-                                    'Title' : 'bpy.context.scene.hpl_parser.hpl_project_root_col',
+                                    'Title' : 'bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name',
                                     },
                     hpl_wipmod_filename : {    
-                                    'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col + \'\\\\entry.hpc\'',
+                                    'Path' : 'bpy.context.scene.hpl_parser.hpl_game_root_path + \'mods\\\\\' + bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name + \'\\\\entry.hpc\'',
                                     },
                 }

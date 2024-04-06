@@ -113,33 +113,24 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         bpy.context.scene.hpl_parser_entity_properties.clear()
         update_scene_ui()
 
-    def get_hpl_project_root_col(self):
-        return self.get("hpl_project_root_col", 0)
-
-    def set_hpl_project_root_col(self, value):
-        self['hpl_project_root_col'] = value    
-        hpl_config.hpl_ui_folder_project_root_object_col = None
-        hpl_config.hpl_ui_folder_project_root_name_col = value
-        if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
-            if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-                bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col)
-                bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col])
-            hpl_file_system.mod_init()
-
     def get_hpl_startup_map_col(self):
         return self.get("hpl_startup_map_col", 0)
 
     def set_hpl_startup_map_col(self, value):
-        self['hpl_startup_map_col'] = value    
+        #self['hpl_startup_map_col'] = value    
         hpl_file_system.set_startup_map()
-        
+    """ 
     def get_hpl_folder_maps_col(self):
-        return self.get("hpl_folder_maps_col", 0)
+        return self.get("hpl_folder_maps_col_pointer", 0)
 
     def set_hpl_folder_maps_col(self, value):
+        #for collection in :
+        #        fdata = (collection.name,collection.name,'')
+        #self['hpl_folder_maps_col'] = bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children[value]
         self['hpl_folder_maps_col'] = value
+        self['hpl_folder_maps_col_pointer'] = value
         #bpy.context.scene.hpl_parser.hpl_is_maps_folder_valid = True
-
+    """
     def get_hpl_folder_entities_col(self):
         return self.get("hpl_folder_entities_col", 0)
 
@@ -153,17 +144,6 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     def set_hpl_folder_static_objects_col(self, value):
         self['hpl_folder_static_objects_col'] = value
         #bpy.context.scene.hpl_parser.hpl_is_static_objects_folder_valid = True
-
-    def get_hpl_map_root_col(self):
-        try:
-            value = self['get_hpl_map_root_col']
-        except:
-            value = 0
-        return value
-
-    def set_hpl_map_root_col(self, value):
-        self['set_hpl_map_root_col'] = value
-        return
 
     hpl_area_callback_active : bpy.props.BoolProperty(name="Area Callback Active", default=False)
     hpl_node_callback_active : bpy.props.BoolProperty(name="Node Callback Active", default=False)
@@ -313,79 +293,161 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_joint_set_parent,
         set=set_hpl_joint_set_parent,
     )
+
+    
+    #===================
+    #=== STARTUP MAP ===
+    #===================
         
     def update_hpl_startup_map_col(self, context):
-        data = []
-        if bpy.context.scene.hpl_parser.hpl_folder_maps_col:
-            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col].children:
-                fdata = (collection.name,collection.name,'')
-                data.append(fdata)
-        return data
-    
-    hpl_startup_map_col: bpy.props.EnumProperty(
-        default=0,
+        self.hpl_startup_map_col_pointer = bpy.data.collections[self.hpl_startup_map_col]
+
+    def get_startup_map_items(self, context):
+        items = []
+        if bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer:
+            root_collections = [c for c in bpy.data.collections if c.name in bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.children]
+            items = [(c.name, c.name, "") for c in root_collections]
+        return items
+
+    hpl_startup_map_col : bpy.props.EnumProperty(
         name='Startup Map',
         options={'LIBRARY_EDITABLE'},
         description='The map that will be loaded when the game starts',
-        items=update_hpl_startup_map_col,
-        get=get_hpl_startup_map_col, 
-        set=set_hpl_startup_map_col,
+        items=get_startup_map_items,
+        update=update_hpl_startup_map_col
     )
 
-    def update_hpl_folder_maps_col(self, context):
-        data = []
-        if bpy.context.scene.hpl_parser.hpl_project_root_col:
-            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
-                fdata = (collection.name,collection.name,'')
-                data.append(fdata)
-        return data
-    
-    hpl_folder_maps_col: bpy.props.EnumProperty(
-        default=0,
-        name='Entity Folder',
-        options={'LIBRARY_EDITABLE'},
-        description='The folder that the exporter will export entities to',
-        items=update_hpl_folder_maps_col,
-        get=get_hpl_folder_maps_col, 
-        set=set_hpl_folder_maps_col,
+    hpl_startup_map_col_pointer : bpy.props.PointerProperty(
+        name="Startup Map Collection Pointer",
+        type=bpy.types.Collection
     )
+
+    #============
+    #=== MAPS ===
+    #============
+
+    def update_folder_maps_col(self, context):
+        self.hpl_folder_maps_col_pointer = bpy.data.collections[self.hpl_folder_maps_col]
+
+    def get_folder_maps_items(self, context):
+        items = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+            root_collections = [c for c in bpy.data.collections if c.name in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children]
+            items = [(c.name, c.name, "") for c in root_collections]
+        return items
+
+    hpl_folder_maps_col : bpy.props.EnumProperty(
+        name="Folder Maps Collection",
+        options={'LIBRARY_EDITABLE'},
+        description='The folder that the exporter will export maps to',
+        items=get_folder_maps_items,
+        update=update_folder_maps_col
+    )
+
+    hpl_folder_maps_col_pointer : bpy.props.PointerProperty(
+        name="Folder Maps Collection Pointer",
+        type=bpy.types.Collection
+    )
+
+    set=set_hpl_folder_entities_col,
+    
+    #================
+    #=== ENTITIES ===
+    #================
 
     def update_hpl_folder_entities_col(self, context):
-        data = []
-        if bpy.context.scene.hpl_parser.hpl_project_root_col:
-            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
-                fdata = (collection.name,collection.name,'')
-                data.append(fdata)
-        return data
-    
-    hpl_folder_entities_col: bpy.props.EnumProperty(
-        default=0,
+        self.hpl_folder_entities_col_pointer = bpy.data.collections[self.hpl_folder_entities_col]
+
+    def get_folder_entities_items(self, context):
+        items = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name:
+            root_collections = [c for c in bpy.data.collections if c.name in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children]
+            items = [(c.name, c.name, "") for c in root_collections]
+        return items
+
+    hpl_folder_entities_col : bpy.props.EnumProperty(
         name='Entity Folder',
         options={'LIBRARY_EDITABLE'},
         description='The folder that the exporter will export entities to',
-        items=update_hpl_folder_entities_col,
-        get=get_hpl_folder_entities_col, 
-        set=set_hpl_folder_entities_col,
+        items=get_folder_entities_items,
+        update=update_hpl_folder_entities_col
     )
 
+    hpl_folder_entities_col_pointer : bpy.props.PointerProperty(
+        name="Entity Folder Collection Pointer",
+        type=bpy.types.Collection
+    )
+
+    #======================
+    #=== STATIC OBJECTS ===
+    #======================
+
     def update_hpl_folder_static_objects_col(self, context):
-        data = []
-        if bpy.context.scene.hpl_parser.hpl_project_root_col:
-            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
-                fdata = (collection.name,collection.name,'')
-                data.append(fdata)
-        return data
-    
-    hpl_folder_static_objects_col: bpy.props.EnumProperty(
-        default=0,
+        self.hpl_folder_static_objects_col_pointer = bpy.data.collections[self.hpl_folder_static_objects_col]
+
+    def get_folder_static_objects_items(self, context):
+        items = []
+        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+            root_collections = [c for c in bpy.data.collections if c.name in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children]
+            items = [(c.name, c.name, "") for c in root_collections]
+        return items
+
+    hpl_folder_static_objects_col : bpy.props.EnumProperty(
         name='Static Objects Folder',
         options={'LIBRARY_EDITABLE'},
         description='The folder that the exporter will export static objects to',
-        items=update_hpl_folder_static_objects_col,
-        get=get_hpl_folder_static_objects_col,
-        set=set_hpl_folder_static_objects_col,
+        items=get_folder_static_objects_items,
+        update=update_hpl_folder_static_objects_col
     )
+
+    hpl_folder_static_objects_col_pointer : bpy.props.PointerProperty(
+        name="Static Objects Folder Collection Pointer",
+        type=bpy.types.Collection
+    )
+
+    #======================
+    #=== PROJECT ==========
+    #======================
+
+    def update_hpl_project_root_col(self, context):
+        self.hpl_project_root_col_pointer = bpy.data.collections[self.hpl_project_root_col]
+
+    def get_project_root_items(self, context):
+        items = []
+        if bool(bpy.context.view_layer.active_layer_collection.collection.children):
+            cols = [c for c in bpy.data.collections if c.name in bpy.context.scene.collection.children]
+            items = [(c.name, c.name, "") for c in cols]
+        return items
     
+    
+    def get_hpl_project_root_col(self):
+        return self.get("hpl_project_root_col", 0)
+
+    def set_hpl_project_root_col(self, value):
+        self['hpl_project_root_col'] = value
+        self.hpl_project_root_col_pointer = bpy.data.collections[self.hpl_project_root_col]
+        hpl_config.hpl_ui_folder_project_root_object_col = None
+        hpl_config.hpl_ui_folder_project_root_name_col = value
+        if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
+            if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
+                bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name)
+                #bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col])
+            hpl_file_system.mod_init()
+
+    hpl_project_root_col : bpy.props.EnumProperty(
+        name='Project Name',
+        options={'LIBRARY_EDITABLE'},
+        description='Should be the name of your Amnesia mod. All map collections go in here',
+        items=get_project_root_items,
+        update=update_hpl_project_root_col,
+        set=set_hpl_project_root_col
+    )
+
+    hpl_project_root_col_pointer : bpy.props.PointerProperty(
+        name="Project Root Collection Pointer",
+        type=bpy.types.Collection
+    )
+    """
     def update_hpl_project_root_col(self, context):
         data = []
         for collection in bpy.context.scene.collection.children:
@@ -402,25 +464,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_project_root_col, 
         set=set_hpl_project_root_col,
     )
-        
-    def update_hpl_map_root_col(self, context):
-        data = []
-        if bpy.context.scene.hpl_parser.hpl_project_root_col:
-            for collection in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children:
-                fdata = (collection.name,collection.name,'')
-                data.append(fdata)
-        return data
-
-    hpl_map_root_col: bpy.props.EnumProperty(
-        default=0,
-        name='Project Name',
-        options={'LIBRARY_EDITABLE'},
-        description='Should be the name of your Amnesia mod. All map collections go in here',
-        items=update_hpl_map_root_col,
-        get=get_hpl_map_root_col, 
-        set=set_hpl_map_root_col,
-    )
-    
+    """
     def update_hpl_base_classes_enum(self, context):
         if not hpl_config.hpl_entity_baseclass_list:
             hpl_config.hpl_entity_baseclass_list = hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
@@ -757,6 +801,14 @@ def draw_panel_3d_content(context, layout):
     layout.use_property_split = True
     layout.use_property_decorate = False
 
+    def draw_addon_panel():
+        col = layout.column(align=True)
+        box = col.box()
+        box.label(text=f'HPL Parser settings', icon='SETTINGS')
+        box.prop(props, "hpl_project_root_col", text='Project Collection', expand=False)
+        box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
+        return
+
     def draw_mod_panel():
         col = layout.column(align=True)
         box = col.box()
@@ -768,18 +820,22 @@ def draw_panel_3d_content(context, layout):
         box.prop(props, "hpl_folder_static_objects_col", text='Static Objects Folder', expand=False)
         return
 
-    col = layout.column(align=True)
     if not bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
+        col = layout.column(align=True)
         box = col.box()
         box.label(text='Set the Game Path in the Addon Settings', icon='ERROR')
-        #box.prop(props, 'hpl_game_root_path', text='Game Path', icon_only = True)
         box.operator("hpl_parser.open_user_preferences")
         return
 
-    col = layout.column(align=True)
-    box = col.box()
     
-    if not bpy.context.scene.hpl_parser.hpl_has_project_col and not bpy.context.scene.hpl_parser.hpl_project_root_col:
+    if hpl_config.hpl_selection_type == hpl_entity_type.ADDON.name:
+        draw_addon_panel()
+        return
+    
+    
+    if not bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:#bpy.context.scene.hpl_parser.hpl_has_project_col and not bpy.context.scene.hpl_parser.hpl_project_root_col:
+        col = layout.column(align=True)
+        box = col.box()
         box.label(text=f'Create a root collection under \'Scene Collection\'', icon= 'ERROR')
         return
     
@@ -792,18 +848,20 @@ def draw_panel_3d_content(context, layout):
             box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_name_col}\" and fix folders.', icon='ERROR')
         return
 
-    singleRow = box.row(align=True)
-    singleRow.prop(props, 'hpl_ui_parser_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_parser_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
-    singleRow.label(text='HPL Parser Settings')
+    #singleRow = box.row(align=True)
+    #singleRow.prop(props, 'hpl_ui_parser_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_parser_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
+    #singleRow.label(text='HPL Parser Settings')
     
-    if props.hpl_ui_parser_settings_menu:
-        box.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
+    #if props.hpl_ui_parser_settings_menu:
+    #    box.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
+    #col = layout.column(align=True)
+    #box = col.box()
         
-    if bpy.context.scene.hpl_parser.hpl_project_root_col:
-        if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-            box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{hpl_config.hpl_ui_folder_project_root_name_col}\'', icon= 'ERROR')
-    else:
-        box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
+    #if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+    #    if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name]):
+    #        box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{hpl_config.hpl_ui_folder_project_root_name_col}\'', icon= 'ERROR')
+    #else:
+    #    box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
 
     col = layout.column(align=True)
     box = col.box()
@@ -861,15 +919,15 @@ def draw_panel_3d_content(context, layout):
     if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
         draw_mod_panel()
 
-    elif hpl_config.hpl_ui_outliner_selection_name == hpl_config.hpl_ui_folder_maps_name_col:
+    elif hpl_config.hpl_selection_type == hpl_entity_type.MAP_FOLDER.name:
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All levels go in here.', icon='FILE_FOLDER')
 
-    elif hpl_config.hpl_ui_outliner_selection_name == hpl_config.hpl_ui_folder_entities_name_col:
+    elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_FOLDER.name:
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All entities go in here.', icon='FILE_FOLDER')
 
-    elif hpl_config.hpl_ui_outliner_selection_name == hpl_config.hpl_ui_folder_static_objects_name_col:
+    elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT_FOLDER.name:
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a folder. All static objects go in here.', icon='FILE_FOLDER')
 
@@ -1143,8 +1201,15 @@ def validate_operational_folder_collections():
     #    return False
     collection_names = [col.name for col in bpy.data.collections]
 
-    if not bpy.context.scene.hpl_parser.hpl_folder_maps_col:
+    if not bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer:
         return False
+    if not bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer:
+        return False
+    if not bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer:
+        return False
+    if not bpy.context.scene.hpl_parser.hpl_startup_map_col_pointer:
+        return False
+    """ 
     if bpy.context.scene.hpl_parser.hpl_folder_maps_col not in collection_names:
         return False
     if not bpy.context.scene.hpl_parser.hpl_folder_entities_col:
@@ -1155,6 +1220,7 @@ def validate_operational_folder_collections():
         return False
     if bpy.context.scene.hpl_parser.hpl_folder_static_objects_col not in collection_names:
         return False
+    """
     return True
 
 def reset_context_selection(undo = False):
@@ -1213,14 +1279,13 @@ def scene_selection_listener_post(self, context):
 
     update_scene_ui()
 
-    #   Check if the project root collection exists.
+    #   Check if a potential project root collection exists.
     bpy.context.scene.hpl_parser.hpl_has_project_col = bool(bpy.context.view_layer.active_layer_collection.collection.children)
 
     #   Check if the project root collection has a 'maps' collection.
-    if bpy.context.scene.hpl_parser.hpl_project_root_col:
-        if any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-            bpy.context.scene.hpl_parser.hpl_has_maps_col = True
-
+    if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+        bpy.context.scene.hpl_parser.hpl_has_maps_col = any([col for col in bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.children if col == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer])
+            
 @persistent 
 def on_load_post(self):
     bpy.context.scene.hpl_parser.hpl_valid_operational_folders = validate_operational_folder_collections()
