@@ -20,7 +20,7 @@ class HPL_OT_ENTITYEXPORTER(bpy.types.Operator):
     bl_idname = "hpl_parser.entityexporter"
     bl_label = "Export Entities"
     bl_description = "This will write all the entities and static objects to disk"
-    bl_options = {'REGISTER', 'UNDO'}
+    ##bl_options = {'REGISTER', 'UNDO'}
     
     @classmethod
     def poll(self, context):
@@ -71,8 +71,8 @@ def write_material_file(mat, root, relative_path):
     
     if texture_slots.get('Base Color'):
         diffuse = xtree.SubElement(texture_untis, 'Diffuse', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['Base Color'])), Mipmaps='true', Type='2D', Wrap='Repeat')
-    if texture_slots.get('Specular'):
-        specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['Specular'])), Mipmaps='true', Type='2D', Wrap='Repeat')
+    if texture_slots.get('IOR'):
+        specular = xtree.SubElement(texture_untis, 'Specular', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['IOR'])), Mipmaps='true', Type='2D', Wrap='Repeat')
     if texture_slots.get('Normal'):
         normalmap = xtree.SubElement(texture_untis, 'NMap', AnimFrameTime='', AnimMode='', File=os.path.join(relative_path, os.path.basename(exported_textures['Normal'])), Mipmaps='true', Type='2D', Wrap='Repeat')
 
@@ -441,7 +441,6 @@ def hpl_export_objects(op):
             # Delete HPL *.msh file. This will be recreated once the Level Editor or game is launched.
             if os.path.isfile(os.path.join(root, relative_path, col_name + '.msh')):
                 os.remove(os.path.join(root, relative_path, col_name + '.msh'))
-            print(len(bpy.context.selected_objects))
             bpy.ops.wm.collada_export(filepath=os.path.join(root, relative_path, col_name), check_existing=False, use_texture_copies = False,\
                                     selected = True, apply_modifiers=True, export_mesh_type_selection ='view', \
                                     export_global_forward_selection = 'Y', export_global_up_selection = 'Z',\

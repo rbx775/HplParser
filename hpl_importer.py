@@ -13,7 +13,7 @@ def is_blend_file_dirty():
 class HPL_OT_INITASSETIMPORTER(bpy.types.Operator):
     bl_idname = "hpl_parser.initassetimporter"
     bl_label = "Discard Unsaved Changes? Esc to cancel."
-    bl_options = {'REGISTER', 'UNDO'}
+    ##bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -37,7 +37,7 @@ class HPL_OT_ASSETIMPORTER(bpy.types.Operator):
     bl_idname = "hpl_parser.assetimporter"
     bl_label = 'Import Game Entities'
     bl_description = "This will import Amnesia entities"
-    bl_options = {'REGISTER', 'UNDO'}
+    #bl_options = {'REGISTER', 'UNDO'}
 
     def modal(self, context: Context, event: Event):# -> Set[int] | Set[str]:
         return super().modal(context, event)
@@ -129,30 +129,30 @@ def hpl_import_assets(op):
                         hpl_config.hpl_asset_categories_dict[subpath][asset]['material'] = mat_file_heuristic
 
         assetlib_name = root.split("\\")[-2]
-        assetlib_path = os.path.dirname(__file__)+'\\'+assetlib_name+'\\'
+        assetlib_path = os.path.join(os.path.dirname(__file__), assetlib_name)
         
-        #check if Assetlibrary folder exists, create if not
+        #   check if Assetlibrary folder exists, create if not
         if not os.path.exists(assetlib_path):
             os.mkdir(assetlib_path)
 
-        #check if Assetlibrary already exists, create if not
-        if not any(aln.name == assetlib_name for aln in bpy.context.preferences.filepaths.asset_libraries):
+        #   check if Assetlibrary already exists, create if not
+        if assetlib_name not in [al.name for al in bpy.context.preferences.filepaths.asset_libraries]:
             bpy.ops.preferences.asset_library_add(directory=assetlib_path, display_type='THUMBNAIL', check_existing = True)
         
-        #The catalogue is just a separate txt file inside the Assetlibrary folder.
-        #Delete and recreate the catalogues everytime the game entities get imported.
+        #   The catalogue is just a separate txt file inside the Assetlibrary folder.
+        #   Delete and recreate the catalogues everytime the game entities get imported.
         hpl_catalogue_io.reset_catalogue(assetlib_path)
         for catalogue_name in dae_valid_sub_folders:
             hpl_catalogue_io.append_catalogue(assetlib_path, catalogue_name)
 
-        #Too many assets for one file(3000+). splitting up by subfolders avoids crashes.
+        #   Too many assets for one file(3000+). splitting up by subfolders avoids crashes.
         for asset_category in hpl_config.hpl_asset_categories_dict:
             reset_blend() #TODO: bpy.ops.wm.read_homefile(use_factory_startup=True, use_empty=True) via persistent handlers might be cleaner.
 
             max_count = 0
             for asset in hpl_config.hpl_asset_categories_dict[asset_category]:
-                if max_count > 14:
-                    pass
+                if not max_count < 1000 and not max_count > 1040:
+                    continue
                 max_count = max_count+1
 
                 bpy.ops.object.select_all(action='DESELECT')
@@ -178,7 +178,7 @@ def hpl_import_assets(op):
                     for u in imported_objs:
                         if u.type != 'MESH':
                             unnecessary_objs.append(u)
-                    bpy.ops.object.delete({"selected_objects": unnecessary_objs})
+                    #bpy.ops.object.delete({"selected_objects": unnecessary_objs})
 
                 filtered_objs = set(bpy.context.scene.objects[:]) - scene_objs
                 if not filtered_objs:
@@ -190,13 +190,14 @@ def hpl_import_assets(op):
                 for obj in filtered_objs:
                     bpy.context.scene.collection.objects.unlink(obj)
                     if obj.active_material:
-                        obj.active_material.diffuse_color[3] = 1 #To avoid fully transparent viewport materials after dae import
+                        #   Avoid transparent viewport materials
+                        obj.active_material.diffuse_color[3] = 1
                 bpy.data.collections[asset].asset_mark()
                 bpy.data.collections[asset].asset_data.catalog_id = hpl_catalogue_io.get_catalogue_id(assetlib_path, asset_category)
 
             if bpy.context.scene.hpl_parser.hpl_create_preview:
                 for col in bpy.data.collections:
-                    if col.asset_data: #check if collection is marked as an asset
+                    if col.asset_data:
                         with bpy.context.temp_override(id=col): #TODO: Check C++ for params
                             bpy.ops.ed.lib_id_generate_preview()
                             #id.preview_ensure()
@@ -206,7 +207,7 @@ def hpl_import_assets(op):
             hpl_material.HPL_MATERIAL.hpl_purge_materials()
             hpl_material.HPL_MATERIAL.hpl_create_materials(asset_category)
 
-            blend_save_path = assetlib_path + asset_category + '.blend'
+            blend_save_path = os.path.join(assetlib_path, asset_category + '.blend')
             bpy.ops.wm.save_mainfile(filepath = blend_save_path, check_existing=False)
 
         if error_list:

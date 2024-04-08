@@ -87,14 +87,14 @@ class HPL_MATERIAL():
 
         dist = 300
         root = bpy.context.scene.hpl_parser.hpl_game_root_path
-        imported_images_ = {'Diffuse':'Diffuse', 'Specular':'Specular', 'NMap':'NormalMap'}
-        imported_images = ['Diffuse', 'Specular', 'NormalMap']
+        imported_images_ = {'Diffuse':'Base Color', 'Specular':'IOR', 'NMap':'NormalMap'}
+        imported_images = ['Base Color', 'IOR', 'NormalMap']
         texture_setup = ['ShaderNodeTexImage', 'ShaderNodeMapping', 'ShaderNodeTexCoord']
         normal_texture_setup = ['ShaderNodeNormalMap', 'ShaderNodeCombineColor', 'ShaderNodeSeparateColor', 'ShaderNodeTexImage', 'ShaderNodeMapping', 'ShaderNodeTexCoord']
         main_types = ['ShaderNodeOutputMaterial', 'ShaderNodeBsdfPrincipled',  texture_setup]
 
-        images_link_dict = {'Diffuse': {'output': 0, 'input': 0}, 'Specular': {'output': 0, 'input': 7}, 'NormalMap': {'output': 0, 'input': 22}}
-        links_dict = {'ShaderNodeOutputMaterial':None, 'ShaderNodeBsdfPrincipled': {'output':[0], 'input': [0]}, 'ShaderNodeNormalMap': {'output':[0], 'input': [22]}, \
+        images_link_dict = {'Base Color': {'output': 0, 'input': 0}, 'IOR': {'output': 0, 'input': 12}, 'NormalMap': {'output': 0, 'input': 5}}
+        links_dict = {'ShaderNodeOutputMaterial':None, 'ShaderNodeBsdfPrincipled': {'output':[0], 'input': [0]}, 'ShaderNodeNormalMap': {'output':[0], 'input': [5]}, \
             'ShaderNodeCombineColor': {'output': [0], 'input': [1]}, 'ShaderNodeSeparateColor': {'output': [0,1,2], 'input': [0,1,2]}, \
             'ShaderNodeTexImage': {'output': [0], 'input': [0]}, 'ShaderNodeMapping': {'output': [0], 'input': [0]}, 'ShaderNodeTexCoord': {'output': [0], 'input': [0]}}
         
@@ -161,8 +161,8 @@ class HPL_MATERIAL():
 
             for obj in [obj for obj in col.all_objects[:] if obj.type == 'MESH']:
                 #Eventhough all materials are purged from the file, objects still can have material slots.
-                for i in range(len(obj.material_slots)):
-                    bpy.ops.object.material_slot_remove({'object': obj})
+                #for i in range(len(obj.material_slots)):
+                #    bpy.ops.object.material_slot_remove({'object': obj})
 
                 if obj.data.materials:
                     obj.data.materials[0] = mat

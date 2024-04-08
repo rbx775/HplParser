@@ -23,7 +23,7 @@ class HPL_OT_DOWNLOADTEXCONV(bpy.types.Operator):
     bl_idname = "hpl_parser.downloadtexconv"
     bl_label = "Get Texture Conversion Tool"
     bl_description = "This will download a necessary texture conversion tool to disk"
-    bl_options = {'REGISTER', 'UNDO'}
+    #bl_options = {'REGISTER', 'UNDO'}
     
     @classmethod
     def poll(self, context):
@@ -44,8 +44,7 @@ class HPL_AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     advancedOptions: bpy.props.BoolProperty(
-        name="organize in collect",
-        description="Create additional collections for effector objects",
+        name="show additional downloads",
         default=False
     )
 
@@ -79,7 +78,9 @@ class HPL_AddonPreferences(bpy.types.AddonPreferences):
         
         if not bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
             return
-
+        
+        #TODO: Import support
+        """ 
         col = layout.column(align=True)
         box = col.box()
         box.label(text='Project Resources')
@@ -88,7 +89,7 @@ class HPL_AddonPreferences(bpy.types.AddonPreferences):
         row.operator(HPL_OT_INITASSETIMPORTER.bl_idname, icon = "IMPORT", text='Import'+bpy.context.scene.hpl_parser.dae_file_count+' Game Assets') #'CONSOLE'
         row = box.row(align=False)
         row.prop(props, 'hpl_create_preview')
-
+        """
 def register():
     bpy.utils.register_class(HPL_AddonPreferences)
     bpy.types.AddonPreferences.hpl_preferences = bpy.props.PointerProperty(type=HPL_AddonPreferences)

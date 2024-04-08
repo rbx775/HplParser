@@ -48,13 +48,10 @@ hpl_ui_outliner_selection_name = ''
 hpl_ui_viewport_selection_name = ''
 hpl_ui_active_material_name = ''
 
+
 hpl_ui_outliner_selection_color_tag = ''
 hpl_ui_outliner_selection_instancer_name = ''
 hpl_ui_outliner_selection_prop_type = ''
-hpl_ui_folder_entities_name_col = ''
-hpl_ui_folder_maps_name_col = ''
-hpl_ui_folder_static_objects_name_col = ''
-hpl_ui_folder_project_root_name_col = ''
 
 hpl_ui_folder_entities_object_col = None
 hpl_ui_folder_maps_object_col = None
@@ -149,7 +146,8 @@ hpl_datacounter = {'HPMTOTALVERTCOUNT' : 0, 'HPMTOTALFACECORNERCOUNT' : 0, \
 
 hpl_exclude_import_subfolders = {'mods' : 'mods', 'editor' : 'editor', 'viewer' : 'viewer'}
 
-hpl_texture_types = {'Diffuse':'Diffuse','NMap':'Normal Map','Specular':'Specular','Height':'Height'}
+#   TODO: Unused
+hpl_texture_types = {'Diffuse':'Base Color','NMap':'Normal Map','Specular':'IOR','Height':'Height'}
 
 hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariables':'ShaderValues'}
 
@@ -490,9 +488,9 @@ texconv_subpath = "\\tools\\texconv.exe"
 texconv_download_path = 'https://github.com/Microsoft/DirectXTex/releases/latest/download/texconv.exe'
 is_texconv_available = False
 
-texture_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}
-texture_default_dict = {'Base Color': "", 'Specular': "", 'Normal': ""}#{'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
-texture_format_dict = {'Base Color': "BC1_UNORM", 'Specular': "BC3_UNORM", 'Normal': "BC5_UNORM"}
+texture_dict = {'Base Color': "", 'IOR': "", 'Normal': ""}
+texture_default_dict = {'Base Color': "", 'IOR': "", 'Normal': ""}#{'Base Color': 'toy_football.dds', 'Specular': 'toy_football_spec.dds', 'Normal': 'toy_football_nrm.dds'}
+texture_format_dict = {'Base Color': "BC1_UNORM", 'IOR': "BC3_UNORM", 'Normal': "BC5_UNORM"}
 
 hpl_wipmod_filename = 'WIPMod.cfg'
 

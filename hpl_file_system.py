@@ -27,7 +27,7 @@ def mod_init(dropdown = False):
         bpy.ops.hpl_parser.create_mod_prompt('INVOKE_DEFAULT', path = mod_path)
         
 
-def recursive_mkdir(path): 
+def recursive_mkdir(path):
 
     if not os.path.exists(path):
 
@@ -55,6 +55,13 @@ def edit_wip_mod():
 def update_wip_mod(documents_folder_path, filename):
 
     filepath = os.path.join(documents_folder_path, filename)
+    var = 'Path'
+
+    with open(filepath, 'w') as f:
+        f.write(f'<WIPmod Path= "{str(eval(hpl_config.hpl_mod_files[filename][var]))}" />')
+
+    return
+    """ 
     with open(filepath, 'r+', encoding='ascii') as f:
         wipMod = xtree.parse(f)
         root = wipMod.getroot()
@@ -63,8 +70,8 @@ def update_wip_mod(documents_folder_path, filename):
         f.seek(0) 
         f.truncate()
 
-        wipMod.write(f, encoding='unicode')
-
+        wipMod.write(f, encoding='ascii')
+    """
 def edit_mod_files(path_generators):
     
     for dirpath, dirnames, filenames in path_generators:
@@ -106,11 +113,12 @@ def create_mod(mod_path):
     user_folders = iter(os.walk(documents_folder_path))
 
     edit_mod_files(chain(mod_folders, user_folders))
+    edit_wip_mod()
 
 class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
     bl_idname = 'hpl_parser.create_mod_prompt'
     bl_label = 'Create Mod? Esc to cancel.'
-    bl_options = {'REGISTER', 'UNDO'}
+    ##bl_options = {'REGISTER', 'UNDO'}
 
     path : bpy.props.StringProperty(name="Path", description="Path to mod", default="", options={'HIDDEN'})
 
@@ -140,7 +148,7 @@ class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
 class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
     bl_idname = 'hpl_parser.open_mod_folder'
     bl_label = 'Open Mod Folder'
-    bl_options = {'REGISTER', 'UNDO'}
+    ##bl_options = {'REGISTER', 'UNDO'}
 
     #path : bpy.props.StringProperty(name="Path", description="Path to mod", default="")
 
@@ -149,5 +157,8 @@ class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
         if os.path.exists(path):
             os.startfile(path)
             return {'FINISHED'}
+        elif not os.path.exists(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods')):
+            os.startfile(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods'))
+            return {'WARNING'}
         return {'CANCELLED'}
 

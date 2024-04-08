@@ -56,9 +56,8 @@ bl_info = {
     "name" : "hpl_parser",
     "author" : "Christian Friedrich",
     "description" : "",
-    "blender" : (3, 6),
-    "version" : (0, 5, 0),
-    "location" : "",
+    "blender" : (4, 0),
+    "version" : (0, 3, 0),
     "warning" : "",
 	"location": "View3D > Properties Panel",
 	"category": "Object"
@@ -426,13 +425,12 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     def set_hpl_project_root_col(self, value):
         self['hpl_project_root_col'] = value
         self.hpl_project_root_col_pointer = bpy.data.collections[self.hpl_project_root_col]
-        hpl_config.hpl_ui_folder_project_root_object_col = None
-        hpl_config.hpl_ui_folder_project_root_name_col = value
-        if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
-            if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-                bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name)
+        #hpl_config.hpl_ui_folder_project_root_object_col = None
+        #if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
+            #if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
+                #bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name)
                 #bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col])
-            hpl_file_system.mod_init()
+            #hpl_file_system.mod_init()
 
     hpl_project_root_col : bpy.props.EnumProperty(
         name='Project Name',
@@ -806,14 +804,16 @@ def draw_panel_3d_content(context, layout):
         box = col.box()
         box.label(text=f'HPL Parser settings', icon='SETTINGS')
         box.prop(props, "hpl_project_root_col", text='Project Collection', expand=False)
-        box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
+        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+            box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
         return
 
     def draw_mod_panel():
         col = layout.column(align=True)
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
-        box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
+        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+            box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
         box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
         box.prop(props, "hpl_folder_maps_col", text='Maps Folder', expand=False)
         box.prop(props, "hpl_folder_entities_col", text='Entities Folder', expand=False)
@@ -845,7 +845,7 @@ def draw_panel_3d_content(context, layout):
         else:
             col = layout.column(align=True)
             box = col.box()
-            box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_name_col}\" and fix folders.', icon='ERROR')
+            box.label(text=f'Please select \"{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\" and fix folders.', icon='ERROR')
         return
 
     #singleRow = box.row(align=True)
@@ -859,7 +859,7 @@ def draw_panel_3d_content(context, layout):
         
     #if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
     #    if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name]):
-    #        box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{hpl_config.hpl_ui_folder_project_root_name_col}\'', icon= 'ERROR')
+    #        box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\'', icon= 'ERROR')
     #else:
     #    box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
 
@@ -913,7 +913,7 @@ def draw_panel_3d_content(context, layout):
         return
     
     #if not hpl_config.hpl_valid_operational_folders:
-    #    box.label(text=f'Please select \"{hpl_config.hpl_ui_folder_project_root_name_col}\" and fix folders.', icon='ERROR')
+    #    box.label(text=f'Please select \"{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\" and fix folders.', icon='ERROR')
     #    return
 
     if hpl_config.hpl_selection_type == hpl_entity_type.MOD.name:
@@ -963,7 +963,7 @@ def draw_panel_3d_content(context, layout):
             draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
         else:
             box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_project_root_name_col}\", therefore ignored for export.', icon='INFO') 
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\", therefore ignored for export.', icon='INFO') 
 
     elif hpl_config.hpl_selection_type == hpl_entity_type.ENTITY_INSTANCE.name:
         box = col.box()
@@ -986,7 +986,7 @@ def draw_panel_3d_content(context, layout):
             box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a static object.', icon='OUTLINER_COLLECTION' if col_color == 'NONE' else 'COLLECTION_'+col_color)
         else:
             box = col.box()
-            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{hpl_config.hpl_ui_folder_static_objects_name_col}\", therefore ignored for export.', icon='INFO') 
+            box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is not stored in \"{bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name}\", therefore ignored for export.', icon='INFO') 
 
 
     elif hpl_config.hpl_selection_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
@@ -1209,18 +1209,6 @@ def validate_operational_folder_collections():
         return False
     if not bpy.context.scene.hpl_parser.hpl_startup_map_col_pointer:
         return False
-    """ 
-    if bpy.context.scene.hpl_parser.hpl_folder_maps_col not in collection_names:
-        return False
-    if not bpy.context.scene.hpl_parser.hpl_folder_entities_col:
-        return False
-    if bpy.context.scene.hpl_parser.hpl_folder_entities_col not in collection_names:
-        return False
-    if not bpy.context.scene.hpl_parser.hpl_folder_static_objects_col:
-        return False
-    if bpy.context.scene.hpl_parser.hpl_folder_static_objects_col not in collection_names:
-        return False
-    """
     return True
 
 def reset_context_selection(undo = False):

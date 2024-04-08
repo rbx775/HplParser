@@ -27,7 +27,7 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     bl_idname = "hpl_parser.hpmexporter"
     bl_label = "Export Project"
     bl_description = "This will write all assets to disk, to be read by the HPL3 engine"
-    bl_options = {'REGISTER', 'UNDO'}
+    #bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(self, context):
