@@ -436,6 +436,8 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
                 #bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col])
             #hpl_file_system.mod_init()
 
+    hpl_is_mod_folder_availabe: bpy.props.BoolProperty(default=False)
+
     hpl_project_root_col : bpy.props.EnumProperty(
         name='Project Name',
         options={'LIBRARY_EDITABLE'},
@@ -677,27 +679,6 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
         hpl_property_io.hpl_properties.update_selection_properties_by_tag(self.name, self.group_of, self.float_property)
 
     float_property: bpy.props.FloatProperty(get=get_hpl_float_property, set=set_hpl_float_property)
-    '''
-        def get_hpl_joint_set_parent(self):
-        var = [var for var in hpl_config.hpl_outliner_selection.items() if var[0] == 'hplp_v_ConnectedParentBodyID']
-        for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
-            if body == var[0][1]:
-                return b
-                
-        return self.get("hpl_joint_set_parent", 0)
-
-    def set_hpl_joint_set_parent(self, value):
-
-        if not hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedParentBodyID'):
-            parent = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[0]
-            hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = parent
-
-        hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
-        self['hpl_joint_set_parent'] = value
-        hpl_property_io.hpl_properties.check_for_circular_dependency()
-    '''
-
-
     
     def get_hpl_enum_property(self):
         return self.get("enum_property", 0)
@@ -815,14 +796,12 @@ def draw_panel_3d_content(context, layout):
     layout.use_property_split = True
     layout.use_property_decorate = False
 
-    is_mod_folder_availabe = os.path.exists(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name))
-
     def draw_addon_panel():
         col = layout.column(align=True)
         box = col.box()
         box.label(text=f'HPL Parser settings', icon='SETTINGS')
         box.prop(props, "hpl_project_root_col", text='Project Collection', expand=False)
-        if is_mod_folder_availabe:
+        if bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe:
             box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
         return
 
@@ -830,7 +809,7 @@ def draw_panel_3d_content(context, layout):
         col = layout.column(align=True)
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
-        if is_mod_folder_availabe:
+        if bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe:
             box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
         box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
         box.prop(props, "hpl_folder_maps_col", text='Maps Folder', expand=False)
@@ -915,9 +894,10 @@ def draw_panel_3d_content(context, layout):
     col = layout.column(align=False)
 
     singleRow = box.row(align=True)
-    singleRow.enabled = is_mod_folder_availabe
+    singleRow.enabled = bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe
 
     singleRow.operator(HPL_OT_OpenLevelEditor.bl_idname, icon = "SHADING_WIRE")
+    singleRow.separator()
     singleRow.operator(HPL_OT_StartGame.bl_idname, icon = "PLAY")
 
     layout.use_property_split = False
@@ -1335,6 +1315,8 @@ def scene_selection_listener_post(self, context):
     #   Check if the project root collection has a 'maps' collection.
     if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
         bpy.context.scene.hpl_parser.hpl_has_maps_col = any([col for col in bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.children if col == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer])
+
+    bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe = os.path.exists(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name))
     
     #if bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
     #    hpl_config.hpl_game_root_path = bpy.context.scene.hpl_game_root_path
