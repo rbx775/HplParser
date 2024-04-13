@@ -10,7 +10,7 @@ class HPL_MATERIAL():
             node.image.filepath = filepath
             node.image.reload()
 
-    def export_to_png(_image, _from='.png'):
+    def export_to_png(_image):
         
         png = bpy.data.images.load(_image.filepath) if _image.filepath else _image
         png.file_format = 'PNG'
@@ -33,12 +33,12 @@ class HPL_MATERIAL():
 
             #   Is the texture only saved internally within the .blend?
             if not filepath:
-                png, filepath = HPL_MATERIAL.export_to_png(node.image, _from='.png')
+                png, filepath = HPL_MATERIAL.export_to_png(node.image)
                 HPL_MATERIAL.set_texture_to_node(node, png, filepath)
 
             #   Is the texture an .exr file?
-            if '.exr' in filepath:
-                png, filepath = HPL_MATERIAL.export_to_png(node.image, _from='.exr')
+            if filepath.endswith('.exr'):
+                png, filepath = HPL_MATERIAL.export_to_png(node.image)
                 HPL_MATERIAL.set_texture_to_node(node, png, filepath)
 
             hpl_config.texture_dict[tex_node] = filepath

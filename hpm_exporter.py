@@ -147,7 +147,6 @@ def write_hpm_main(map_col, _map_path, _id):
     global_settings = xtree.SubElement(root, "GlobalSettings")
 
     map_var_dict = hpl_property_io.hpl_properties.get_var_from_entity_properties(map_col)
-
     for group in map_var_dict:
         attribute = group.rsplit('_')[-1]
         if attribute == 'Decals':

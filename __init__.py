@@ -17,9 +17,9 @@ import bpy.types
 from bpy.app.handlers import persistent
 import bpy.utils.previews
 from glob import glob
+import subprocess
 import os
 import re
-import random
 from mathutils import Vector, Matrix
 import dataclasses
 
@@ -84,6 +84,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
             if check_for_game_exe(value):
                 bpy.context.scene.hpl_parser.dae_file_count = ' '+str(len(hpl_importer.pre_scan_for_dae_files(value)))
                 bpy.context.scene.hpl_parser.hpl_is_game_root_valid = True
+                hpl_config.hpl_game_root_path = value
             else:
                 bpy.context.scene.hpl_parser.hpl_is_game_root_valid = False
 
@@ -176,9 +177,10 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
 
     hpl_game_root_path: bpy.props.StringProperty(name="game path",
                                         description='Select the game path were the games *.exe is located',
-                                        #default="*.exe;",
+                                        default='C:\\',
+                                        #directory='c:\\Users\\rbx77\\Desktop\\blender-4.2.0-dev\\4.2\\scripts\\addons\\add_mesh_extra_objects\\',
                                         #options={'HIDDEN'},
-                                        subtype="FILE_PATH",                                 
+                                        subtype="DIR_PATH",                                 
                                         get=get_hpl_game_root_path, 
                                         set=set_hpl_game_root_path,
                                         update=update_hpl_game_root_path)
@@ -228,7 +230,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_current_material,
         set=set_hpl_current_material,
     )
-
+    """ 
     def get_hpl_joint_set_child(self):
         var = hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedChildBodyID')
         for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
@@ -248,8 +250,9 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         hpl_property_io.hpl_properties.check_for_circular_dependency()
 
     def update_hpl_joint_set_child(self, context):
-        data = hpl_config.hpl_joint_set_current_dict.keys()
-        return (list(zip(data, data, [''] * len(data))))
+        objects = hpl_config.hpl_joint_set_current_dict.keys()
+        names = [val.name for val in objects]
+        return (list(zip(objects, names, [''] * len(objects))))
     
     hpl_joint_set_child: bpy.props.EnumProperty(
         default=0,
@@ -280,8 +283,9 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         hpl_property_io.hpl_properties.check_for_circular_dependency()
 
     def update_hpl_joint_set_parent(self, context):
-        data = hpl_config.hpl_joint_set_current_dict.keys()
-        return (list(zip(data, data, [''] * len(data))))
+        objects = list(hpl_config.hpl_joint_set_current_dict.values())
+        names = [val.name for val in objects]
+        return (list(zip(objects, names, [''] * len(objects))))
     
     hpl_joint_set_parent: bpy.props.EnumProperty(
         default=0,
@@ -293,7 +297,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         set=set_hpl_joint_set_parent,
     )
 
-    
+    """
     #===================
     #=== STARTUP MAP ===
     #===================
@@ -593,11 +597,17 @@ def draw_custom_property_ui(props, ent, properties, layout):
                 row = box.row()
                 row.use_property_decorate = False
                 row.use_property_split = True
+
                 
                 if type(var[1]) == list:
                     var_name = 'hplp_e_' + var[0][7:]
                     item = properties.get(var_name)
                     row.prop(item, 'enum_property', text=var_name_spaced, expand=False)
+                #elif type(var[1]) == str:
+                    #var_name = 'hplp_e_' + var[0][7:]
+                    #properties.get(var_name).default = bpy.context.scene.hpl_parser.hpl_game_root_path
+                    #row.prop(item, 'file_property', text=var_name_spaced, expand=False, default=bpy.context.scene.hpl_parser.hpl_game_root_path)
+                #    row.prop(ent, f'["{var[0]}"]', text=var_name_spaced, icon_only=True, expand=False, default=bpy.context.scene.hpl_parser.hpl_game_root_path)
                 else:
                     row.prop(ent, f'["{var[0]}"]', text=var_name_spaced, icon_only=True, expand=True if 'color' in var[0] else False)
                 row.enabled = current_group_state
@@ -605,6 +615,10 @@ def draw_custom_property_ui(props, ent, properties, layout):
 ### PROPERTY COLLECTION ###
 class HPLPropertyCollectionEnums(bpy.types.PropertyGroup):
     enum_item: bpy.props.StringProperty()
+
+#def get_mod_path_for_file_default(self):
+    #return os.path.join(os.path.expanduser('~/Documents/HPL3'))
+    #return bpy.context.scene.hpl_parser.hpl_game_root_path if bpy.context.scene.hpl_parser.hpl_game_root_path else os.path.join(os.path.expanduser('~/Documents/HPL3'))
 
 ### PROPERTY COLLECTION ###
 class HPLPropertyCollection(bpy.types.PropertyGroup):
@@ -682,13 +696,17 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
         self['hpl_joint_set_parent'] = value
         hpl_property_io.hpl_properties.check_for_circular_dependency()
     '''
+
+
     
     def get_hpl_enum_property(self):
         return self.get("enum_property", 0)
 
     def set_hpl_enum_property(self, value):
         self['enum_property'] = value
+
         hpl_config.hpl_outliner_selection['hplp_v_'+self.name[7:]] = [eval(self.enum_items), self.enum_property]
+
         if self.name in hpl_config.hpl_hierarchy_enums_list:
             hpl_property_io.hpl_properties.check_for_circular_dependency()
 
@@ -696,17 +714,15 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
 
     def update_enum_items(self, context):
         if self.name in hpl_config.hpl_hierarchy_enums_list:
-            hpl_property_io.hpl_properties.update_hierarchy_bodies()
-            return [(item, item, '') for item in list(hpl_config.hpl_joint_set_current_dict)]            
-        else:
-            return [(item, item, '') for item in eval(self.enum_items[1:-1])]
+            return [(item.name, item.name, '') for item in hpl_config.hpl_joint_set_current_list]
+        
+        return [(item, item, '') for item in eval(self.enum_items[1:-1])]
     
     enum_property: bpy.props.EnumProperty(
         default=0,
         items=update_enum_items,
         get=get_hpl_enum_property,
         set=set_hpl_enum_property,
-        #options={'ENUM_FLAG'},
         name='',
     )
 
@@ -799,12 +815,14 @@ def draw_panel_3d_content(context, layout):
     layout.use_property_split = True
     layout.use_property_decorate = False
 
+    is_mod_folder_availabe = os.path.exists(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name))
+
     def draw_addon_panel():
         col = layout.column(align=True)
         box = col.box()
         box.label(text=f'HPL Parser settings', icon='SETTINGS')
         box.prop(props, "hpl_project_root_col", text='Project Collection', expand=False)
-        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+        if is_mod_folder_availabe:
             box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
         return
 
@@ -812,7 +830,7 @@ def draw_panel_3d_content(context, layout):
         col = layout.column(align=True)
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is the root collection.', icon='WORLD')
-        if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
+        if is_mod_folder_availabe:
             box.operator(HPL_OT_OPEN_MOD_FOLDER.bl_idname, icon = "FILE_FOLDER", text='Open Project Folder')
         box.prop(props, "hpl_startup_map_col", text='Startup map', expand=False)
         box.prop(props, "hpl_folder_maps_col", text='Maps Folder', expand=False)
@@ -826,7 +844,6 @@ def draw_panel_3d_content(context, layout):
         box.label(text='Set the Game Path in the Addon Settings', icon='ERROR')
         box.operator("hpl_parser.open_user_preferences")
         return
-
     
     if hpl_config.hpl_selection_type == hpl_entity_type.ADDON.name:
         draw_addon_panel()
@@ -894,6 +911,15 @@ def draw_panel_3d_content(context, layout):
     singleRow.scale_y = 2
     singleRow.operator(HPM_OT_HPMEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
 
+    layout.use_property_split = True
+    col = layout.column(align=False)
+
+    singleRow = box.row(align=True)
+    singleRow.enabled = is_mod_folder_availabe
+
+    singleRow.operator(HPL_OT_OpenLevelEditor.bl_idname, icon = "SHADING_WIRE")
+    singleRow.operator(HPL_OT_StartGame.bl_idname, icon = "PLAY")
+
     layout.use_property_split = False
     col = layout.column(align=False)
     singleRow = box.row(align=True)
@@ -907,10 +933,13 @@ def draw_panel_3d_content(context, layout):
     #box = col.box()
     #box.operator(HPL_OT_RESETPROPERTIES.bl_idname, text='Reset Properties', icon = "FILE_REFRESH")
 
-    col = layout.column(align=True)
-
     if not hpl_config.hpl_outliner_selection:
         return
+    
+    if not hpl_config.hpl_selection_type:
+        return
+
+    col = layout.column(align=True)
     
     #if not hpl_config.hpl_valid_operational_folders:
     #    box.label(text=f'Please select \"{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\" and fix folders.', icon='ERROR')
@@ -1007,7 +1036,7 @@ def draw_panel_3d_content(context, layout):
     #elif hpl_config.hpl_outliner_selection.get('hplp_i_properties', {}).get('EntityType') == hpl_config.hpl_entity_type.JOINT:
     elif hpl_config.hpl_selection_type.endswith('_JOINT'):
         box = col.box()
-        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a joint entity.', icon='OBJECT_DATA') #OBJECT_DATA GHOST_ENABLED OUTLINER_COLLECTION FILE_3D
+        box.label(text=f'\"{hpl_config.hpl_ui_viewport_selection_name}\" is a joint entity.', icon='RESTRICT_INSTANCED_OFF') #RIGID_BODY_CONSTRAINT GHOST_ENABLED OUTLINER_COLLECTION FILE_3D RESTRICT_INSTANCED_OFF
         box.prop(hpl_config.hpl_viewport_selection, "show_name", text="Show Name")
         draw_custom_property_ui(props, hpl_config.hpl_outliner_selection, properties, layout)
         if hpl_config.hpl_joint_set_warning:
@@ -1165,7 +1194,6 @@ class HPL_PT_MAT_CREATE(bpy.types.Panel):
         if hpl_config.hpl_outliner_selection:
             draw_panel_mat_content(context, self.layout)
 
-
 class HPL_OT_OpenUserPreferences(bpy.types.Operator):
     bl_idname = "hpl_parser.open_user_preferences"
     bl_label = "Open Addon Settings"
@@ -1176,10 +1204,38 @@ class HPL_OT_OpenUserPreferences(bpy.types.Operator):
         bpy.ops.preferences.addon_expand(module="HplParser")
         return {'FINISHED'}
 
+class HPL_OT_OpenLevelEditor(bpy.types.Operator):
+    bl_idname = "hpl_parser.open_leveleditor"
+    bl_label = "Launch Level Editor"
+
+    def execute(self, context):
+        level_editor_path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'LevelEditor.exe')
+        
+        subprocess.Popen(level_editor_path)
+
+        #start_map_file =  os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, 'maps', bpy.context.scene.hpl_parser.hpl_startup_map_col_pointer.name+'.hpm')
+        #subprocess.Popen([level_editor_path, f'-f \'{start_map_file}\''])
+        return {'FINISHED'}
+
+class HPL_OT_StartGame(bpy.types.Operator):
+    bl_idname = "hpl_parser.start_game"
+    bl_label = "Launch Mod"
+
+    def execute(self, context):
+        mod_path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'StartMod_'+bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name+'.bat')
+        #  Create a .bat file for convenience.
+        if not os.path.exists(mod_path):
+            hpl_file_system.create_mod_bat(mod_path)
+
+        if not os.path.exists(mod_path):
+            return {'CANCELLED'}
+        
+        subprocess.Popen(['cmd.exe', '/c', mod_path], cwd=os.path.dirname(mod_path))
+        return {'FINISHED'}
+
 def update_scene_ui():
 
     #   Update temporary UI
-    
     entity_enums = hpl_property_io.hpl_properties.get_enum_entity_properties()
     for key, value in entity_enums.items():
 
@@ -1187,6 +1243,12 @@ def update_scene_ui():
 
         item.name = 'hplp_e_' + key.split('hplp_v_')[-1]
 
+        if key in hpl_config.hpl_hierarchy_enums_list:
+            item.enum_items = str([item.name for item in hpl_config.hpl_joint_set_current_list])
+            if value[1]:
+                item.enum_property = value[1]
+            return
+        
         item.enum_items = str(value[0])
         item.enum_property = value[1]
 
@@ -1264,8 +1326,8 @@ def scene_selection_listener_post(self, context):
         hpl_config.main_window = window
 
     hpl_property_io.hpl_properties.update_selection()
-
     update_scene_ui()
+
 
     #   Check if a potential project root collection exists.
     bpy.context.scene.hpl_parser.hpl_has_project_col = bool(bpy.context.view_layer.active_layer_collection.collection.children)
@@ -1273,6 +1335,9 @@ def scene_selection_listener_post(self, context):
     #   Check if the project root collection has a 'maps' collection.
     if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
         bpy.context.scene.hpl_parser.hpl_has_maps_col = any([col for col in bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.children if col == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer])
+    
+    #if bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
+    #    hpl_config.hpl_game_root_path = bpy.context.scene.hpl_game_root_path
             
 @persistent 
 def on_load_post(self):
@@ -1316,6 +1381,8 @@ classes = (
     HPL_AREA_CALLBACK,
     HPL_NODE_CALLBACK,
     HPL_OT_OpenUserPreferences,
+    HPL_OT_OpenLevelEditor,
+    HPL_OT_StartGame,
     HPLPropertyCollection,
     HPLSettingsPropertyGroup,
 )

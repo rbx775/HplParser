@@ -66,7 +66,6 @@ class hpl_properties():
     def get_enum_entity_properties(ent = None):
 
         ent = hpl_config.hpl_outliner_selection if not ent else ent
-
         return {key: value for key, value in ent.items() if type(value) == list}
     
     '''
@@ -296,35 +295,27 @@ class hpl_properties():
             
     def check_for_circular_dependency():
         hpl_config.hpl_joint_set_warning = hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedChildBodyID', [])[1] == hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedParentBodyID', [])[1]
-
+    """ 
     def update_hierarchy_bodies():
-        hpl_config.hpl_joint_set_current_dict = {}
+        hpl_config.hpl_joint_set_current_list = []
         for obj in hpl_config.hpl_outliner_selection.users_collection[0].all_objects[:]:
             if obj.get('hplp_i_properties', {}).get('EntityType', '') == hpl_entity_type.BODY.name:
-                hpl_config.hpl_joint_set_current_dict[obj.name] = obj
+                hpl_config.hpl_joint_set_current_list = obj
+    """
+    def get_hierarchy_bodies(ent = None):
+        
+        if not ent:
+            ent = hpl_config.hpl_outliner_selection
 
-    def get_relative_body_hierarchy(joint):
-        parent = None
-        child = None
+        body_list = []
+        for obj in ent.users_collection[0].all_objects[:]:
+            if obj.get('hplp_i_properties', {}).get('EntityType', '') == hpl_entity_type.BODY.name:
+                #obj = bpy.data.objects["Cube"]
+                #obj["hplp_s_"] = "unique_id_1"
+                body_list.append(bpy.data.objects[obj.name])
 
-        def search_for_parents(j):            
-            if j.parent:    
-                if any([var for var in j.parent.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
-                    if j.parent[hpl_config.hpl_internal_type_identifier] == 'Body':
-                        return j.parent
-                    search_for_parents(j.parent)
-
-        def search_for_children(j):
-            for c in j.children_recursive: 
-                if any([var for var in c.items() if var[0] == hpl_config.hpl_internal_type_identifier]):
-                    if  c[hpl_config.hpl_internal_type_identifier] == 'Body':
-                        return c
-                            
-        parent = search_for_parents(joint)
-        if parent:
-            child = search_for_children(parent)        
-
-        return parent, child
+        hpl_config.hpl_joint_set_current_list = body_list
+        #return body_list
     
     def set_entity_state(ent = None, _type = ''):
 
@@ -389,7 +380,6 @@ class hpl_properties():
                     hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT.name)
                     return hpl_entity_type.STATIC_OBJECT.name
             
-            
         ### OBJECT ###
         if sel_identifier == 'Object':
 
@@ -415,12 +405,13 @@ class hpl_properties():
                 ### EMPTY ###
                 elif sel_bl_type == 'EMPTY':
 
+                    #hpl_properties.update_hierarchy_bodies()
                     if entity_properties_type == hpl_entity_type.BODY.name:
-                        hpl_properties.update_hierarchy_bodies()
                         hpl_properties.set_entity_state(sel, hpl_entity_type.BODY.name)
                         return hpl_entity_type.BODY.name
                     
                     elif entity_properties_type.endswith('_JOINT'):
+                        hpl_properties.get_hierarchy_bodies()
                         hpl_properties.set_entity_state(sel, entity_properties_type)
                         hpl_properties.check_for_circular_dependency()
                         return entity_properties_type
@@ -448,11 +439,13 @@ class hpl_properties():
                     if user in bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.children_recursive:
                         if origin in bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.children_recursive:
                             #if entity_properties_type == hpl_entity_type.ENTITY_INSTANCE.name:
+                            hpl_config.hpl_ui_outliner_selection_instancer_name = origin.name
                             hpl_properties.set_entity_state(sel, hpl_entity_type.ENTITY_INSTANCE.name)
                             return hpl_entity_type.ENTITY_INSTANCE.name
                         
                         if origin in bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.children_recursive:
                             #if entity_properties_type == hpl_entity_type.STATIC_OBJECT_INSTANCE.name:
+                            hpl_config.hpl_ui_outliner_selection_instancer_name = origin.name
                             hpl_properties.set_entity_state(sel, hpl_entity_type.STATIC_OBJECT_INSTANCE.name)
                             return hpl_entity_type.STATIC_OBJECT_INSTANCE.name
         return None
@@ -614,6 +607,7 @@ class hpl_properties():
 
                 if variable_type == 'file':
                     id_props.update(subtype='FILE_PATH')       
+                    #id_props.update(default=bpy.context.scene.hpl_parser.hpl_game_root_path)
                             
                 #if 'EnumValues' in value:
                 #    #id_props.update(property_type='Python')

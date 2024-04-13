@@ -220,6 +220,7 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             for var in vars:
                 var_name = var[0].split('_')[-1]
                 if (var_name == 'ConnectedChildBodyID') or (var_name == 'ConnectedParentBodyID'):
+                    #TODO fix error when object is renamed.
                     relation = bpy.context.scene.objects[obj['hplp_v_'+var_name][1]]
                     joint.set(var_name, str(id_dict[relation]['ID']))
                 else:
@@ -569,9 +570,10 @@ def hpl_export_materials(op):
 
         for col in hpl_config.hpl_export_queue[queue_type]:
             for mat in hpl_config.hpl_export_queue[queue_type][col]['mat']:
-                # TODO: Check if material is in use, crashes if no mats are on object.  
-                if bpy.data.materials[mat].users > 0 and bpy.data.materials[mat].get('hplp_i_properties', {}) and bpy.context.scene.hpl_parser.hpl_export_textures:
-                    write_material_file(bpy.data.materials[mat], root, relative_path+'\\')
+                if mat:
+                    # TODO: Check if material is in use, crashes if no mats are on object.  
+                    if bpy.data.materials[mat].users > 0 and bpy.data.materials[mat].get('hplp_i_properties', {}) and bpy.context.scene.hpl_parser.hpl_export_textures:
+                        write_material_file(bpy.data.materials[mat], root, relative_path+'\\')
 
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()

@@ -28,6 +28,8 @@ hpl_var_dict = {}
 hpl_enum_iterator = 0
 hpl_ui_enum_dict = {}
 hpl_joint_set_current_dict = {}
+hpl_joint_set_current_list = []
+
 hpl_joint_set_warning = False
 
 hpl_previous_project_col = None
@@ -47,7 +49,8 @@ hpl_skip_scene_listener = False
 hpl_ui_outliner_selection_name = ''
 hpl_ui_viewport_selection_name = ''
 hpl_ui_active_material_name = ''
-
+#   Needed for non-context reliance in the dynamic ui of user variables.
+hpl_game_root_path = ''
 
 hpl_ui_outliner_selection_color_tag = ''
 hpl_ui_outliner_selection_instancer_name = ''
@@ -292,8 +295,8 @@ hpl_submesh_properties_vars_dict = {'General' :
 ###COLLIDER
 hpl_collider_properties_vars_dict = {'General' :
     {
-        'ConnectedParentBodyID' : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
-        'ConnectedChildBodyID'  : {'Type' : "Enum",   'DefaultValue' : "High",   'EnumValues' : [['Low', 'Medium', 'High', 'VeryHigh'], "High"], 'Description' : ""},
+        'ConnectedParentBodyID' : {'Type' : "Enum",   'DefaultValue' : "",   'EnumValues' : [[''], ""], 'Description' : ""},
+        'ConnectedChildBodyID'  : {'Type' : "Enum",   'DefaultValue' : "",   'EnumValues' : [[''], ""], 'Description' : ""},
     }
 }
 

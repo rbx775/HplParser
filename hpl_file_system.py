@@ -7,11 +7,19 @@ import xml.etree.ElementTree as xtree
 from bpy.types import Context
 from . import hpl_config
 
-def set_startup_map():
+#  Create a .bat file to start the mod
+def create_mod_bat(mod_path = None):
+    project_name = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
+    if not mod_path:
+        bat_file_name = 'StartMod_' + project_name + '.bat'
+        mod_path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, bat_file_name)
+
+    with open(mod_path, 'w') as bat_file:
+        bat_file.write(f'AmnesiaTheBunker_NoSteam.exe -user Dev -mod local:{project_name}\n')
     return
 
+#  Check if the mod exists..
 def mod_check():
-
     root = bpy.context.scene.hpl_parser.hpl_game_root_path
     mod = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
     mod_path = os.path.join(root, 'mods', mod)
@@ -20,15 +28,15 @@ def mod_check():
         return mod_path
     return 1
 
+#   ..if not, prompt the user to create it
 def mod_init(dropdown = False):
     mod_path = mod_check()
 
     if mod_path != 1:
         bpy.ops.hpl_parser.create_mod_prompt('INVOKE_DEFAULT', path = mod_path)
         
-
+#   recursively create necessary folders.
 def recursive_mkdir(path):
-
     if not os.path.exists(path):
 
         folder_list = path.strip().split('\\')
@@ -40,7 +48,6 @@ def recursive_mkdir(path):
                 os.mkdir(_path)
 
 def edit_wip_mod():
-
     package_folder_path = os.path.dirname(os.path.abspath(__file__))
     documents_folder_path = os.path.join(os.path.expanduser('~/Documents'),'HPL3')
 
@@ -73,14 +80,12 @@ def update_wip_mod(documents_folder_path, filename):
         wipMod.write(f, encoding='ascii')
     """
 def edit_mod_files(path_generators):
-    
     for dirpath, dirnames, filenames in path_generators:
         for filename in filenames:
             filepath = os.path.join(dirpath, filename)
             write_mod_files(filepath, filename)
 
 def write_mod_files(filepath, filename):
-
     if filename in hpl_config.hpl_mod_files:            
         #   Open the file in read mode and create a list of lines
         with open(filepath, 'r', encoding='ascii') as file:
@@ -96,7 +101,6 @@ def write_mod_files(filepath, filename):
             file.writelines(lines)
 
 def create_mod(mod_path):
-    
     package_folder_path = os.path.dirname(os.path.abspath(__file__))
     documents_folder_path = os.path.join(os.path.expanduser('~/Documents'),'HPL3')
 
@@ -114,6 +118,7 @@ def create_mod(mod_path):
 
     edit_mod_files(chain(mod_folders, user_folders))
     edit_wip_mod()
+    create_mod_bat()
 
 class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
     bl_idname = 'hpl_parser.create_mod_prompt'
