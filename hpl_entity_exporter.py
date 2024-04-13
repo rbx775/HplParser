@@ -298,15 +298,30 @@ def get_world_matrix(obj):
 def has_valid_export_object(col):
     return any([obj for obj in col.objects if obj.type == 'MESH'])
 
+def get_evaluated_collection(col):
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    for instance in depsgraph.object_instances:
+        if instance.is_instance:  # This is an instance collection
+            if instance.instance_collection == col:
+                return instance.object
+    return None
+
 def is_valid_export_collection(col):
     
+    #col = get_evaluated_collection(col)
+
+    #print(col.name)
+    #print('exclude', col.exclude, 'hide_viewport', col.hide_viewport, 'is_visible',col.is_visible, 'visible_get',col.visible_get())
+
     if col.exclude:
         return False
 
-    #  Check if collection has valid export objects.Switch back to data collections for comparisons
+    #  Check if collection has valid export objects. Switch back to data collections for comparisons
     col = bpy.data.collections[col.name]
-
-    if not col.get('hplp_i_properties', {}).get('EntityType', ''):
+    
+    if col.hide_render:
+        return False
+    elif not col.get('hplp_i_properties', {}).get('EntityType', ''):
         return False
     elif hpl_config.hpl_detail_mesh_identifier in col.name:
         return False
@@ -381,26 +396,26 @@ def hpl_export_objects(op):
 
     #   Get scene and viewlayer visibility states and unhide everything.
     unhidden_vl_collections, unhidden_scene_collections, unhidden_vl_objects, unhidden_scene_objects = unhide_scene_entities()
-    
     #   Eventhough we are working with context overrides \
     #   we need the selection for the DAE Exporter at the end.    
     sel_objs = bpy.context.selected_objects
     act_obj = bpy.context.active_object
 
-    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name
-    map_collection_name = bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name
-    entity_collection_name = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer.name
-    static_object_collection_name = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer.name
+    root_collection = bpy.context.scene.hpl_parser.hpl_project_root_col_pointer
+    entity_collection = bpy.context.scene.hpl_parser.hpl_folder_entities_col_pointer
+    static_object_collection = bpy.context.scene.hpl_parser.hpl_folder_static_objects_col_pointer
+    map_collection = bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer
     root = bpy.context.scene.hpl_parser.hpl_game_root_path + '\\'
-    
-    #TODO: Focused preferences window breaks this. Fix needed.
-    #   Using context to loop through collections to get their state. (enabled/ disabled)
-    viewlayer_entity_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children[entity_collection_name].children if entity_collection_name else []
-    viewlayer_static_collections_list = bpy.context.view_layer.layer_collection.children[root_collection].children[static_object_collection_name].children if static_object_collection_name else []
-    #   Get unique meshes in map collections for a single static_object export each.
-    unique_map_static_objects_list = bpy.context.view_layer.layer_collection.children[root_collection].children[map_collection_name].children if map_collection_name else []
-    #unique_map_static_objects = [map_col.name for map_col in bpy.data.collections[map_collection_name].children] if map_collection_name else []
 
+    view_layer = bpy.context.view_layer
+
+
+    viewlayer_entity_collections_list = view_layer.layer_collection.children[root_collection.name].children[entity_collection.name].children if entity_collection else []
+    viewlayer_static_collections_list = view_layer.layer_collection.children[root_collection.name].children[static_object_collection.name].children if static_object_collection else []
+    #   Get unique meshes in map collections for a single static_object export each.
+    unique_map_static_objects_list = view_layer.layer_collection.children[root_collection.name].children[map_collection.name].children if map_collection else []
+
+    #unique_map_static_objects = [map_col.name for map_col in bpy.data.collections[map_collection_name].children] if map_collection_name else []
     filtered_entity_collections = {col.name : {} for col in list(filter(is_valid_export_collection, viewlayer_entity_collections_list))}
     filtered_static_collections = {col.name : {} for col in list(filter(is_valid_export_collection, viewlayer_static_collections_list))}
     filtered_map_static_objects = {col.name : {} for col in list(filter(is_valid_export_collection, unique_map_static_objects_list))}
@@ -410,7 +425,7 @@ def hpl_export_objects(op):
         'Static_Objects': filtered_static_collections,
         'Map_Static_Objects': filtered_map_static_objects,
     }
-
+    
     for queue_type in hpl_config.hpl_export_queue:
         for col_name in hpl_config.hpl_export_queue[queue_type]:
             parent_list = []
@@ -434,7 +449,7 @@ def hpl_export_objects(op):
 
             bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 
-            relative_path = os.path.join('mods', root_collection, static_object_collection_name) if queue_type != 'Entities' else os.path.join('mods', root_collection, entity_collection_name)
+            relative_path = os.path.join('mods', root_collection.name, static_object_collection.name) if queue_type != 'Entities' else os.path.join('mods', root_collection.name, entity_collection.name)
 
             if not os.path.exists(os.path.join(root, relative_path)):
                 os.mkdir(os.path.join(root, relative_path))

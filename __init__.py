@@ -604,7 +604,11 @@ def draw_custom_property_ui(props, ent, properties, layout):
                 if type(var[1]) == list:
                     var_name = 'hplp_e_' + var[0][7:]
                     item = properties.get(var_name)
-                    row.prop(item, 'enum_property', text=var_name_spaced, expand=False)
+                    try:
+                        row.prop(item, 'enum_property', text=var_name_spaced, expand=False)
+                    except:
+                        print(var_name)
+                        print(item.enum_property, item.enum_items)
                 #elif type(var[1]) == str:
                     #var_name = 'hplp_e_' + var[0][7:]
                     #properties.get(var_name).default = bpy.context.scene.hpl_parser.hpl_game_root_path
@@ -685,17 +689,20 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
 
     def set_hpl_enum_property(self, value):
         self['enum_property'] = value
-
-        hpl_config.hpl_outliner_selection['hplp_v_'+self.name[7:]] = [eval(self.enum_items), self.enum_property]
-
+        print('value',value)
+        print('enum_property', self['enum_property'])
         if self.name in hpl_config.hpl_hierarchy_enums_list:
+            hpl_config.hpl_outliner_selection['hplp_v_'+self.name[7:]] = [hpl_config.hpl_joint_set_current_list, self.enum_property]
             hpl_property_io.hpl_properties.check_for_circular_dependency()
+        else:
+            hpl_config.hpl_outliner_selection['hplp_v_'+self.name[7:]] = [eval(self.enum_items), self.enum_property]
+
 
     enum_items: bpy.props.StringProperty()
 
     def update_enum_items(self, context):
         if self.name in hpl_config.hpl_hierarchy_enums_list:
-            return [(item.name, item.name, '') for item in hpl_config.hpl_joint_set_current_list]
+            return [(item, item, '') for item in hpl_config.hpl_joint_set_current_list]
         
         return [(item, item, '') for item in eval(self.enum_items[1:-1])]
     
@@ -1214,6 +1221,7 @@ class HPL_OT_StartGame(bpy.types.Operator):
         return {'FINISHED'}
 
 def update_scene_ui():
+    
 
     #   Update temporary UI
     entity_enums = hpl_property_io.hpl_properties.get_enum_entity_properties()
@@ -1222,12 +1230,6 @@ def update_scene_ui():
         item = bpy.context.scene.hpl_parser_entity_properties.add() #VARIABLE
 
         item.name = 'hplp_e_' + key.split('hplp_v_')[-1]
-
-        if key in hpl_config.hpl_hierarchy_enums_list:
-            item.enum_items = str([item.name for item in hpl_config.hpl_joint_set_current_list])
-            if value[1]:
-                item.enum_property = value[1]
-            return
         
         item.enum_items = str(value[0])
         item.enum_property = value[1]
@@ -1279,6 +1281,7 @@ def scene_selection_listener_pre(self, context):
 @persistent
 def scene_selection_listener_post(self, context):
 
+    bpy.context.scene.hpl_parser_entity_properties.clear()
     #if not bpy.context.scene.hpl_parser.hpl_valid_operational_folders:
     #    hpl_config.hpl_outliner_selection = bpy.data.collections.get('DemoProjecxt')
     #    hpl_config.hpl_selection_type = hpl_entity_type.MOD.name

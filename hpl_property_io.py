@@ -310,12 +310,9 @@ class hpl_properties():
         body_list = []
         for obj in ent.users_collection[0].all_objects[:]:
             if obj.get('hplp_i_properties', {}).get('EntityType', '') == hpl_entity_type.BODY.name:
-                #obj = bpy.data.objects["Cube"]
-                #obj["hplp_s_"] = "unique_id_1"
-                body_list.append(bpy.data.objects[obj.name])
+                body_list.append(obj.name)
 
         hpl_config.hpl_joint_set_current_list = body_list
-        #return body_list
     
     def set_entity_state(ent = None, _type = ''):
 
