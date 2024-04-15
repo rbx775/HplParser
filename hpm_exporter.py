@@ -243,11 +243,9 @@ def write_hpm_static_objects(map_col, _map_path, _id):
     root_id = random.randint(100000000, 999999999)
     
     unique_object = hpl_config.hpl_export_queue.get('Map_Static_Objects', {}).get(map_col.name,{}).get('dae', None)
-
     
     _number_of_files = len([obj for obj in map_col.objects if obj.is_instancer and obj.get('hplp_i_properties', {}).get('PropType', None) == 'Static_Object' ])
     _number_of_files = _number_of_files + 1 if unique_object else _number_of_files
-
     
     root = xtree.Element('HPLMapTrack_StaticObject', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
@@ -285,9 +283,7 @@ def write_hpm_static_objects(map_col, _map_path, _id):
                 _index = _index + 1
 
     if unique_object:
-
         static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
-        xtree.SubElement(file_index, 'File', Id=str(_index), Path=os.path.join('mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, 'static_objects', map_col.name + '.dae'))
 
         unique_static_object_properties(static_object, map_col.name, root_id, file_object_list.index(map_col.name))
 
@@ -308,7 +304,7 @@ def write_hpm_entity(map_col, _map_path, _id):
 
     root_id = random.randint(100000000, 999999999)
 
-    _number_of_files = len([obj for obj in map_col.objects if obj.is_instancer and obj.get('hplp_i_properties', {}).get('PropType', None) != 'Static_Object' ])
+    _number_of_files = len([obj for obj in map_col.objects if obj.is_instancer and obj.get('hplp_i_properties', {}).get('PropType', None) != 'Static_Object'])
     
     root = xtree.Element('HPLMapTrack_Entity', ID=str(_id), MajorVersion='1', MinorVersion='1')
     section = xtree.SubElement(root, "Section")
@@ -316,30 +312,31 @@ def write_hpm_entity(map_col, _map_path, _id):
     file_index = xtree.SubElement(section, 'FileIndex_Entities', NumOfFiles=str(_number_of_files))
     objects = xtree.SubElement(section, 'Objects')
 
-    entity_files = list(set([obj.get('hplp_i_properties', {}).get('InstancerName', None) for obj in map_col.objects if obj.is_instancer]))
+    entity_files = list(set([obj.get('hplp_i_properties', {}).get('InstancerName', None) for obj in map_col.objects if obj.is_instancer and obj.get('hplp_i_properties', {}).get('PropType', None) != 'Static_Object']))
     for e, entity in enumerate(entity_files):
         xtree.SubElement(file_index, 'File', Id=str(e), Path=get_object_name_path(entity)+'.ent')
     
     _index = 0
     for obj in map_col.objects:
         if obj.is_instancer:
+            if obj.get('hplp_i_properties', {}).get('PropType', None) != 'Static_Object':
 
-            entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
-            user_variables = xtree.SubElement(entity, 'UserVariables')
+                entity = xtree.SubElement(objects, 'Entity', ID=str(root_id+_index))
+                user_variables = xtree.SubElement(entity, 'UserVariables')
 
-            general_properties(entity, obj, root_id, entity_files.index(obj.get('hplp_i_properties', {}).get('InstancerName', None)))
+                general_properties(entity, obj, root_id, entity_files.index(obj.get('hplp_i_properties', {}).get('InstancerName', None)))
 
-            vars = [item for item in obj.items() if 'hplp_v_' in item[0]]
-            for var in vars:
-                var_name = var[0].split('hplp_v_')[-1]
-                if var_name in hpm_config.hpm_entities_properties['Entity']:
-                    entity.set(var_name, str(var[1]))
-                else:
-                    xml_var = xtree.SubElement(user_variables,'Var')
-                    xml_var.set('ObjectId', str(root_id+_index))
-                    xml_var.set('Name', var_name)
-                    xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
-            _index = _index + 1
+                vars = [item for item in obj.items() if 'hplp_v_' in item[0]]
+                for var in vars:
+                    var_name = var[0].split('hplp_v_')[-1]
+                    if var_name in hpm_config.hpm_entities_properties['Entity']:
+                        entity.set(var_name, str(var[1]))
+                    else:
+                        xml_var = xtree.SubElement(user_variables,'Var')
+                        xml_var.set('ObjectId', str(root_id+_index))
+                        xml_var.set('Name', var_name)
+                        xml_var.set('Value', str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
+                _index = _index + 1
                     
     xtree.indent(root, space="    ", level=0)
     xtree.ElementTree(root).write(_map_path)
