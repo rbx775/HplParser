@@ -20,10 +20,8 @@ from glob import glob
 import subprocess
 import os
 import re
-from mathutils import Vector, Matrix
-import dataclasses
+#from mathutils import Vector, Matrix
 
-#from bpy.props import FloatVectorProperty
 from bpy_extras.object_utils import AddObjectHelper, object_data_add
 
 from . import hpl_config
@@ -92,12 +90,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return self.get("hpl_base_classes_enum", 0)
 
     def set_hpl_base_classes_enum(self, value):
-
-        #self['hpl_base_classes_enum'] = value
-
-        #if value != self['hpl_base_classes_enum']:
         self['hpl_base_classes_enum'] = value
-        
         hpl_property_io.hpl_properties.set_entity_type()
         bpy.context.scene.hpl_parser_entity_properties.clear()
         update_scene_ui()
@@ -106,44 +99,23 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         return self.get("hpl_area_classes_enum", 0)
 
     def set_hpl_area_classes_enum(self, value):
-        #if value != self['hpl_area_classes_enum']:
         self['hpl_area_classes_enum'] = value
         
         hpl_property_io.hpl_properties.set_entity_type()
         bpy.context.scene.hpl_parser_entity_properties.clear()
         update_scene_ui()
 
-    def get_hpl_startup_map_col(self):
-        return self.get("hpl_startup_map_col", 0)
-
-    def set_hpl_startup_map_col(self, value):
-        #self['hpl_startup_map_col'] = value    
-        hpl_file_system.set_startup_map()
-    """ 
-    def get_hpl_folder_maps_col(self):
-        return self.get("hpl_folder_maps_col_pointer", 0)
-
-    def set_hpl_folder_maps_col(self, value):
-        #for collection in :
-        #        fdata = (collection.name,collection.name,'')
-        #self['hpl_folder_maps_col'] = bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children[value]
-        self['hpl_folder_maps_col'] = value
-        self['hpl_folder_maps_col_pointer'] = value
-        #bpy.context.scene.hpl_parser.hpl_is_maps_folder_valid = True
-    """
     def get_hpl_folder_entities_col(self):
         return self.get("hpl_folder_entities_col", 0)
 
     def set_hpl_folder_entities_col(self, value):
         self['hpl_folder_entities_col'] = value
-        #bpy.context.scene.hpl_parser.hpl_is_entities_folder_valid = True
         
     def get_hpl_folder_static_objects_col(self):
         return self.get("hpl_folder_static_objects_col", 0)
 
     def set_hpl_folder_static_objects_col(self, value):
         self['hpl_folder_static_objects_col'] = value
-        #bpy.context.scene.hpl_parser.hpl_is_static_objects_folder_valid = True
 
     hpl_area_callback_active : bpy.props.BoolProperty(name="Area Callback Active", default=False)
     hpl_node_callback_active : bpy.props.BoolProperty(name="Node Callback Active", default=False)
@@ -156,9 +128,6 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     hpl_is_game_root_valid : bpy.props.BoolProperty(default=False)
 
     hpl_is_entities_folder_valid : bpy.props.BoolProperty(default=False)
-    #hpl_is_static_objects_folder_valid : bpy.props.BoolProperty(default=False)
-    #hpl_is_maps_folder_valid : bpy.props.BoolProperty(default=False)
-    #hpl_is_project_folder_valid : bpy.props.BoolProperty(default=False)
 
     hpl_valid_operational_folders : bpy.props.BoolProperty(default=False)
 
@@ -178,8 +147,6 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     hpl_game_root_path: bpy.props.StringProperty(name="game path",
                                         description='Select the game path were the games *.exe is located',
                                         default='C:\\',
-                                        #directory='c:\\Users\\rbx77\\Desktop\\blender-4.2.0-dev\\4.2\\scripts\\addons\\add_mesh_extra_objects\\',
-                                        #options={'HIDDEN'},
                                         subtype="DIR_PATH",                                 
                                         get=get_hpl_game_root_path, 
                                         set=set_hpl_game_root_path,
@@ -230,74 +197,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_current_material,
         set=set_hpl_current_material,
     )
-    """ 
-    def get_hpl_joint_set_child(self):
-        var = hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedChildBodyID')
-        for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
-            if body == var[0][1]:
-                return b
-                
-        return self.get("hpl_joint_set_child", 0)
-        
-    def set_hpl_joint_set_child(self, value):
-        
-        if not hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedChildBodyID'):
-            child = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[1]
-            hpl_config.hpl_outliner_selection['hplp_v_ConnectedChildBodyID'] = child
 
-        hpl_config.hpl_outliner_selection['hplp_v_ConnectedChildBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
-        self['hpl_joint_set_child'] = value
-        hpl_property_io.hpl_properties.check_for_circular_dependency()
-
-    def update_hpl_joint_set_child(self, context):
-        objects = hpl_config.hpl_joint_set_current_dict.keys()
-        names = [val.name for val in objects]
-        return (list(zip(objects, names, [''] * len(objects))))
-    
-    hpl_joint_set_child: bpy.props.EnumProperty(
-        default=0,
-        name='Set Joint Child',
-        options={'LIBRARY_EDITABLE'},
-        description='Should be the name of your Amnesia mod. All map collections go in here',
-        items=update_hpl_joint_set_child,
-        get=get_hpl_joint_set_child,
-        set=set_hpl_joint_set_child,
-    )
-    
-    def get_hpl_joint_set_parent(self):
-        var = [var for var in hpl_config.hpl_outliner_selection.items() if var[0] == 'hplp_v_ConnectedParentBodyID']
-        for b, body in enumerate(list(hpl_config.hpl_joint_set_current_dict.values())):
-            if body == var[0][1]:
-                return b
-                
-        return self.get("hpl_joint_set_parent", 0)
-
-    def set_hpl_joint_set_parent(self, value):
-
-        if not hpl_config.hpl_outliner_selection.get('hplp_v_ConnectedParentBodyID'):
-            parent = hpl_property_io.hpl_properties.get_relative_body_hierarchy(hpl_config.hpl_outliner_selection)[0]
-            hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = parent
-
-        hpl_config.hpl_outliner_selection['hplp_v_ConnectedParentBodyID'] = list(hpl_config.hpl_joint_set_current_dict.values())[value]
-        self['hpl_joint_set_parent'] = value
-        hpl_property_io.hpl_properties.check_for_circular_dependency()
-
-    def update_hpl_joint_set_parent(self, context):
-        objects = list(hpl_config.hpl_joint_set_current_dict.values())
-        names = [val.name for val in objects]
-        return (list(zip(objects, names, [''] * len(objects))))
-    
-    hpl_joint_set_parent: bpy.props.EnumProperty(
-        default=0,
-        name='Set Joint Parent',
-        options={'LIBRARY_EDITABLE'},
-        description='Should be the name of your Amnesia mod. All map collections go in here',
-        items=update_hpl_joint_set_parent,
-        get=get_hpl_joint_set_parent,
-        set=set_hpl_joint_set_parent,
-    )
-
-    """
     #===================
     #=== STARTUP MAP ===
     #===================
@@ -389,10 +289,10 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         self.hpl_folder_static_objects_col_pointer = bpy.data.collections[self.hpl_folder_static_objects_col]
 
     def get_folder_static_objects_items(self, context):
-        items = []
+        items = [('NONE', 'Select a collection...', '')]
         if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
             root_collections = [c for c in bpy.data.collections if c.name in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children]
-            items = [(c.name, c.name, "") for c in root_collections]
+            items.extend([(c.name, c.name, "") for c in root_collections])
         return items
 
     hpl_folder_static_objects_col : bpy.props.EnumProperty(
@@ -412,29 +312,16 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
     #=== PROJECT ==========
     #======================
 
-    def update_hpl_project_root_col(self, context):
-        self.hpl_project_root_col_pointer = bpy.data.collections[self.hpl_project_root_col]
-
     def get_project_root_items(self, context):
         items = []
         if bool(bpy.context.view_layer.active_layer_collection.collection.children):
             cols = [c for c in bpy.data.collections if c.name in bpy.context.scene.collection.children]
             items = [(c.name, c.name, "") for c in cols]
         return items
-    
-    
-    def get_hpl_project_root_col(self):
-        return self.get("hpl_project_root_col", 0)
 
     def set_hpl_project_root_col(self, value):
         self['hpl_project_root_col'] = value
         self.hpl_project_root_col_pointer = bpy.data.collections[self.hpl_project_root_col]
-        #hpl_config.hpl_ui_folder_project_root_object_col = None
-        #if hpl_config.hpl_invoke_mod_dialogue != {'RUNNING_MODAL'}:
-            #if not any([col for col in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col]):
-                #bpy.ops.collection.create(name=bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name)
-                #bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col].children.link(bpy.data.collections[bpy.context.scene.hpl_parser.hpl_folder_maps_col])
-            #hpl_file_system.mod_init()
 
     hpl_is_mod_folder_availabe: bpy.props.BoolProperty(default=False)
 
@@ -443,32 +330,14 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         options={'LIBRARY_EDITABLE'},
         description='Should be the name of your Amnesia mod. All map collections go in here',
         items=get_project_root_items,
-        update=update_hpl_project_root_col,
-        set=set_hpl_project_root_col
+        set=set_hpl_project_root_col,
     )
 
     hpl_project_root_col_pointer : bpy.props.PointerProperty(
         name="Project Root Collection Pointer",
         type=bpy.types.Collection
     )
-    """
-    def update_hpl_project_root_col(self, context):
-        data = []
-        for collection in bpy.context.scene.collection.children:
-            fdata = (collection.name,collection.name,'')
-            data.append(fdata)
-        return data
 
-    
-    hpl_project_root_col: bpy.props.EnumProperty(
-        name='Project Name',
-        options={'LIBRARY_EDITABLE'},
-        description='Should be the name of your Amnesia mod. All map collections go in here',
-        items=update_hpl_project_root_col,
-        get=get_hpl_project_root_col, 
-        set=set_hpl_project_root_col,
-    )
-    """
     def update_hpl_base_classes_enum(self, context):
         if not hpl_config.hpl_entity_baseclass_list:
             hpl_config.hpl_entity_baseclass_list = hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
@@ -508,42 +377,7 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         get=get_hpl_area_classes_enum, 
         set=set_hpl_area_classes_enum,
     )
-    '''
-    def update_hpl_handler_selection(self, context):
-        if not hpl_property_io.hpl_properties.entity_baseclass_list:
-            hpl_property_io.hpl_properties.get_base_classes_from_entity_classes()
-        data = ['']
-        for name in hpl_property_io.hpl_properties.entity_baseclass_list:
-            fdata = (name,name,'')
-            data.append(fdata)
-        return data
 
-
-    hpl_handler_selection: bpy.props.EnumProperty(
-        name='Project Name',
-        options={'LIBRARY_EDITABLE'},
-        description='Should be the name of your Amnesia mod. All map collections go in here',
-        items=update_hpl_handler_selection,
-        get=get_hpl_project_root_col, 
-        set=set_hpl_project_root_col,
-    )
-    '''
-    '''
-    backgroundBlur: bpy.props.FloatProperty(name="Background blur", description='',
-                                            default=0.025, min=0, max=1, step=0.0, precision=3, subtype = 'FACTOR',     
-                                            get=getBackgroundBlur,
-                                            set=setBackgroundBlur)
-
-    badgeColorAL: bpy.props.FloatVectorProperty(
-                                            name = "Zoff Badge Color",
-                                            subtype = "COLOR",
-                                            size = 4,
-                                            min = 0.0,
-                                            max = 1.0,
-                                            default = (0.75,0.75,0.75,0.2),
-                                            get=getBadgeColorAL,
-                                            set=setBadgeColorAL)
-    '''
     def update_presets(self, context):
         enum_name = bpy.context.scene.hpl_parser.hpl_parser_preset_enu
         bpy.context.scene.hpl_parser.hpl_parser_preset_nam = enum_name[:-4].title().replace('_',' ')
@@ -604,23 +438,14 @@ def draw_custom_property_ui(props, ent, properties, layout):
                 if type(var[1]) == list:
                     var_name = 'hplp_e_' + var[0][7:]
                     item = properties.get(var_name)
-                    try:
-                        row.prop(item, 'enum_property', text=var_name_spaced, expand=False)
-                    except:
-                        print(var_name)
-                        print(item.enum_property, item.enum_items)
-                #elif type(var[1]) == str:
-                    #var_name = 'hplp_e_' + var[0][7:]
-                    #properties.get(var_name).default = bpy.context.scene.hpl_parser.hpl_game_root_path
-                    #row.prop(item, 'file_property', text=var_name_spaced, expand=False, default=bpy.context.scene.hpl_parser.hpl_game_root_path)
-                #    row.prop(ent, f'["{var[0]}"]', text=var_name_spaced, icon_only=True, expand=False, default=bpy.context.scene.hpl_parser.hpl_game_root_path)
+                    row.prop(item, 'enum_property', text=var_name_spaced, expand=False)
                 else:
                     row.prop(ent, f'["{var[0]}"]', text=var_name_spaced, icon_only=True, expand=True if 'color' in var[0] else False)
                 row.enabled = current_group_state
     
 ### PROPERTY COLLECTION ###
-class HPLPropertyCollectionEnums(bpy.types.PropertyGroup):
-    enum_item: bpy.props.StringProperty()
+#class HPLPropertyCollectionEnums(bpy.types.PropertyGroup):
+#    enum_item: bpy.props.StringProperty()
 
 #def get_mod_path_for_file_default(self):
     #return os.path.join(os.path.expanduser('~/Documents/HPL3'))
@@ -631,7 +456,6 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
 
     def get_hpl_string_property(self):
         return self['string_property']
-        #return self.get("string_property", 0)
 
     def set_hpl_string_property(self, value):
         self['string_property'] = value
@@ -689,8 +513,6 @@ class HPLPropertyCollection(bpy.types.PropertyGroup):
 
     def set_hpl_enum_property(self, value):
         self['enum_property'] = value
-        print('value',value)
-        print('enum_property', self['enum_property'])
         if self.name in hpl_config.hpl_hierarchy_enums_list:
             hpl_config.hpl_outliner_selection['hplp_v_'+self.name[7:]] = [hpl_config.hpl_joint_set_current_list, self.enum_property]
             hpl_property_io.hpl_properties.check_for_circular_dependency()
@@ -850,29 +672,13 @@ def draw_panel_3d_content(context, layout):
             box = col.box()
             box.label(text=f'Please select \"{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\" and fix folders.', icon='ERROR')
         return
-
-    #singleRow = box.row(align=True)
-    #singleRow.prop(props, 'hpl_ui_parser_settings_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_parser_settings_menu else "RIGHTARROW", icon_only = True, emboss = False)
-    #singleRow.label(text='HPL Parser Settings')
     
-    #if props.hpl_ui_parser_settings_menu:
-    #    box.prop(props, "hpl_project_root_col", text='Project Root Collection', expand=False)
-    #col = layout.column(align=True)
-    #box = col.box()
-        
-    #if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
-    #    if not any([col for col in bpy.data.collections if col.name == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer.name]):
-    #        box.label(text=f'Create collections named \'maps\', \'entities\' and \'static_objects\' under \'{bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name}\'', icon= 'ERROR')
-    #else:
-    #    box.label(text=f'Select the project root collection in \'Project Root Collection\' dropdown', icon= 'ERROR')
-
     col = layout.column(align=True)
     box = col.box()
     singleRow = box.row(align=True)
     singleRow.prop(props, 'hpl_ui_tools_menu', icon = "DOWNARROW_HLT" if props.hpl_ui_tools_menu else "RIGHTARROW", icon_only = True, emboss = False)
     singleRow.label(text='HPL Tools')
     if props.hpl_ui_tools_menu:
-        #singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
         singleRow = box.row(align=True)
         singleRow.scale_y = 2
         
@@ -895,7 +701,7 @@ def draw_panel_3d_content(context, layout):
     singleRow = box.row(align=True)
     singleRow.enabled = bpy.context.scene.hpl_parser.hpl_has_maps_col #TODO: rewrite 'enable' props code
     singleRow.scale_y = 2
-    singleRow.operator(HPM_OT_HPMEXPORTER.bl_idname, icon = "EXPORT") #'CONSOLE'
+    singleRow.operator(HPM_OT_HPMEXPORTER.bl_idname, icon = "EXPORT", text = HPM_OT_HPMEXPORTER.bl_label if bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe else 'Create Mod') #'CONSOLE'
 
     layout.use_property_split = True
     col = layout.column(align=False)
@@ -951,6 +757,7 @@ def draw_panel_3d_content(context, layout):
         box = col.box()
         box.label(text=f'\"{hpl_config.hpl_ui_outliner_selection_name}\" is a map.', icon='HOME')
 
+        # TODO: Add static_object properties for unique map assets
         #box.use_property_split = False
         #box.use_property_decorate = True
 
@@ -1080,7 +887,7 @@ class HPL_PT_3D_CREATE(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'HPL Parser'
-    bl_label = "HPL Parser 0.5"
+    bl_label = "HPL Parser 0.3"
     bl_idname = "HPL_PT_CREATE"
 
     @classmethod
@@ -1120,45 +927,6 @@ def draw_panel_mat_content(context, layout):
         box.operator(HPL_OT_RESETMATERIALPROPERTIES.bl_idname, icon = "EXPORT")
         draw_custom_property_ui(props, hpl_config.hpl_active_material, properties, layout)
         return
-    
-        for group in hpl_config.hpl_mat_ui_var_dict:
-
-            layout.use_property_split = False
-            layout.use_property_decorate = True
-
-            #box = layout.box()
-            row = box.row(align=False)
-
-            row.prop(hpl_config.hpl_active_material, f'["{group}"]',
-                icon = "DOWNARROW_HLT" if hpl_config.hpl_active_material[group] else "RIGHTARROW",
-                icon_only = True, emboss = False,
-            )
-            row.label(text=group.rsplit('_')[-1])
-
-            box.use_property_split = True
-            box.use_property_decorate = False
-            
-            if hpl_config.hpl_active_material[group]:
-                if group == hpl_config.hpl_dropdown_identifier+'_'+'JointBase':
-                    box.prop(props, "hpl_joint_set_parent", text='Set Joint Parent', expand=False)
-                    box.prop(props, "hpl_joint_set_child", text='Set Joint Child', expand=False)
-                    if hpl_config.hpl_joint_set_warning:
-                        box.label(text='Circular Dependency', icon='ERROR')
-
-                for var in hpl_config.hpl_mat_ui_var_dict[group]:
-                    singleRow = box.row(align=False)
-                    var_ui_name = re.sub(r"(\w)([A-Z])", r"\1 \2", var[15:].replace('_',' '))
-                    if 'Active' in var:# and is_level:
-                            continue
-                    if hpl_config.hpl_enum_variable_identifier in var:
-                        try:
-                            singleRow.prop(props, 'hpl_enum_prop' + str(list(hpl_config.hpl_ui_enum_dict.keys()).index(var[20:])), text=var_ui_name[5:])
-                        except:
-                            hpl_property_io.hpl_properties.update_selection()
-                    elif hpl_config.hpl_file_variable_identifier in var:
-                        singleRow.prop(props, 'hpl_file_prop3', text=var_ui_name[5:]) 
-                    else:
-                        singleRow.prop(hpl_config.hpl_active_material, f'["{var}"]', icon_only=True, text=var_ui_name, expand=False)
 
 class HPL_PT_MAT_CREATE(bpy.types.Panel):
     bl_space_type = 'NODE_EDITOR'
@@ -1199,9 +967,6 @@ class HPL_OT_OpenLevelEditor(bpy.types.Operator):
         level_editor_path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'LevelEditor.exe')
         
         subprocess.Popen(level_editor_path)
-
-        #start_map_file =  os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name, 'maps', bpy.context.scene.hpl_parser.hpl_startup_map_col_pointer.name+'.hpm')
-        #subprocess.Popen([level_editor_path, f'-f \'{start_map_file}\''])
         return {'FINISHED'}
 
 class HPL_OT_StartGame(bpy.types.Operator):
@@ -1256,18 +1021,8 @@ def validate_operational_folder_collections():
     return True
 
 def reset_context_selection(undo = False):
-
-
-    #   Check if an object has been deleted, also for redo.
-    #if hpl_config.hpl_previous_scene_object_count != len(bpy.data.objects):
     hpl_config.hpl_viewport_selection = None
     hpl_config.hpl_outliner_selection = bpy.context.scene.collection
-
-    #if hpl_config.hpl_previous_scene_collection_count != len(bpy.data.collections):
-    #    hpl_config.hpl_viewport_selection = None
-    #    hpl_config.hpl_outliner_selection = bpy.context.scene.collection
-
-    #hpl_config.hpl_previous_undo_redo = undo
 
 @persistent
 def scene_selection_listener_pre(self, context):
@@ -1288,7 +1043,7 @@ def scene_selection_listener_post(self, context):
     #    return
 
     #   Check if the outliner selection is VALID.
-    #   Do some arbitrary call to see if hpl_outliner_selection is even VALID. NONE != VALID
+    #   Arbitrary call to see if hpl_outliner_selection is even VALID. NONE != VALID
     try:
         sel = hpl_config.hpl_outliner_selection
     except ReferenceError as e:
@@ -1311,16 +1066,14 @@ def scene_selection_listener_post(self, context):
     hpl_property_io.hpl_properties.update_selection()
     update_scene_ui()
 
-
     #   Check if a potential project root collection exists.
     bpy.context.scene.hpl_parser.hpl_has_project_col = bool(bpy.context.view_layer.active_layer_collection.collection.children)
 
     #   Check if the project root collection has a 'maps' collection.
     if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
         bpy.context.scene.hpl_parser.hpl_has_maps_col = any([col for col in bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.children if col == bpy.context.scene.hpl_parser.hpl_folder_maps_col_pointer])
+        bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe = os.path.exists(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name))
 
-    bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe = os.path.exists(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name))
-    
     #if bpy.context.scene.hpl_parser.hpl_is_game_root_valid:
     #    hpl_config.hpl_game_root_path = bpy.context.scene.hpl_game_root_path
             

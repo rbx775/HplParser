@@ -1,9 +1,7 @@
 import os
 import subprocess
-from urllib import request
 
 from . import hpl_entity_exporter
-
 from . import hpl_config
 
 class HPL_TEXTURE():

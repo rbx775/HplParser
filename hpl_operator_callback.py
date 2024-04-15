@@ -27,7 +27,7 @@ class HPL_AREA_CALLBACK(bpy.types.Operator):
 
     def modal(self, context, event):
         if event.type == 'TIMER' and not self.escape:
-            # Check if a new cube has been added to the scene
+            #   Check if a new cube has been added to the scene
             areas = [area for area in bpy.data.objects if area.type == 'MESH' and area.name.startswith("Cube")]
             if len(areas) > self.initial_cube_count:
 
@@ -77,14 +77,11 @@ class HPL_NODE_CALLBACK(bpy.types.Operator):
     bl_label = "Node Callback"
 
     _timer = None
-    #global previous_tool
-    #previous_tool = None
     escape = False
 
     @classmethod
     def poll(cls, context):
-        # Replace this condition with your own
-        #condition = bpy.context.scene.hpl_parser.hpl_area_callback_active
+        #TODO: Deactivate button as long as nodes are not finalized
         return False
 
     def modal(self, context, event):

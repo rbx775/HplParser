@@ -3,11 +3,8 @@ import os
 import math
 import hashlib
 import xml.etree.ElementTree as xtree
-import copy
 import hashlib
 import random
-import mathutils
-import re
 import socket
 
 from glob import glob
@@ -15,10 +12,8 @@ from . import hpl_config
 from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type)
 from . import hpm_config
 from . import hpl_property_io
-from . import hpl_material
 from . import hpl_entity_exporter
 from . import hpl_file_system
-from . import hpl_texture
 from . import hpl_conversion_helper as hpl_convert
 from . import hpl_file_system
 
@@ -27,15 +22,12 @@ class HPM_OT_HPMEXPORTER(bpy.types.Operator):
     bl_idname = "hpl_parser.hpmexporter"
     bl_label = "Export Project"
     bl_description = "This will write all assets to disk, to be read by the HPL3 engine"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(self, context):
         return True
         
     def execute(self, context):
-
-
         if hpl_file_system.mod_check() != 1:
             hpl_file_system.mod_init()
             return {'CANCELLED'}
@@ -67,8 +59,6 @@ def has_player_start(map_col):
     return False
     
 def check_map_validity(map_col):
-    #if not map_col.get('hplp_i_properties', {}).get('EntityType', '') == hpl_config.hpl_entity_type.MAP.name:
-    #    return False
     if not has_player_start(map_col):
         hpl_entity_exporter.add_warning_message(' export aborted because map is missing a PlayerStart Area ', 'Map', map_col.name)
         return False
@@ -88,7 +78,6 @@ def run_python_hook():
                         pass
 
 def load_map_file(file_path):
-
     if os.path.isfile(file_path):
         map_file = ""
         with open(file_path, 'r') as _map_file:
@@ -295,7 +284,6 @@ def write_hpm_static_objects(map_col, _map_path, _id):
                     static_object.set(var_name, str(tuple(var[1])).translate(str.maketrans({'(': '', ')': ''})) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
                 _index = _index + 1
 
-    #_index = 0
     if unique_object:
 
         static_object = xtree.SubElement(objects, 'StaticObject', ID=str(root_id+_index))
@@ -532,6 +520,7 @@ def write_hpm():
             else:
                 write_hpm_placeholder(_map_path, id, container)
 
+# TODO: Implement for modifier reliant workflows.
 def mesh_eval_to_mesh(context, obj):
     deg = context.evaluated_depsgraph_get()
     eval_mesh = obj.evaluated_get(deg).data.copy()

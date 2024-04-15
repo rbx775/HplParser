@@ -4,24 +4,16 @@ from . import hpl_property_io
 
 class HPL_MATERIAL():
 
-    def set_texture_to_node(node, png, filepath):
-        if node.image:
-            node.image = png #bpy.data.images.get(filepath.rsplit('\\')[-1])
-            node.image.filepath = filepath
-            node.image.reload()
-
     def export_to_png(_image):
         
         png = bpy.data.images.load(_image.filepath) if _image.filepath else _image
         png.file_format = 'PNG'
 
         #   TODO make the temp texture save folder a setting in the preferences. So it can be changed by the user.
-        available_img_path = os.path.join(os.path.dirname(_image.filepath), '_export_to_png', os.path.basename(_image.filepath))+'.png'
-        internal_img_path = os.path.join(bpy.path.abspath('//'), '_export_to_png', _image.name)+'.png'
+        blend_file_path = os.path.join(bpy.path.abspath('//'), '_export_to_png', os.path.splitext(_image.name)[0]+'.png')
 
-        _path = available_img_path if _image.filepath else internal_img_path
-        png.save_render(_path)
-        return png, _path
+        png.save_render(blend_file_path)
+        return png, blend_file_path
 
     def find_textures(node, tex_node):
         if node.type == 'TEX_IMAGE':
@@ -34,12 +26,10 @@ class HPL_MATERIAL():
             #   Is the texture only saved internally within the .blend?
             if not filepath:
                 png, filepath = HPL_MATERIAL.export_to_png(node.image)
-                HPL_MATERIAL.set_texture_to_node(node, png, filepath)
 
             #   Is the texture an .exr file?
-            if filepath.endswith('.exr'):
+            if '.exr' in filepath:
                 png, filepath = HPL_MATERIAL.export_to_png(node.image)
-                HPL_MATERIAL.set_texture_to_node(node, png, filepath)
 
             hpl_config.texture_dict[tex_node] = filepath
         
@@ -71,7 +61,7 @@ class HPL_MATERIAL():
         bpy.ops.outliner.orphans_purge(do_recursive=True)
 
     def hpl_load_images(image_info): #TODO: Better function
-        
+
         def check_for_image():
             for img in bpy.data.images:
                 return image_name == img.name
@@ -84,7 +74,6 @@ class HPL_MATERIAL():
                     bpy.data.images.load(image_info[i], check_existing=True)
 
     def hpl_create_shader_for_mat(links, nodes, mat_vars, mat_file):
-
         dist = 300
         root = bpy.context.scene.hpl_parser.hpl_game_root_path
         imported_images_ = {'Diffuse':'Base Color', 'Specular':'IOR', 'NMap':'NormalMap'}
@@ -138,7 +127,7 @@ class HPL_MATERIAL():
                 prev_node = create_nodes(node, prev_node, (-node_count*dist, 0), None)
 
     def hpl_create_materials(category):  
-        
+
         def create_material(id):
             mat = bpy.data.materials.get(id) 
             if mat is None:
@@ -151,8 +140,6 @@ class HPL_MATERIAL():
             return mat
 
         for col in bpy.data.collections:
-            #mat_file = None
-            #if os.path.isfile(hpl_config.hpl_asset_categories_dict[category][col.name]['material']):
             mat_file = hpl_config.hpl_asset_categories_dict[category][col.name]['material']
             mat_vars = hpl_property_io.hpl_properties.get_material_vars(mat_file)
             mat = create_material(col.name)

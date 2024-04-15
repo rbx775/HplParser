@@ -66,19 +66,8 @@ def update_wip_mod(documents_folder_path, filename):
 
     with open(filepath, 'w') as f:
         f.write(f'<WIPmod Path= "{str(eval(hpl_config.hpl_mod_files[filename][var]))}" />')
-
     return
-    """ 
-    with open(filepath, 'r+', encoding='ascii') as f:
-        wipMod = xtree.parse(f)
-        root = wipMod.getroot()
-        root.set('Path', str(eval(hpl_config.hpl_mod_files[filename]['Path'])))
 
-        f.seek(0) 
-        f.truncate()
-
-        wipMod.write(f, encoding='ascii')
-    """
 def edit_mod_files(path_generators):
     for dirpath, dirnames, filenames in path_generators:
         for filename in filenames:
@@ -111,7 +100,8 @@ def create_mod(mod_path):
         
     #   Copy the mod template
     recursive_mkdir(mod_path)
-    shutil.copytree(package_folder_path+'\\ModFiles\\', mod_path, dirs_exist_ok=True)
+    mod_folder = shutil.copytree(package_folder_path+'\\ModFiles\\', mod_path, dirs_exist_ok=True)
+    bpy.context.scene.hpl_parser.hpl_is_mod_folder_availabe = bool(mod_folder)
 
     mod_folders = iter(os.walk(mod_path))
     user_folders = iter(os.walk(documents_folder_path))
@@ -123,7 +113,6 @@ def create_mod(mod_path):
 class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
     bl_idname = 'hpl_parser.create_mod_prompt'
     bl_label = 'Create Mod? Esc to cancel.'
-    ##bl_options = {'REGISTER', 'UNDO'}
 
     path : bpy.props.StringProperty(name="Path", description="Path to mod", default="", options={'HIDDEN'})
 
@@ -153,9 +142,6 @@ class HPL_OT_CREATE_MOD_PROMPT(bpy.types.Operator):
 class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
     bl_idname = 'hpl_parser.open_mod_folder'
     bl_label = 'Open Mod Folder'
-    ##bl_options = {'REGISTER', 'UNDO'}
-
-    #path : bpy.props.StringProperty(name="Path", description="Path to mod", default="")
 
     def execute(self, context):
         path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods', bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name)
@@ -166,4 +152,3 @@ class HPL_OT_OPEN_MOD_FOLDER(bpy.types.Operator):
             os.startfile(os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'mods'))
             return {'WARNING'}
         return {'CANCELLED'}
-

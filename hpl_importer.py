@@ -158,12 +158,10 @@ def hpl_import_assets(op):
                 bpy.ops.object.select_all(action='DESELECT')
                 scene_objs = set(bpy.context.scene.objects[:])
                 dae_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['geometry']
- 
-                #if os.path.isfile(hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']):
-                #    ent_file = hpl_config.hpl_asset_categories_dict[asset_category][asset]['entity']
-                #mat_file = asset_categories_dict[asset_category][asset]['material']
 
-                try: #\entities\cistern\gameplay\oil_flask_ottoman\oil_flask_ottoman.dae & entities\cistern\storage\chained_closet\chained_closet.dae crash the dae importer
+                #TODO: Investigate importer exception for certain files.
+                #   \entities\cistern\gameplay\oil_flask_ottoman\oil_flask_ottoman.dae & entities\cistern\storage\chained_closet\chained_closet.dae crash the dae importer
+                try: 
                     bpy.ops.wm.collada_import(filepath=dae_file)
                 except:
                     error_list.append('Crash: '+dae_file)
@@ -178,6 +176,7 @@ def hpl_import_assets(op):
                     for u in imported_objs:
                         if u.type != 'MESH':
                             unnecessary_objs.append(u)
+                    #TODO: override deletes cause crashes, Investigate
                     #bpy.ops.object.delete({"selected_objects": unnecessary_objs})
 
                 filtered_objs = set(bpy.context.scene.objects[:]) - scene_objs

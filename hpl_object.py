@@ -274,7 +274,6 @@ def add_area(self, context):
         # Create an empty mesh and the object.
     mesh = bpy.data.meshes.new('Area')
     area = bpy.data.objects.new("Area", mesh)
-    #box_shape[hpl_config.hpl_internal_type_identifier] = 'ShapeBox'
     
     area['hplp_i_properties'] = {
                                         'EntityType': hpl_entity_type.AREA.name,
@@ -293,34 +292,7 @@ def add_area(self, context):
     bm.to_mesh(mesh)
     bm.free()
     area.location = bpy.context.scene.cursor.location
-    #object_data_add(context, mesh, operator=self)
     
-
-'''
-class OBJECT_PT_CREATE_ADD_PANEL(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'HPL'
-    bl_label = "HPL Parser"
-    bl_idname = "HPL_PT_CREATE_ADD_PANEL"
-
-    @classmethod
-    def poll(cls, context):
-        return True
-    
-    def execute(self, context, event):
-        pass
-    
-    def invoke(self, context, event):
-        pass
-
-    #def draw(self, context):
-    #    draw_panel_content(context, self.layout)
-        
-    def draw_item(self, context):
-        sub_menu = self.layout.menu(menu=OBJECT_MT_display_presets, text='HPL Object')
-        sub_menu.operator(OBJECT_OT_add_box_shape.bl_idname, icon="PLUGIN")
-'''
 def add_entity(self, context, _type):
     
     #   Signal the scene listener to skip the next couple of scene updates, entity will be initialized from here.
@@ -360,7 +332,6 @@ class OBJECT_MT_display_presets(Menu):
 class OBJECT_OT_add_body(Operator, AddObjectHelper):
     bl_idname = "mesh.add_body"
     bl_label = "HPL Body"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='body')
@@ -369,7 +340,6 @@ class OBJECT_OT_add_body(Operator, AddObjectHelper):
 class OBJECT_OT_add_box_shape(Operator, AddObjectHelper):
     bl_idname = "mesh.add_box_shape"
     bl_label = "HPL Box Shape"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='box')
@@ -378,7 +348,6 @@ class OBJECT_OT_add_box_shape(Operator, AddObjectHelper):
 class OBJECT_OT_add_sphere_shape(Operator, AddObjectHelper):
     bl_idname = "mesh.add_sphere_shape"
     bl_label = "HPL Sphere Shape"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='sphere')
@@ -387,7 +356,6 @@ class OBJECT_OT_add_sphere_shape(Operator, AddObjectHelper):
 class OBJECT_OT_add_cylinder_shape(Operator, AddObjectHelper):
     bl_idname = "mesh.add_cylinder_shape"
     bl_label = "HPL Cylinder Shape"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='cylinder')
@@ -396,7 +364,6 @@ class OBJECT_OT_add_cylinder_shape(Operator, AddObjectHelper):
 class OBJECT_OT_add_capsule_shape(Operator, AddObjectHelper):
     bl_idname = "mesh.add_capsule_shape"
     bl_label = "HPL Capsule Shape"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='capsule')
@@ -405,7 +372,6 @@ class OBJECT_OT_add_capsule_shape(Operator, AddObjectHelper):
 class OBJECT_OT_add_screw_joint(Operator, AddObjectHelper):
     bl_idname = "mesh.add_joint_screw"
     bl_label = "HPL Screw Joint"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='screw')
@@ -414,7 +380,6 @@ class OBJECT_OT_add_screw_joint(Operator, AddObjectHelper):
 class OBJECT_OT_add_slider_joint(Operator, AddObjectHelper):
     bl_idname = "mesh.add_joint_slider"
     bl_label = "HPL Slider Joint"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='slider')
@@ -423,7 +388,6 @@ class OBJECT_OT_add_slider_joint(Operator, AddObjectHelper):
 class OBJECT_OT_add_ball_joint(Operator, AddObjectHelper):
     bl_idname = "mesh.add_joint_ball"
     bl_label = "HPL Ball Joint"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='ball')
@@ -432,7 +396,6 @@ class OBJECT_OT_add_ball_joint(Operator, AddObjectHelper):
 class OBJECT_OT_add_hinge_joint(Operator, AddObjectHelper):
     bl_idname = "mesh.add_joint_hinge"
     bl_label = "HPL Hinge Joint"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='hinge')
@@ -441,7 +404,6 @@ class OBJECT_OT_add_hinge_joint(Operator, AddObjectHelper):
 class OBJECT_OT_add_area(Operator, AddObjectHelper):
     bl_idname = "mesh.add_area"
     bl_label = "HPL Area"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         add_entity(self, context, _type='area')
@@ -453,7 +415,6 @@ class OBJECT_OT_add_area(Operator, AddObjectHelper):
 class OBJECT_MT_ADD_HPL_SHAPE(bpy.types.Menu):
     bl_idname = "OBJECT_MT_ADD_HPL_SHAPE"
     bl_label = "HPL Shape"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def draw(self, context):
         layout = self.layout
@@ -465,7 +426,6 @@ class OBJECT_MT_ADD_HPL_SHAPE(bpy.types.Menu):
 class OBJECT_MT_ADD_HPL_JOINT(bpy.types.Menu):
     bl_idname = "OBJECT_MT_ADD_HPL_JOINT"
     bl_label = "HPL Joint"
-    #bl_options = {'REGISTER', 'UNDO'}
 
     def draw(self, context):
         layout = self.layout
@@ -486,8 +446,6 @@ def menu_hpl_shape(self, context):
 
 def menu_hpl_joint(self, context):
     self.layout.menu("OBJECT_MT_ADD_HPL_JOINT", text="HPL Joint", icon='LIBRARY_DATA_DIRECT')
-
-
 
 # This allows you to right click on a button and link to documentation
 def add_shape_manual_map():

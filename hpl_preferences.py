@@ -23,7 +23,6 @@ class HPL_OT_DOWNLOADTEXCONV(bpy.types.Operator):
     bl_idname = "hpl_parser.downloadtexconv"
     bl_label = "Get Texture Conversion Tool"
     bl_description = "This will download a necessary texture conversion tool to disk"
-    #bl_options = {'REGISTER', 'UNDO'}
     
     @classmethod
     def poll(self, context):
@@ -49,7 +48,6 @@ class HPL_AddonPreferences(bpy.types.AddonPreferences):
     )
 
     def draw(self, context):
-        
         layout = self.layout
         scene = context.scene
         props = scene.hpl_parser
@@ -90,6 +88,7 @@ class HPL_AddonPreferences(bpy.types.AddonPreferences):
         row = box.row(align=False)
         row.prop(props, 'hpl_create_preview')
         """
+        
 def register():
     bpy.utils.register_class(HPL_AddonPreferences)
     bpy.types.AddonPreferences.hpl_preferences = bpy.props.PointerProperty(type=HPL_AddonPreferences)

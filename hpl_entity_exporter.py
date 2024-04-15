@@ -1,16 +1,11 @@
 import bpy
 import os
-import math
 import random
-import time
-import hashlib
 import xml.etree.ElementTree as xtree
 
 from . import hpl_config
 from .hpl_config import (hpl_entity_type, hpl_shape_type, hpl_joint_type)
 
-from . import hpm_config
-from . import hpl_property_io
 from . import hpl_material
 from . import hpl_texture
 from . import hpl_conversion_helper as hpl_convert
@@ -20,7 +15,6 @@ class HPL_OT_ENTITYEXPORTER(bpy.types.Operator):
     bl_idname = "hpl_parser.entityexporter"
     bl_label = "Export Entities"
     bl_description = "This will write all the entities and static objects to disk"
-    ##bl_options = {'REGISTER', 'UNDO'}
     
     @classmethod
     def poll(self, context):
@@ -36,9 +30,6 @@ class HPL_OT_ENTITYEXPORTER(bpy.types.Operator):
         return
 
 def load_xml_file(file_path):
-    #root = bpy.context.scene.hpl_parser.hpl_game_root_path
-    #map_file_path = root + file_path
-
     if os.path.isfile(file_path):
         map_file = ""
         with open(file_path, 'r') as _map_file:
@@ -82,7 +73,6 @@ def write_material_file(mat, root, relative_path):
         mat_var = xtree.SubElement(specific_variables,'Var')
         mat_var.set('Name', hpl_convert.convert_variable_to_hpl(var_name))
         variable = str(var[0])
-        #mat_var.set('Value', str(tuple(mat[variable])).translate(str.maketrans({'(': '', ')': ''})) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else str(mat[variable]))
         mat_var.set('Value', hpl_convert.convert_to_hpl_vec2(mat[variable]) if type(mat[variable]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(mat[variable]))
 
     xtree.indent(material, space="    ", level=0)
@@ -90,7 +80,7 @@ def write_material_file(mat, root, relative_path):
 
 ### Write all *.ent files ###
 def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, transpose_dict):
-    
+
     if hpl_config.hpl_detail_mesh_identifier in obj_col.name:
         return
     
@@ -114,7 +104,6 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
     id_dict = {}
 
     def general_properties(spatial_general, obj):
-
         spatial_general.set('ID', str(id_dict[obj]['ID']))
         spatial_general.set('Name', str(obj.name))
         spatial_general.set('CreStamp', str(0))
@@ -124,28 +113,21 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
         spatial_general.set('Scale', hpl_convert.convert_to_hpl_vector(transpose_dict[obj].to_scale()))
 
     for o, obj in enumerate(obj_list):
-
         if obj.is_instancer:
             continue
 
         id_dict[obj] = {'ID':o, 'Parent':obj.parent, 'Children':obj.children}
         
     for obj in list(id_dict):
-
         if not obj.get('hplp_i_properties', {}) and obj.type != 'MESH':
             continue
 
         entity_type = obj.get('hplp_i_properties', {}).get('EntityType', '')
-        #entity_type = #obj[hpl_config.hpl_internal_type_identifier] if any([var for var in obj.items() if hpl_config.hpl_internal_type_identifier in var[0]]) else None
-        
-        #if not entity_type:
-        #    continue
 
         if entity_type == hpl_entity_type.AREA.name:
             continue
 
         if entity_type == hpl_entity_type.SUBMESH.name or not entity_type:
-
             sub_mesh = xtree.SubElement(mesh, 'SubMesh')
             general_properties(sub_mesh, obj)
 
@@ -158,9 +140,6 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
                 sub_mesh.set(var_name, hpl_convert.convert_variable_to_hpl(var[1]))
 
         elif entity_type.endswith('_LIGHT'):
-
-            #   <PointLight ID="15" Name="Light_Point_1" CreStamp="1703187910" ModStamp="1703187910" WorldPos="1 0 2" Rotation="0 0 0" Scale="1 1 1" CastShadows="false" ShadowResolution="High" ShadowsAffectStatic="true" ShadowsAffectDynamic="true" Radius="1" Gobo="" GoboType="Diffuse" GoboAnimMode="None" GoboAnimFrameTime="1" GoboAnimStartTime="0" DiffuseColor="1 1 1 1" FlickerActive="false" FlickerOnMinLength="0" FlickerOnMaxLength="0" FlickerOnPS="" FlickerOnSound="" FlickerOffMinLength="0" FlickerOffMaxLength="0" FlickerOffPS="" FlickerOffSound="" FlickerOffColor="0 0 0 1" FlickerOffRadius="0" FlickerFade="false" FlickerOnFadeMinLength="0" FlickerOnFadeMaxLength="0" FlickerOffFadeMinLength="0" FlickerOffFadeMaxLength="0" CastDiffuseLight="true" CastSpecularLight="true" Brightness="1" Static="false" CulledByDistance="true" CulledByFog="true" FalloffPow="1" ConnectedLightMaskID="4294967295" />
-
             light = xtree.SubElement(entities, hpl_config.hpl_light_identifier_dict.get(obj.get('hplp_i_properties', {}).get('EntityType', ''),'PointLight'))
             general_properties(light, obj)
 
@@ -170,12 +149,12 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
                 light.set(var_name, hpl_convert.convert_to_hpl_vector(var[1]) if type(var[1]) not in hpl_config.hpl_common_variable_types else hpl_convert.convert_variable_to_hpl(var[1]))
             
         elif entity_type.endswith('_SHAPE'):
-
             shape = xtree.SubElement(shapes, 'Shape')
             general_properties(shape, obj)
 
-            relative_translation = tuple(map(lambda i, j: i - j, obj.location, id_dict[obj]['Parent'].location if id_dict[obj]['Parent'] else (0, 0, 0)))
-            relative_rotation = tuple(map(lambda i, j: i - j, obj.rotation_euler, id_dict[obj]['Parent'].rotation_euler if id_dict[obj]['Parent'] else (0, 0, 0)))
+            #TODO: Investigate relative translation and rotation
+            #relative_translation = tuple(map(lambda i, j: i - j, obj.location, id_dict[obj]['Parent'].location if id_dict[obj]['Parent'] else (0, 0, 0)))
+            #relative_rotation = tuple(map(lambda i, j: i - j, obj.rotation_euler, id_dict[obj]['Parent'].rotation_euler if id_dict[obj]['Parent'] else (0, 0, 0)))
             relative_scale = (1, 1, 1) #TODO: Investigate relative scale
 
             shape.set('RelativeTranslation', hpl_convert.convert_to_hpl_vector((0,0,0)))
@@ -197,8 +176,6 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             children = xtree.SubElement(body, 'Children') #TODO: Check if there are children
             for child_ent in id_dict[obj]['Children']:
                 if child_ent.get('hplp_i_properties', {}).get('EntityType', '').endswith('_SHAPE'):
-                #if any([var for var in child_ent.items() if hpl_config.hpl_internal_type_identifier in var[0]]):
-                #    if 'Shape' in child_ent[hpl_config.hpl_internal_type_identifier]:
                     shape = xtree.SubElement(body, 'Shape')
                     shape.set('ID', str(id_dict[child_ent]['ID']))
                     continue
@@ -213,14 +190,13 @@ def write_entity_file(obj_list, obj_col, root, relative_path, triangle_list, tra
             prop_type = hpl_config.hpl_joint_identifier_dict.get(prop_type, prop_type)
             joint = xtree.SubElement(joints, prop_type)
 
-            #joint = xtree.SubElement(joints, obj[hpl_config.hpl_internal_type_identifier].replace('_',''))
             general_properties(joint, obj)
 
             vars = [var for var in obj.items() if var[0].startswith('hplp_v_')]
             for var in vars:
                 var_name = var[0].split('_')[-1]
                 if (var_name == 'ConnectedChildBodyID') or (var_name == 'ConnectedParentBodyID'):
-                    #TODO fix error when object is renamed.
+                    #TODO Fix error when object is renamed.
                     relation = bpy.context.scene.objects[obj['hplp_v_'+var_name][1]]
                     joint.set(var_name, str(id_dict[relation]['ID']))
                 else:
@@ -307,12 +283,6 @@ def get_evaluated_collection(col):
     return None
 
 def is_valid_export_collection(col):
-    
-    #col = get_evaluated_collection(col)
-
-    #print(col.name)
-    #print('exclude', col.exclude, 'hide_viewport', col.hide_viewport, 'is_visible',col.is_visible, 'visible_get',col.visible_get())
-
     if col.exclude:
         return False
 
@@ -336,24 +306,18 @@ def is_valid_export_collection(col):
     return True
 
 def hide_scene_entities(vl_collections, scene_collections, vl_objects, scene_objects):
-    
     for col in vl_collections['exclude']:
         col.exclude = True
-        
     for col in vl_collections['hide_viewport']:
         col.hide_viewport = True
-        
     for col in scene_collections:
         col.hide_viewport = True
-    
     for obj in vl_objects:
         obj.hide_set(True)
-    
     for obj in scene_objects:
         obj.hide_viewport = True
         
 def unhide_scene_entities():
-
     def get_collections(vl_collection, vl_collections):
         vl_collections.append(vl_collection)
         for child in vl_collection.children:
@@ -393,7 +357,6 @@ def unhide_scene_entities():
     return vl_collections, scene_collections, vl_objects, scene_objects
 
 def hpl_export_objects(op):
-
     #   Get scene and viewlayer visibility states and unhide everything.
     unhidden_vl_collections, unhidden_scene_collections, unhidden_vl_objects, unhidden_scene_objects = unhide_scene_entities()
     #   Eventhough we are working with context overrides \
@@ -546,7 +509,6 @@ def hpl_export_objects(op):
                 f.seek(0)
                 f.write(xml_str)
                 f.truncate()
-
 
             #   Revert object changes we had to make for export.
             for o, obj in enumerate(hpl_config.hpl_export_queue[queue_type][col_name]['dae']):

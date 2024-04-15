@@ -5,36 +5,19 @@ from enum import Enum
 import math
 
 hpl_invoke_mod_dialogue = 1
-hpl_icon_value = 0
-hpl_xml_typevars = 'TypeVars'
-hpl_xml_inherit_attribute = 'InheritsFrom'
-
-hpl_sub_folders = {'config' : 'config', 'entities' : 'entities', 'particles' : 'particles', \
-                    'script' : 'script'}
-
 hpl_asset_filetypes = {'geometry' : '.dae', 'material' : '.mat', 'entity' : '.ent'}
 
 hpl_previous_scene_object_count = math.inf
 hpl_previous_scene_collection_count = math.inf
-hpl_previous_undo_redo = False
 
 #TODO: rename prefixes to cfg instead of hpl. Create new hpl_environments.py and use env as prefix for global variables.
 hpl_asset_material_files = {}
 hpl_asset_entity_files = {}
 hpl_asset_categories_dict = {}
-hpl_ui_var_dict = {}
-hpl_mat_ui_var_dict = {}
-hpl_var_dict = {}
-hpl_enum_iterator = 0
-hpl_ui_enum_dict = {}
-hpl_joint_set_current_dict = {}
 hpl_joint_set_current_list = []
 
 hpl_joint_set_warning = False
-
-hpl_previous_project_col = None
 hpl_previous_scene_collection = []
-hpl_shape_types = ['box','cylinder','capsule','sphere']
 
 hpl_mod_init_files = {'main_init.cfg' : {'Directories' : '','Variables' : '', 'StartMap' : ''}, 'main_settings' : 'main_settings.cfg', 'main_menu' : 'main_menu.cfg'}
 
@@ -56,18 +39,7 @@ hpl_ui_outliner_selection_color_tag = ''
 hpl_ui_outliner_selection_instancer_name = ''
 hpl_ui_outliner_selection_prop_type = ''
 
-hpl_ui_folder_entities_object_col = None
-hpl_ui_folder_maps_object_col = None
-hpl_ui_folder_static_objects_object_col = None
-hpl_ui_folder_project_root_object_col = None
-
 hpl_valid_operational_folders = True
-
-@dataclasses.dataclass
-class EntityTypeData:
-    EntityType: int
-    InstancerName: str
-    state: bool
 
 class hpl_entity_type(Enum):
     NONE = 0
@@ -106,8 +78,6 @@ class hpl_entity_type(Enum):
 
 hpl_selection_type = ''
 hpl_selection_state = False
-hpl_selection_inactive_reason = ''
-hpl_selection_entity_type = None
 
 class hpl_shape_type(Enum):
     BOX = 1
@@ -138,23 +108,9 @@ class hpl_light_type(Enum):
 hpl_entity_baseclass_list = []
 hpl_area_baseclass_list = []
 
-hpl_static_object_class_list = ['Static_Object']
-
-hpl_custom_properties_prefixes_dict = {'Var' : 'hpl_parser_var_'}
-
-hpl_properties = {'entities' : 'editor\\userclasses\\EntityClasses.def'}
-
-hpl_datacounter = {'HPMTOTALVERTCOUNT' : 0, 'HPMTOTALFACECORNERCOUNT' : 0, \
-                    'HPMTOTALEDGECOUNT' : 0, 'HPMTOTALFACECOUNT' : 0}
-
 hpl_exclude_import_subfolders = {'mods' : 'mods', 'editor' : 'editor', 'viewer' : 'viewer'}
 
-#   TODO: Unused
-hpl_texture_types = {'Diffuse':'Base Color','NMap':'Normal Map','Specular':'IOR','Height':'Height'}
-
 hpl_mat_containers = {'Main':'Shader','TextureUnits':'Textures','SpecificVariables':'ShaderValues'}
-
-hpl_dae_containers = {'library_images':'library_images','image':'image','init_from':'init_from'}
 
 hpl_joint_identifier_dict = {'BALL_JOINT' : 'JointBall', 'HINGE_JOINT' : 'JointHinge', 'SLIDER_JOINT' : 'JointSlider', 'SCREW_JOINT' : 'JointScrew'}
 hpl_light_identifier_dict = {'POINT_LIGHT' : 'PointLight', 'SPOT_LIGHT' : 'SpotLight', 'BOX_LIGHT' : 'BoxLight'}
@@ -163,7 +119,6 @@ hpl_light_identifier_dict = {'POINT_LIGHT' : 'PointLight', 'SPOT_LIGHT' : 'SpotL
 hpl_entity_classes_file_sub_path = 'editor\\userclasses\\EntityClasses.def'
 hpl_area_classes_file_sub_path = 'editor\\userclasses\\AreaClasses.def'
 hpl_globals_file_sub_path = 'editor\\userclasses\\Globals.def'
-hpl_hpm_sub_path = 'mods\\maps\\'
 hpl_common_variable_types = [bool, int, float, str, list]
 hpl_int_array_type_identifier_list = ['vector2', 'vector3', 'vector4', 'vec2', 'vec3', 'vec4', 'color', 'color3', 'color4'] 
 
@@ -470,19 +425,7 @@ hpl_spot_light_entity_properties_vars_dict = {**hpl_light_general_vars_dict, **h
 hpl_hierarchy_enums_list = ['hplp_e_ConnectedChildBodyID', 'hplp_e_ConnectedParentBodyID', 'hplp_v_ConnectedChildBodyID', 'hplp_v_ConnectedParentBodyID']
 
 hpl_detail_mesh_identifier = '_detailmesh'
-hpl_variable_identifier = 'hpl_parser_var'
-hpl_enum_variable_identifier = 'hpl_parser_var_enum'
-hpl_file_variable_identifier = 'hpl_parser_var_file'
-hpl_dropdown_identifier = 'hpl_parser_dropdown'
-hpl_entity_type_identifier = 'hpl_enum_entity_type'
-hpl_entity_type_value = 'hpl_enum_entity_type_value'
 hpl_internal_type_identifier = 'hpl_internal_type'
-
-hpl_submesh_identifier = 'SubMesh'
-hpl_shape_identifier = 'Shape'
-hpl_joint_identifier = 'Joint'
-hpl_body_identifier = 'Body'
-
 hpl_export_warnings = {}
 hpl_export_queue = {}
 main_window = None
