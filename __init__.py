@@ -289,10 +289,10 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         self.hpl_folder_static_objects_col_pointer = bpy.data.collections[self.hpl_folder_static_objects_col]
 
     def get_folder_static_objects_items(self, context):
-        items = [('NONE', 'Select a collection...', '')]
+        items = []
         if bpy.context.scene.hpl_parser.hpl_project_root_col_pointer:
             root_collections = [c for c in bpy.data.collections if c.name in bpy.data.collections[bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name].children]
-            items.extend([(c.name, c.name, "") for c in root_collections])
+            items = ([(c.name, c.name, "") for c in root_collections])
         return items
 
     hpl_folder_static_objects_col : bpy.props.EnumProperty(
