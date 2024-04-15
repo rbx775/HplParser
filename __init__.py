@@ -971,9 +971,10 @@ class HPL_OT_OpenLevelEditor(bpy.types.Operator):
 
 class HPL_OT_StartGame(bpy.types.Operator):
     bl_idname = "hpl_parser.start_game"
-    bl_label = "Launch Mod"
+    bl_label = "Launch Game"
 
     def execute(self, context):
+        game_path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'AmnesiaTheBunker_NoSteam.exe')
         mod_path = os.path.join(bpy.context.scene.hpl_parser.hpl_game_root_path, 'StartMod_'+bpy.context.scene.hpl_parser.hpl_project_root_col_pointer.name+'.bat')
         #  Create a .bat file for convenience.
         if not os.path.exists(mod_path):
@@ -982,12 +983,11 @@ class HPL_OT_StartGame(bpy.types.Operator):
         if not os.path.exists(mod_path):
             return {'CANCELLED'}
         
-        subprocess.Popen(['cmd.exe', '/c', mod_path], cwd=os.path.dirname(mod_path))
+        subprocess.Popen(game_path)
+        #subprocess.Popen(['cmd.exe', '/c', mod_path], cwd=os.path.dirname(mod_path))
         return {'FINISHED'}
 
 def update_scene_ui():
-    
-
     #   Update temporary UI
     entity_enums = hpl_property_io.hpl_properties.get_enum_entity_properties()
     for key, value in entity_enums.items():
@@ -1005,7 +1005,6 @@ def hpl_context_update():
     hpl_config.hpl_previous_scene_collection_count = len(bpy.data.collections)
 
 def validate_operational_folder_collections():
-
     #if not bpy.context.scene.hpl_parser.hpl_project_root_col:
     #    return False
     collection_names = [col.name for col in bpy.data.collections]
