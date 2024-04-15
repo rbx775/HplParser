@@ -753,7 +753,11 @@ class hpl_properties():
         elif _type == 'float':
             _value = float(_value.replace('f',''))
         elif _type == 'bool':
-            _value = eval(_value.title())
+            #   workaround for .def file errors
+            if _value.title() == 'True':
+                _value = True
+            else:
+                _value = False
         elif _type == 'enum':
             _value = _value
 
