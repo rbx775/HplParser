@@ -46,6 +46,7 @@ class HPL_MATERIAL():
                 HPL_MATERIAL.find_textures(input.links[0].from_node, tex_node)
 
     def get_textures_from_material(mat):
+        hpl_config.texture_dict = hpl_config.texture_default_dict.copy()
         for node in mat.node_tree.nodes:
             if node.name == 'Material Output':
                 HPL_MATERIAL.find_textures(node, None)
