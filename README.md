@@ -1,19 +1,25 @@
 # HPL Parser - Alpha 0.3
 Blender to HPL3 Engine Parser for Mod Creation.
 
-> [!NOTE]
-❤️ Frictional Games
-
 | Platform  | Game | Blender Versions |
 | :---         |     :---      |         :--- |
 | Windows  | [Amnesia: The Bunker](https://store.steampowered.com/app/1944430/Amnesia_The_Bunker/) | [4.0 - 4.2](https://builder.blender.org/download/daily/)
 
+<details>
+   
+<summary>Installation</summary>
+
+![](https://github.com/rbx775/HplParser/assets/12616633/7e6284c0-1cea-486a-a7e9-8bb53ab69450)
+
+</details>
 
 <details>
    
 <summary>Introductional Video Tutorial</summary>
 
-[![Introductional Video Tutorial](http://img.youtube.com/vi/633A7yWkeQk/0.jpg)](http://www.youtube.com/watch?v=633A7yWkeQk)
+### Click image to redirect to Youtube
+
+[![Introductional Video Tutorial](https://github.com/rbx775/HplParser/assets/12616633/e5ea470c-e8e3-4368-8a54-473e8aa9808e)](http://www.youtube.com/watch?v=ejfHb0TaxOQ )
 
 </details>
 
@@ -62,3 +68,6 @@ Blender to HPL3 Engine Parser for Mod Creation.
 
 
 [Click Here](https://github.com/rbx775/HplParser/issues) to report bugs or request features.
+
+> [!NOTE]
+❤️ Frictional Games
