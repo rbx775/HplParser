@@ -8,6 +8,15 @@ Blender to HPL3 Engine Parser for Mod Creation.
 | :---         |     :---      |         :--- |
 | Windows  | [Amnesia: The Bunker](https://store.steampowered.com/app/1944430/Amnesia_The_Bunker/) | [4.0 - 4.2](https://builder.blender.org/download/daily/)
 
+
+<details>
+   
+<summary>Introductional Video Tutorial</summary>
+
+[![Introductional Video Tutorial](http://img.youtube.com/vi/633A7yWkeQk/0.jpg)](http://www.youtube.com/watch?v=633A7yWkeQk)
+
+</details>
+
 <details>
    
 <summary>Feature details</summary>
