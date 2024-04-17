@@ -19,8 +19,9 @@ Blender to HPL3 Engine Parser for Mod Creation.
 
 ### Click image to redirect to Youtube
 
-[![Introductional Video Tutorial](https://github.com/rbx775/HplParser/assets/12616633/e5ea470c-e8e3-4368-8a54-473e8aa9808e)](http://www.youtube.com/watch?v=ejfHb0TaxOQ )
+[![Introductional Video Tutorial](https://github.com/rbx775/HplParser/assets/12616633/3156fd5b-e673-4f8a-bb3d-0c97bd192a99)](http://www.youtube.com/watch?v=lTv56lPFzf0)
 
+If you want to try the *.blend from the video: https://drive.google.com/file/d/1cl6Nriof7PxaWnpCR9DlMEoNMqUDJz5P/view?usp=drive_link
 </details>
 
 <details>
