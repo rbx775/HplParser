@@ -183,8 +183,6 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         
     def update_hpl_current_material(self, context):
         data = []
-        #for var in list(hpl_config.hpl_ui_enum_dict.values())[2]:
-        #    data.append((var,var,''))
         for mat in bpy.data.materials:
             data.append((mat.name,mat.name,''))
         return data
@@ -209,9 +207,6 @@ class HPLSettingsPropertyGroup(bpy.types.PropertyGroup):
         self['hpl_startup_map_col'] = value
         col = self.get_startup_map_items(bpy.context)[value][1]
         self.hpl_startup_map_col_pointer = bpy.data.collections[col]
-        
-    #def update_hpl_startup_map_col(self, context):
-    #    self.hpl_startup_map_col_pointer = bpy.data.collections[self.hpl_startup_map_col]
 
     def get_startup_map_items(self, context):
         items = [('NONE','Select Collection...','')] if not bpy.context.scene.hpl_parser.hpl_startup_map_col_pointer else []
