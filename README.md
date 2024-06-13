@@ -1,5 +1,6 @@
 # HPL Parser - Alpha 0.3
 Blender to HPL3 Engine Parser for Mod Creation.
+Directly writes to engine native formats, substitutes for the Levelditor, Modeleditor and Materialeditor.
 
 | Platform  | Game | Blender Versions |
 | :---         |     :---      |         :--- |
